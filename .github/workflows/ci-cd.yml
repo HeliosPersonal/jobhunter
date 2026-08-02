@@ -1,0 +1,149 @@
+# CI/CD for JobHunter (F0 T13). Implements docs/engineering/ci-cd.md:
+#   build-and-test (hosted, coverage gate) -> build-images (matrix -> GHCR)
+#   -> terraform + deploy-staging (self-hosted helios runner).
+# Production deployment is out of scope for F0 (gated on F5).
+name: ci-cd
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  # Lowercased repository owner, used for GHCR image names.
+  OWNER_LC: ${{ github.repository_owner }}
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest      # Docker is available here for Testcontainers.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - run: dotnet restore JobHunter.slnx
+
+      # TreatWarningsAsErrors=true makes any warning fail the build.
+      - run: dotnet build JobHunter.slnx --no-restore -c Release
+
+      # The > 90% line+branch coverage gate is enforced inside this step by the Coverlet threshold in
+      # tests/Directory.Build.props — it fails dotnet test itself, not a later reporting step.
+      - run: dotnet test JobHunter.slnx --no-build -c Release --collect:"XPlat Code Coverage" --settings coverage.runsettings
+
+      # Manifests must at least render; an unsubstituted placeholder would surface here as a PR check.
+      - name: Render Kustomize overlays
+        run: |
+          kubectl kustomize k8s/overlays/staging   > /dev/null
+          kubectl kustomize k8s/overlays/production > /dev/null
+
+  build-images:
+    needs: build-and-test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        service: [Api, Worker, Telegram]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lowercase owner
+        run: echo "OWNER_LC=${OWNER_LC,,}" >> "$GITHUB_ENV"
+
+      - name: Lowercase service
+        run: echo "SERVICE_LC=$(echo '${{ matrix.service }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: src/JobHunter.${{ matrix.service }}/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER_LC }}/jobhunter-${{ env.SERVICE_LC }}:${{ github.sha }}
+            ${{ github.ref == 'refs/heads/main' && format('ghcr.io/{0}/jobhunter-{1}:latest', env.OWNER_LC, env.SERVICE_LC) || '' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  terraform:
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: [self-hosted, helios]      # the Kubernetes API is not publicly reachable
+    env:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      TF_VAR_pg_password: ${{ secrets.PG_PASSWORD }}
+      TF_VAR_rabbit_password: ${{ secrets.RABBIT_PASSWORD }}
+      TF_VAR_redis_password: ${{ secrets.REDIS_PASSWORD }}
+      TF_VAR_typesense_api_key: ${{ secrets.TYPESENSE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: terraform init
+        working-directory: terraform
+
+      - id: plan
+        run: terraform plan -detailed-exitcode -out=tfplan
+        working-directory: terraform
+        continue-on-error: true
+
+      - name: Apply (only when changes are present)
+        if: steps.plan.outputs.exitcode == '2'
+        run: terraform apply -auto-approve tfplan
+        working-directory: terraform
+
+  deploy-staging:
+    needs: [build-images, terraform]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: [self-hosted, helios]
+    env:
+      ENV: staging
+      NAMESPACE: apps-staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lowercase owner
+        run: echo "OWNER_LC=${OWNER_LC,,}" >> "$GITHUB_ENV"
+
+      - name: Registry pull secret
+        run: |
+          kubectl create secret docker-registry ghcr-pull-secret \
+            --docker-server=ghcr.io --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GITHUB_TOKEN }} -n "$NAMESPACE" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Substitute placeholders
+        run: |
+          sed -i "s|GITHUB_USERNAME|${OWNER_LC}|g"            k8s/overlays/$ENV/kustomization.yaml
+          sed -i "s|SHA_REPLACED_BY_CICD|${{ github.sha }}|g" k8s/overlays/$ENV/kustomization.yaml
+          sed -i "s|INFISICAL_CLIENT_ID_PLACEHOLDER|${{ secrets.INFISICAL_CLIENT_ID }}|g"         k8s/base/infisical/secret.yaml
+          sed -i "s|INFISICAL_CLIENT_SECRET_PLACEHOLDER|${{ secrets.INFISICAL_CLIENT_SECRET }}|g" k8s/base/infisical/secret.yaml
+          sed -i "s|INFISICAL_PROJECT_ID_PLACEHOLDER|${{ secrets.INFISICAL_PROJECT_ID }}|g"       k8s/base/infisical/secret.yaml
+
+      # Preview before apply so an unsubstituted placeholder is visible in the log, not at pull time.
+      - name: Preview
+        run: kubectl kustomize k8s/overlays/$ENV | head -120
+
+      - name: Apply
+        run: kubectl apply -k k8s/overlays/$ENV
+
+      - name: Wait for rollout
+        run: |
+          for d in jobhunter-api jobhunter-worker jobhunter-telegram; do
+            kubectl rollout status deployment/$d -n "$NAMESPACE" --timeout=8m
+          done
