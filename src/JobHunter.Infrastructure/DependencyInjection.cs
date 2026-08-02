@@ -52,6 +52,10 @@ public static class DependencyInjection
         services.AddScoped<IPlatformMarkerRepository, PlatformMarkerRepository>();
         services.AddScoped<PlatformMarkerQuery>();
 
+        services.AddScoped<ICompanyRepository, CompanyRepository>();
+        services.AddScoped<IJobSourceRepository, JobSourceRepository>();
+        services.AddScoped<IRawPostingRepository, RawPostingRepository>();
+
         services.AddSingleton<RecurringJobRegistry>();
 
         return services;
