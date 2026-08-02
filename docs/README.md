@@ -33,6 +33,7 @@ tags: [index, moc, jobhunter]
 | [[DECISION-LOG]] | Eleven cross-cutting product and process decisions, with what was rejected and why |
 | [[ARCHITECTURE-OPEN-DECISIONS]] | Twelve decisions not yet made, ranked by blast radius |
 | [[IMPLEMENTATION-READINESS]] | The gate between documentation and code: artifact matrix, ten build gates, build order |
+| [[SDLC-AUDIT]] | **Independent review of that gate (2026-08-02) — verdict REJECTED.** 31 defects, 9 blocking, with the remediation required before implementation may begin |
 | [[DECISIONS-MATRIX.uk\|Матриця рішень]] 🇺🇦 | **Reconfiguration control panel** — every decision as a 3–4 option menu with the chosen one marked, its blast radius and the cost of switching. Ukrainian |
 
 ## Architecture
