@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Unit tests for the domain primitives (T02): Result<T>, Error, Entity, ValueObject and the
+    production IClock/IIdGenerator. Pure, fast, no infrastructure.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JobHunter.Domain\JobHunter.Domain.csproj" />
+    <ProjectReference Include="..\JobHunter.TestKit\JobHunter.TestKit.csproj" />
+  </ItemGroup>
+
+</Project>
