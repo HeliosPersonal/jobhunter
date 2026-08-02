@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/JobHunter.Domain/JobHunter.Domain.csproj" />
+    <Project Path="src/JobHunter.Application/JobHunter.Application.csproj" />
+    <Project Path="src/JobHunter.Contracts/JobHunter.Contracts.csproj" />
+    <Project Path="src/JobHunter.Infrastructure/JobHunter.Infrastructure.csproj" />
+    <Project Path="src/JobHunter.Scrapers/JobHunter.Scrapers.csproj" />
+    <Project Path="src/JobHunter.Claude/JobHunter.Claude.csproj" />
+    <Project Path="src/JobHunter.Search/JobHunter.Search.csproj" />
+    <Project Path="src/JobHunter.Api/JobHunter.Api.csproj" />
+    <Project Path="src/JobHunter.Worker/JobHunter.Worker.csproj" />
+    <Project Path="src/JobHunter.Telegram/JobHunter.Telegram.csproj" />
+  </Folder>
+  <Folder Name="/src/Aspire/">
+    <Project Path="src/Aspire/JobHunter.AppHost/JobHunter.AppHost.csproj" />
+    <Project Path="src/Aspire/JobHunter.ServiceDefaults/JobHunter.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/JobHunter.TestKit/JobHunter.TestKit.csproj" />
+    <Project Path="tests/JobHunter.Domain.Tests/JobHunter.Domain.Tests.csproj" />
+    <Project Path="tests/JobHunter.Application.Tests/JobHunter.Application.Tests.csproj" />
+    <Project Path="tests/JobHunter.Infrastructure.Tests/JobHunter.Infrastructure.Tests.csproj" />
+    <Project Path="tests/JobHunter.ArchitectureTests/JobHunter.ArchitectureTests.csproj" />
+  </Folder>
+</Solution>

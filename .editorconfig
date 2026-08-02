@@ -1,0 +1,56 @@
+root = true
+
+# JobHunter — analyzer + style baseline. TreatWarningsAsErrors is on, so any rule left at
+# warning is a build break; the tuning below encodes deliberate design decisions.
+
+[*.cs]
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+charset = utf-8-bom
+trim_trailing_whitespace = true
+end_of_line = crlf
+
+# file-scoped namespaces, expression bodies, var usage — house style.
+csharp_style_namespace_declarations = file_scoped:warning
+dotnet_sort_system_directives_first = true
+
+# --- Deliberate design decisions that override latest-recommended analyzers ---
+
+# CA1000: Result<T>.Success/Failure are the idiomatic factory seam for a Result monad.
+dotnet_diagnostic.CA1000.severity = none
+
+# CA1716: 'Error' is not a C# reserved word; it is the ubiquitous name for a failure reason
+# in a Result pattern and reads far better than 'Fault' or 'Err'. The type is C#-only.
+dotnet_diagnostic.CA1716.severity = none
+
+# CA1848 / CA1727 / CA1873: LoggerMessage source-gen is not warranted for this size of codebase;
+# structured logging discipline is enforced by review and the no-interpolation rule, not by CA1848.
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA1873.severity = none
+
+# CA2007 (ConfigureAwait): irrelevant — no SynchronizationContext in ASP.NET Core / workers.
+dotnet_diagnostic.CA2007.severity = none
+
+# CA1515: making public API internal is not desired for a layered solution with cross-project seams.
+dotnet_diagnostic.CA1515.severity = none
+
+# EF Core generates block-namespace, non-file-scoped migration files. They are tool output, not
+# hand-authored, so the house style rules that would redden them are relaxed here only.
+[**/Migrations/*.cs]
+dotnet_diagnostic.IDE0161.severity = none
+csharp_style_namespace_declarations = block_scoped:silent
+dotnet_diagnostic.CA1861.severity = none
+
+# Test projects: underscore-separated method names are the established xUnit convention
+# (Method_State_Expectation) and read as sentences in test output. CA1707 is disabled for tests only.
+[tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none
+
+[*.{csproj,props,targets,slnx}]
+indent_style = space
+indent_size = 2
+
+[*.{json,yml,yaml}]
+indent_style = space
+indent_size = 2

@@ -430,3 +430,17 @@ FodyWeavers.xsd
 
 # JetBrains IDEs
 .idea/
+
+# JobHunter F0 — secrets, local config, infra state
+.env
+.env.*
+!.env.example
+*.tfvars
+!*.tfvars.example
+kubeconfig
+*.kubeconfig
+kubeconfig*.yaml
+appsettings.Production.json
+.terraform/
+*.tfstate
+*.tfstate.*
