@@ -1,0 +1,17 @@
+{
+  "jobs": [
+    {
+      "title": "Ghost Role A",
+      "updated_at": "2026-07-26T09:00:00-04:00",
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/a",
+      "content": "&lt;p&gt;No id here.&lt;/p&gt;"
+    },
+    {
+      "title": "Ghost Role B",
+      "updated_at": "2026-07-26T10:00:00-04:00",
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/b",
+      "content": "&lt;p&gt;No id here either.&lt;/p&gt;"
+    }
+  ],
+  "meta": { "total": 2 }
+}

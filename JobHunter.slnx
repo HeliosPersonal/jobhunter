@@ -20,6 +20,7 @@
     <Project Path="tests/JobHunter.Domain.Tests/JobHunter.Domain.Tests.csproj" />
     <Project Path="tests/JobHunter.Application.Tests/JobHunter.Application.Tests.csproj" />
     <Project Path="tests/JobHunter.Infrastructure.Tests/JobHunter.Infrastructure.Tests.csproj" />
+    <Project Path="tests/JobHunter.Scrapers.Tests/JobHunter.Scrapers.Tests.csproj" />
     <Project Path="tests/JobHunter.ArchitectureTests/JobHunter.ArchitectureTests.csproj" />
   </Folder>
 </Solution>

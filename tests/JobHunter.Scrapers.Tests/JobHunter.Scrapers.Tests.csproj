@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Fixture and detection suites for the ATS adapters (T05-T09). Every adapter is exercised against
+    recorded payloads with zero network; a fake IHttpClientFactory replays a fixture as the gated
+    response. No Docker, no time dependency.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JobHunter.Scrapers\JobHunter.Scrapers.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Application\JobHunter.Application.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Domain\JobHunter.Domain.csproj" />
+    <ProjectReference Include="..\JobHunter.TestKit\JobHunter.TestKit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Data\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
+</Project>

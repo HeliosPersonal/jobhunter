@@ -1,0 +1,13 @@
+{
+  "jobs": [
+    {
+      "id": 7001,
+      "title": "Site Reliability Engineer",
+      "updated_at": "2026-07-28T09:00:00-04:00",
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/7001",
+      "content": null,
+      "departments": []
+    }
+  ],
+  "meta": { "total": 1 }
+}

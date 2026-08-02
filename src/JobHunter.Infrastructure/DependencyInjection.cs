@@ -116,7 +116,7 @@ public static class DependencyInjection
 
         // The one gated client every ATS adapter resolves by name (SAD §8). Politeness is structural: the
         // handler sets the user-agent, checks SSRF and robots, spends the rate budget and caps the body.
-        services.AddHttpClient(PoliteHttpClientName)
+        services.AddHttpClient(JobHunter.Application.Abstractions.PoliteHttp.ClientName)
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
             {
                 AllowAutoRedirect = false,
@@ -126,7 +126,4 @@ public static class DependencyInjection
             .ConfigureHttpClient((sp, client) =>
                 client.Timeout = sp.GetRequiredService<IOptions<PolitenessOptions>>().Value.RequestTimeout);
     }
-
-    /// <summary>The name of the shared, politeness-gated <see cref="System.Net.Http.HttpClient"/> (QG-2).</summary>
-    public const string PoliteHttpClientName = "jobhunter-polite";
 }

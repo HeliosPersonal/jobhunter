@@ -1,0 +1,19 @@
+{
+  "jobs": [
+    {
+      "id": "not-a-number",
+      "title": "Malformed Id Role",
+      "updated_at": "2026-07-25T09:00:00-04:00",
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/x",
+      "content": "&lt;p&gt;Bad id type.&lt;/p&gt;"
+    },
+    {
+      "id": 9100,
+      "title": "Good Role",
+      "updated_at": "2026-07-25T10:00:00-04:00",
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/9100",
+      "content": "&lt;p&gt;Fine.&lt;/p&gt;"
+    }
+  ],
+  "meta": { "total": 2 }
+}

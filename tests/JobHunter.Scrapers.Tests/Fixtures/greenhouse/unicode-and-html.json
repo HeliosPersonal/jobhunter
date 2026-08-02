@@ -1,0 +1,15 @@
+{
+  "jobs": [
+    {
+      "id": 8001,
+      "title": "Инженер-программист 日本 — Café",
+      "updated_at": "2026-07-27T09:00:00-04:00",
+      "requisition_id": "REQ-8001",
+      "location": { "name": "Zürich, Schweiz" },
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/8001",
+      "content": "&lt;div&gt;&lt;h2&gt;Über die Rolle&lt;/h2&gt;&lt;p&gt;Wir suchen &lt;em&gt;Sie&lt;/em&gt;. Café &amp;amp; Résumé — 日本語 OK.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Go&lt;/li&gt;&lt;li&gt;Rust&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;",
+      "departments": [ { "name": "Engineering" } ]
+    }
+  ],
+  "meta": { "total": 1 }
+}
