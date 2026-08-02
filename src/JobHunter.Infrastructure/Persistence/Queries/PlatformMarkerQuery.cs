@@ -15,9 +15,13 @@ public sealed class PlatformMarkerQuery(INpgsqlConnectionFactory connectionFacto
     {
         await using var connection = await connectionFactory.OpenAsync(cancellationToken);
 
+        // Columns map to PlatformMarkerRow's constructor parameters by name, case-insensitively
+        // (Dapper folds both sides), so snake_case columns bind to PascalCase parameters without
+        // aliasing — except recorded_at, aliased to recordedat so it matches RecordedAt. The
+        // timestamptz-to-DateTimeOffset conversion is handled globally by DapperTypeHandlers.
         var command = new CommandDefinition(
             """
-            SELECT id AS Id, label AS Label, status AS Status, recorded_at AS RecordedAt
+            SELECT id, label, status, recorded_at AS recordedat
             FROM platform_markers
             WHERE status = @Status
             ORDER BY recorded_at DESC

@@ -16,6 +16,10 @@ public interface INpgsqlConnectionFactory
 /// <inheritdoc />
 public sealed class NpgsqlConnectionFactory(string connectionString) : INpgsqlConnectionFactory
 {
+    // The read-side chokepoint: registering the Dapper handlers here guarantees they are in place
+    // before any query runs, whether the factory is created by DI or directly in a test.
+    static NpgsqlConnectionFactory() => DapperTypeHandlers.EnsureRegistered();
+
     private readonly string _connectionString =
         !string.IsNullOrWhiteSpace(connectionString)
             ? connectionString
