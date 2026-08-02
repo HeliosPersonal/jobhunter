@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    ATS adapter layer. Empty in F0 — F1 fills it with the five IJobSource adapters. It exists now so
+    the dependency direction (Hosts → Scrapers → Application → Domain) is asserted by T12 from day one
+    and a later feature adds a class, not a project reference (QG-1).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\JobHunter.Application\JobHunter.Application.csproj" />
+    <ProjectReference Include="..\JobHunter.Domain\JobHunter.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

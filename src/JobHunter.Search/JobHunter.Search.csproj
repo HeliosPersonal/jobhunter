@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Typesense search adapter layer. Empty in F0 — F9 fills it with the ISearchIndex projection.
+    Present now so the dependency direction is guarded by T12 and F9 adds a class, not a project
+    reference (QG-1).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\JobHunter.Application\JobHunter.Application.csproj" />
+    <ProjectReference Include="..\JobHunter.Domain\JobHunter.Domain.csproj" />
+  </ItemGroup>
+
+</Project>
