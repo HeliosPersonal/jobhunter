@@ -1,0 +1,37 @@
+<Project>
+
+  <!-- Inherit the repo-root props (net10.0, nullable, TreatWarningsAsErrors, analysis level). -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+
+    <!-- Coverage gate: > 90% line AND branch (project hard rule, CI-enforced via Coverlet). The
+         composition roots, AppHost, ServiceDefaults and Contracts are excluded by attribute or by
+         [ExcludeFromCodeCoverage]; see CoverletExclude below for assembly-level excludes. -->
+    <Threshold>90</Threshold>
+    <ThresholdType>line,branch</ThresholdType>
+    <ThresholdStat>total</ThresholdStat>
+    <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+
+    <!-- Exclude the deployables' composition roots, the Aspire projects and Contracts from coverage.
+         These are wiring, verified by the system starting, not by unit tests. -->
+    <ExcludeByFile>**/Migrations/*.cs</ExcludeByFile>
+    <ExcludeByAttribute>ExcludeFromCodeCoverageAttribute;GeneratedCodeAttribute</ExcludeByAttribute>
+    <Exclude>[JobHunter.AppHost]*;[JobHunter.ServiceDefaults]*;[JobHunter.Contracts]*;[JobHunter.TestKit]*;[*]*.Migrations.*</Exclude>
+  </PropertyGroup>
+
+  <!-- Test runner + assertion libraries for the actual test projects. TestKit opts out
+       (IsTestProject=false) so it stays a plain fixture library. -->
+  <ItemGroup Condition="'$(IsTestProject)' == 'true'">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="coverlet.msbuild" />
+  </ItemGroup>
+
+</Project>

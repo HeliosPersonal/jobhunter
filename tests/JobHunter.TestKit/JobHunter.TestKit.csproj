@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Shared test doubles and fixtures used by every test project (SAD §5): FakeClock,
+    SequentialIdGenerator, the Testcontainers TestDatabase and the artifact scanner. It is a library,
+    not a test project — no test runner, no coverage threshold — so its consumers do not pay for it.
+  -->
+  <PropertyGroup>
+    <IsTestProject>false</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JobHunter.Domain\JobHunter.Domain.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Infrastructure\JobHunter.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Testcontainers.RabbitMq" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <!-- TestKit exposes RequiresDockerFact, so it needs the xunit primitives (but not the runner). -->
+    <PackageReference Include="xunit" />
+  </ItemGroup>
+
+</Project>
