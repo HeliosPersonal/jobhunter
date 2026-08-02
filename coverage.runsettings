@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Coverage collection for CI (ci-cd §2). The > 90% line+branch gate itself is enforced by the
+     Coverlet MSBuild threshold in tests/Directory.Build.props, so it fails the `dotnet test` step
+     rather than a separate reporting step. This file only shapes what XPlat Code Coverage collects. -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <ExcludeByAttribute>ExcludeFromCodeCoverageAttribute,GeneratedCodeAttribute</ExcludeByAttribute>
+          <ExcludeByFile>**/Migrations/*.cs</ExcludeByFile>
+          <Exclude>[JobHunter.AppHost]*,[JobHunter.ServiceDefaults]*,[JobHunter.Contracts]*,[JobHunter.TestKit]*</Exclude>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jobhunter-telegram
+  labels: { app: jobhunter-telegram }
+spec:
+  replicas: 1                 # long-poll bot — a single consumer avoids duplicate update processing
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels: { app: jobhunter-telegram }
+  template:
+    metadata:
+      labels: { app: jobhunter-telegram }
+    spec:
+      imagePullSecrets: [{ name: ghcr-pull-secret }]
+      containers:
+        - name: telegram
+          image: jobhunter-telegram            # remapped by the overlay's images: block
+          envFrom:
+            - configMapRef: { name: jobhunter-infra-config }   # Terraform-managed
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              valueFrom: { configMapKeyRef: { name: app-config, key: aspnetcore-environment } }
+            - name: ASPNETCORE_HTTP_PORTS
+              value: "8080"
+            - name: OTEL_SERVICE_NAME
+              value: "jobhunter-telegram"
+            - name: INFISICAL_CLIENT_ID
+              valueFrom: { secretKeyRef: { name: infisical-credentials, key: INFISICAL_CLIENT_ID } }
+            - name: INFISICAL_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: infisical-credentials, key: INFISICAL_CLIENT_SECRET } }
+            - name: INFISICAL_PROJECT_ID
+              valueFrom: { secretKeyRef: { name: infisical-credentials, key: INFISICAL_PROJECT_ID } }
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet: { path: /alive, port: 8080 }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          readinessProbe:
+            httpGet: { path: /ready, port: 8080 }
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          startupProbe:
+            httpGet: { path: /alive, port: 8080 }
+            failureThreshold: 30
+            periodSeconds: 5
+          resources:
+            requests: { memory: 256Mi, cpu: 100m }
+            limits: { memory: 512Mi }

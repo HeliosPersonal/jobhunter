@@ -1,0 +1,6 @@
+# Example only. Real values are injected by CI as TF_VAR_* environment variables from GitHub secrets
+# (ci-cd §3); never commit a populated terraform.tfvars — *.tfvars is gitignored (except *.example).
+pg_password       = "REPLACE_ME"
+rabbit_password   = "REPLACE_ME"
+redis_password    = "REPLACE_ME"
+typesense_api_key = "REPLACE_ME"

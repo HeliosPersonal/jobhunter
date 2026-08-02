@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jobhunter-worker
+  labels: { app: jobhunter-worker }
+spec:
+  replicas: 1                 # MUST stay 1 — Hangfire schedules + Run orchestration are singleton (SAD §11 D2)
+  strategy:
+    type: Recreate            # never two orchestrators alive at once, not even for a second
+  selector:
+    matchLabels: { app: jobhunter-worker }
+  template:
+    metadata:
+      labels: { app: jobhunter-worker }
+    spec:
+      imagePullSecrets: [{ name: ghcr-pull-secret }]
+      containers:
+        - name: worker
+          image: jobhunter-worker            # remapped by the overlay's images: block
+          envFrom:
+            - configMapRef: { name: jobhunter-infra-config }   # Terraform-managed
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              valueFrom: { configMapKeyRef: { name: app-config, key: aspnetcore-environment } }
+            - name: ASPNETCORE_HTTP_PORTS
+              value: "8080"
+            - name: OTEL_SERVICE_NAME
+              value: "jobhunter-worker"
+            - name: INFISICAL_CLIENT_ID
+              valueFrom: { secretKeyRef: { name: infisical-credentials, key: INFISICAL_CLIENT_ID } }
+            - name: INFISICAL_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: infisical-credentials, key: INFISICAL_CLIENT_SECRET } }
+            - name: INFISICAL_PROJECT_ID
+              valueFrom: { secretKeyRef: { name: infisical-credentials, key: INFISICAL_PROJECT_ID } }
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            httpGet: { path: /alive, port: 8080 }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          readinessProbe:
+            httpGet: { path: /ready, port: 8080 }
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          startupProbe:
+            httpGet: { path: /alive, port: 8080 }
+            failureThreshold: 30
+            periodSeconds: 5          # Infisical fetch + migration check can be slow on cold start
+          resources:
+            requests: { memory: 256Mi, cpu: 100m }
+            limits: { memory: 1Gi }           # no CPU limit — batch polling is bursty

@@ -1,0 +1,43 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: apps-staging
+
+resources:
+  - ../../base/api
+  - ../../base/worker
+  - ../../base/telegram
+  - ../../base/migrator
+  - ../../base/backup
+  - ../../base/infisical
+  - ingress.yaml
+
+# GITHUB_USERNAME and SHA_REPLACED_BY_CICD are substituted by sed in CI (ci-cd §2). A kubectl
+# kustomize preview runs before every apply so an unsubstituted placeholder shows in the log.
+images:
+  - name: jobhunter-api
+    newName: ghcr.io/GITHUB_USERNAME/jobhunter-api
+    newTag: SHA_REPLACED_BY_CICD
+  - name: jobhunter-worker
+    newName: ghcr.io/GITHUB_USERNAME/jobhunter-worker
+    newTag: SHA_REPLACED_BY_CICD
+  - name: jobhunter-telegram
+    newName: ghcr.io/GITHUB_USERNAME/jobhunter-telegram
+    newTag: SHA_REPLACED_BY_CICD
+
+configMapGenerator:
+  - name: app-config
+    literals: [aspnetcore-environment=Staging]
+  - name: jobhunter-backup-config
+    literals:
+      - ENV_NAME=staging
+      - PG_HOST=postgresql.infra-production.svc.cluster.local
+      - PG_PORT=5432
+      - PG_USER=postgres
+
+replicas:
+  - { name: jobhunter-api, count: 1 }
+  - { name: jobhunter-worker, count: 1 }
+  - { name: jobhunter-telegram, count: 1 }
+
+labels:
+  - pairs: { app.kubernetes.io/part-of: jobhunter, environment: staging }

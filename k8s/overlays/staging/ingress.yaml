@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jobhunter-api
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [jobhunter-staging.devoverflow.org]
+      secretName: cloudflare-origin
+  rules:
+    - host: jobhunter-staging.devoverflow.org
+      http:
+        paths:
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend: { service: { name: jobhunter-api, port: { number: 8080 } } }

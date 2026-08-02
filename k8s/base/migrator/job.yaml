@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: jobhunter-migrator
+  # PreSync hook so EF migrations complete before any Deployment rolls (deployment §5, AC-11).
+  # Migrations NEVER run from the application at startup — three pods racing Database.Migrate() deadlock.
+  annotations: { argocd.argoproj.io/hook: PreSync }
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      imagePullSecrets: [{ name: ghcr-pull-secret }]
+      containers:
+        - name: migrator
+          image: jobhunter-worker            # the Worker image; its CLI "migrate" verb exits 0 on success
+          args: ["migrate"]
+          envFrom:
+            - configMapRef: { name: jobhunter-infra-config }
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              valueFrom: { configMapKeyRef: { name: app-config, key: aspnetcore-environment } }
+            - name: INFISICAL_CLIENT_ID
+              valueFrom: { secretKeyRef: { name: infisical-credentials, key: INFISICAL_CLIENT_ID } }
+            - name: INFISICAL_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: infisical-credentials, key: INFISICAL_CLIENT_SECRET } }
+            - name: INFISICAL_PROJECT_ID
+              valueFrom: { secretKeyRef: { name: infisical-credentials, key: INFISICAL_PROJECT_ID } }

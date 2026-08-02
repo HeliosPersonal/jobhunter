@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: apps-production
+
+resources:
+  - ../../base/api
+  - ../../base/worker
+  - ../../base/telegram
+  - ../../base/migrator
+  - ../../base/backup
+  - ../../base/infisical
+  - ingress.yaml
+
+# Both placeholders are substituted by sed in CI (ci-cd §2).
+images:
+  - name: jobhunter-api
+    newName: ghcr.io/GITHUB_USERNAME/jobhunter-api
+    newTag: SHA_REPLACED_BY_CICD
+  - name: jobhunter-worker
+    newName: ghcr.io/GITHUB_USERNAME/jobhunter-worker
+    newTag: SHA_REPLACED_BY_CICD
+  - name: jobhunter-telegram
+    newName: ghcr.io/GITHUB_USERNAME/jobhunter-telegram
+    newTag: SHA_REPLACED_BY_CICD
+
+configMapGenerator:
+  - name: app-config
+    literals: [aspnetcore-environment=Production]
+  - name: jobhunter-backup-config
+    literals:
+      - ENV_NAME=production
+      - PG_HOST=postgresql.infra-production.svc.cluster.local
+      - PG_PORT=5432
+      - PG_USER=postgres
+
+replicas:
+  - { name: jobhunter-api, count: 2 }
+  - { name: jobhunter-worker, count: 1 }        # MUST stay 1 (SAD §11 D2)
+  - { name: jobhunter-telegram, count: 1 }
+
+labels:
+  - pairs: { app.kubernetes.io/part-of: jobhunter, environment: production }
