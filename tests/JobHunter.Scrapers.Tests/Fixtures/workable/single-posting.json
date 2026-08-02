@@ -1,0 +1,14 @@
+{
+  "jobs": [
+    {
+      "shortcode": "ABCDE12345",
+      "title": "Full Stack Engineer",
+      "description": "<p>Work across the stack.</p>",
+      "application_url": "https://apply.workable.com/acme/j/ABCDE12345",
+      "country": "Germany",
+      "city": "Berlin",
+      "telecommuting": true,
+      "published_on": "2026-07-22"
+    }
+  ]
+}

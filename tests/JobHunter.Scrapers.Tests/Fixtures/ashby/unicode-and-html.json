@@ -1,0 +1,16 @@
+{
+  "jobs": [
+    {
+      "id": "ashby-0004",
+      "title": "Инженер 日本 — Café",
+      "descriptionPlain": "Über die Rolle: Go, Rust. Résumé — 日本語 OK.",
+      "applyUrl": "https://jobs.ashbyhq.com/acme/ashby-0004",
+      "location": "Zürich",
+      "isRemote": true,
+      "employmentType": "FullTime",
+      "compensation": { "compensationTierSummary": "€120K – €150K" },
+      "publishedAt": "2026-07-15T00:00:00Z",
+      "updatedAt": "2026-07-28T00:00:00Z"
+    }
+  ]
+}

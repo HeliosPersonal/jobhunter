@@ -1,0 +1,11 @@
+[
+  {
+    "id": "a1b2c3d4-0004-4aaa-8bbb-000000000004",
+    "text": "Инженер 日本 — Café",
+    "descriptionPlain": "Über die Rolle: Go, Rust. Résumé — 日本語 OK.",
+    "hostedUrl": "https://jobs.lever.co/acme/4",
+    "categories": { "location": "Zürich", "commitment": "Full-time" },
+    "createdAt": 1751500800000,
+    "workplaceType": "hybrid"
+  }
+]

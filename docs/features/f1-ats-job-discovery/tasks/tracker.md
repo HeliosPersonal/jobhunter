@@ -24,7 +24,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T03 | [[T03-registry-seeding\|Company registry seeding and expansion]] | app | T02 | M | pending |
 | T04 | [[T04-politeness-handler\|PolitenessHandler: rate limit, robots, SSRF, user-agent]] | infra/http | — | L | done |
 | T05 | [[T05-ijobsource-greenhouse\|IJobSource port and Greenhouse adapter]] | scrapers | T04 | M | done |
-| T06 | [[T06-lever-ashby-workable\|Lever, Ashby and Workable adapters]] | scrapers | T05 | L | pending |
+| T06 | [[T06-lever-ashby-workable\|Lever, Ashby and Workable adapters]] | scrapers | T05 | L | done |
 | T07 | [[T07-jsonld-careers-adapter\|JSON-LD career-page adapter (Tier 2)]] | scrapers | T05 | M | pending |
 | T08 | [[T08-binding-detection\|ATS binding detection]] | app | T06 | L | pending |
 | T09 | [[T09-binding-redetection\|Binding re-detection and ATS migration]] | app | T08 | M | pending |
