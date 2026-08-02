@@ -16,6 +16,8 @@
     <PackageReference Include="Npgsql" />
     <PackageReference Include="Dapper" />
     <PackageReference Include="WolverineFx" />
+    <!-- Roslyn runtime compiler for Wolverine's generated wrappers (see Directory.Packages.props). -->
+    <PackageReference Include="WolverineFx.RuntimeCompilation" />
     <PackageReference Include="WolverineFx.RabbitMQ" />
     <PackageReference Include="RabbitMQ.Client" />
     <PackageReference Include="WolverineFx.EntityFrameworkCore" />

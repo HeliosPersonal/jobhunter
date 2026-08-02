@@ -27,6 +27,9 @@
     <PackageVersion Include="WolverineFx.RabbitMQ" Version="6.24.4" />
     <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.24.4" />
     <PackageVersion Include="WolverineFx.Postgresql" Version="6.24.4" />
+    <!-- Core WolverineFx no longer ships the Roslyn runtime compiler; this package restores it so
+         handler/transaction wrappers can be generated at startup (TypeLoadMode.Dynamic). -->
+    <PackageVersion Include="WolverineFx.RuntimeCompilation" Version="6.24.4" />
   </ItemGroup>
 
   <ItemGroup Label="Scheduling — Hangfire on PostgreSQL">
