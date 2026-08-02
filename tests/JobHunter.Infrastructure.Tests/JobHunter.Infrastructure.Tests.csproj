@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Infrastructure and host tests (T05-T10, T16): options validation, the scheduling registry, the
+    persistence conventions, the CLI dispatcher, plus the Testcontainers integration/messaging suites
+    and the WebApplicationFactory smoke tests. Integration tests marked [RequiresDockerFact] skip
+    cleanly where no Docker engine is reachable.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JobHunter.Infrastructure\JobHunter.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Worker\JobHunter.Worker.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Api\JobHunter.Api.csproj" />
+    <ProjectReference Include="..\JobHunter.TestKit\JobHunter.TestKit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="WolverineFx" />
+    <PackageReference Include="WolverineFx.RabbitMQ" />
+    <PackageReference Include="WolverineFx.EntityFrameworkCore" />
+    <PackageReference Include="WolverineFx.Postgresql" />
+    <PackageReference Include="Testcontainers.RabbitMq" />
+  </ItemGroup>
+
+</Project>
