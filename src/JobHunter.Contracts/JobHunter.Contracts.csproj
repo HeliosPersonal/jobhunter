@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Contracts references nothing (architecture rule 3): integration events must be consumable by any
+    host without dragging a dependency graph. Empty in F0 — events arrive with their features.
+  -->
+
+</Project>
