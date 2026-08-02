@@ -22,7 +22,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T01 | [[T01-domain-company-binding\|Domain: Company, AtsBinding, CanonicalDomain]] | domain | — | M | done |
 | T02 | [[T02-registry-persistence\|Migration and repositories for registry tables]] | infra/db | T01 | M | done |
 | T03 | [[T03-registry-seeding\|Company registry seeding and expansion]] | app | T02 | M | pending |
-| T04 | [[T04-politeness-handler\|PolitenessHandler: rate limit, robots, SSRF, user-agent]] | infra/http | — | L | pending |
+| T04 | [[T04-politeness-handler\|PolitenessHandler: rate limit, robots, SSRF, user-agent]] | infra/http | — | L | done |
 | T05 | [[T05-ijobsource-greenhouse\|IJobSource port and Greenhouse adapter]] | scrapers | T04 | M | pending |
 | T06 | [[T06-lever-ashby-workable\|Lever, Ashby and Workable adapters]] | scrapers | T05 | L | pending |
 | T07 | [[T07-jsonld-careers-adapter\|JSON-LD career-page adapter (Tier 2)]] | scrapers | T05 | M | pending |

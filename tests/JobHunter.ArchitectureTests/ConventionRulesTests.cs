@@ -76,6 +76,23 @@ public sealed class ConventionRulesTests
     }
 
     [Fact]
+    public void QG2_noScraperAdapter_constructsItsOwnHttpClient()
+    {
+        // QG-2 (SAD §8): an ATS adapter must be handed the shared, politeness-gated HttpClient and can
+        // never build its own — that is what makes robots/rate/SSRF/size limits structural rather than a
+        // convention each adapter author must remember. The gated pipeline lives in Infrastructure/Http;
+        // Scrapers gets a client by name and constructs no HttpClient, SocketsHttpHandler or
+        // HttpClientHandler of its own.
+        var offenders = SourceScan
+            .ForPattern(@"new\s+(HttpClient|SocketsHttpHandler|HttpClientHandler|HttpMessageInvoker)\b")
+            .InDirectory(ScrapersSourceDirectory())
+            .Matches;
+
+        offenders.ShouldBeEmpty(
+            "No type in JobHunter.Scrapers may construct its own HTTP client (QG-2): " + string.Join("; ", offenders));
+    }
+
+    [Fact]
     public void Rule8_public_infrastructureTypes_areExtensionOrOptionsOrPorts()
     {
         // A public Infrastructure type must be a DI extension class, an *Options class, a *Factory, a
@@ -90,5 +107,21 @@ public sealed class ConventionRulesTests
             .GetResult();
 
         offenders.IsSuccessful.ShouldBeTrue(LayeringRulesTests.FailureMessage(offenders));
+    }
+
+    private static string ScrapersSourceDirectory()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "JobHunter.slnx")))
+        {
+            dir = dir.Parent;
+        }
+
+        if (dir is null)
+        {
+            throw new InvalidOperationException("Could not locate the repository root (JobHunter.slnx).");
+        }
+
+        return Path.Combine(dir.FullName, "src", "JobHunter.Scrapers");
     }
 }

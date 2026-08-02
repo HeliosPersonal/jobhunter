@@ -115,6 +115,17 @@ public sealed class ViolationFixturesTests
     }
 
     [Fact]
+    public void QG2_fixture_provesScraperHttpClientGuard_canFail()
+    {
+        var offenders = SourceScan
+            .ForPattern(@"new\s+(HttpClient|SocketsHttpHandler|HttpClientHandler|HttpMessageInvoker)\b")
+            .InDirectory(ViolationsDirectory())
+            .Matches;
+
+        offenders.ShouldNotBeEmpty();
+    }
+
+    [Fact]
     public void Rule8_fixture_provesInfrastructureSurfaceGuard_canFail()
     {
         var result = FixtureNamed("LeakedConcreteService")

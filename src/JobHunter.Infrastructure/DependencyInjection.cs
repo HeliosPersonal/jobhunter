@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
+using JobHunter.Domain.Abstractions;
 using JobHunter.Infrastructure.Configuration;
+using JobHunter.Infrastructure.Http;
 using JobHunter.Infrastructure.Messaging;
 using JobHunter.Infrastructure.Persistence;
 using JobHunter.Infrastructure.Persistence.Queries;
@@ -8,6 +10,8 @@ using JobHunter.Infrastructure.Scheduling;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using StackExchange.Redis;
 
 namespace JobHunter.Infrastructure;
 
@@ -58,6 +62,71 @@ public static class DependencyInjection
 
         services.AddSingleton<RecurringJobRegistry>();
 
+        AddPoliteHttp(services, configuration);
+
         return services;
     }
+
+    /// <summary>
+    /// Wires the shared outbound HTTP pipeline (SAD §8, QG-2): the politeness options, the SSRF guard,
+    /// the robots policy, the per-host rate limiter (Redis when a cache is configured, in-memory
+    /// otherwise) and the named <see cref="System.Net.Http.HttpClient"/> every ATS adapter is handed. The
+    /// <see cref="PolitenessHandler"/> is attached to that client, so an adapter cannot construct a client
+    /// that bypasses it.
+    /// </summary>
+    private static void AddPoliteHttp(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<PolitenessOptions>()
+            .Bind(configuration.GetSection(PolitenessOptions.SectionName))
+            .Validate(o => !string.IsNullOrWhiteSpace(o.UserAgent), "Politeness:UserAgent is required.")
+            .Validate(o => o.MaxResponseBytes > 0, "Politeness:MaxResponseBytes must be positive.")
+            .ValidateOnStart();
+
+        services.AddMemoryCache();
+
+        services.AddSingleton<SsrfGuard>(_ => new SsrfGuard());
+
+        var cache = configuration.GetConnectionString("Cache")
+            ?? configuration[$"{ConnectionStringOptions.SectionName}:Cache"];
+
+        if (!string.IsNullOrWhiteSpace(cache))
+        {
+            services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(cache));
+            services.AddSingleton<IRateLimiter, RedisTokenBucket>();
+        }
+        else
+        {
+            services.AddSingleton<IRateLimiter, InMemoryRateLimiter>();
+        }
+
+        // A bare client, free of the politeness handler, that only ever fetches robots.txt. It must not
+        // recurse through the gated client (that would re-check robots to decide whether to fetch robots).
+        services.AddHttpClient<HttpRobotsFetcher>();
+
+        services.AddSingleton<IRobotsPolicy>(sp =>
+        {
+            var fetcher = sp.GetRequiredService<HttpRobotsFetcher>();
+            return new RobotsPolicy(
+                fetcher.FetchAsync,
+                sp.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>(),
+                sp.GetRequiredService<IOptions<PolitenessOptions>>());
+        });
+
+        services.AddTransient<PolitenessHandler>();
+
+        // The one gated client every ATS adapter resolves by name (SAD §8). Politeness is structural: the
+        // handler sets the user-agent, checks SSRF and robots, spends the rate budget and caps the body.
+        services.AddHttpClient(PoliteHttpClientName)
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                AllowAutoRedirect = false,
+                AutomaticDecompression = System.Net.DecompressionMethods.All,
+            })
+            .AddHttpMessageHandler<PolitenessHandler>()
+            .ConfigureHttpClient((sp, client) =>
+                client.Timeout = sp.GetRequiredService<IOptions<PolitenessOptions>>().Value.RequestTimeout);
+    }
+
+    /// <summary>The name of the shared, politeness-gated <see cref="System.Net.Http.HttpClient"/> (QG-2).</summary>
+    public const string PoliteHttpClientName = "jobhunter-polite";
 }
