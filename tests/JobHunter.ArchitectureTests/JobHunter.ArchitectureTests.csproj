@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Architecture tests (T12): one xUnit fact per rule in coding-standards §2 / SAD §10 QG-2, each paired
+    with a deliberately-violating fixture in the Violations folder, proving the rule can fail. The
+    Violations folder is compiled here (so the type graph exists to assert against) but lives in its own
+    namespace the rules explicitly exclude, and it is never referenced by production code.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JobHunter.Domain\JobHunter.Domain.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Application\JobHunter.Application.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Contracts\JobHunter.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Infrastructure\JobHunter.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Scrapers\JobHunter.Scrapers.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Claude\JobHunter.Claude.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Search\JobHunter.Search.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Api\JobHunter.Api.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Worker\JobHunter.Worker.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Telegram\JobHunter.Telegram.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+  </ItemGroup>
+
+</Project>
