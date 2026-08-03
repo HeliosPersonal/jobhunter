@@ -86,7 +86,7 @@ public sealed class CvVersion : Entity
     public short Version { get; private init; }
 
     /// <summary>True for the one active version per profile (partial unique index enforces exactly one).</summary>
-    public bool IsActive { get; private init; }
+    public bool IsActive { get; private set; }
 
     public string FileName { get; private init; } = null!;
 
@@ -108,4 +108,12 @@ public sealed class CvVersion : Entity
 
     /// <summary>When this version became active, or null if it never has.</summary>
     public DateTimeOffset? ActivatedAt { get; private init; }
+
+    /// <summary>
+    /// Deactivates this version when a newer one is uploaded and activated (ADR-F4-0002: an upload inserts
+    /// a new version and deactivates the previous). Only <see cref="IsActive"/> changes — the immutable CV
+    /// content, hash and version number stay exactly as they were, so the row remains the honest record of
+    /// what was matched against it. Deactivating an already-inactive version is a no-op, not an error.
+    /// </summary>
+    public void Deactivate() => IsActive = false;
 }

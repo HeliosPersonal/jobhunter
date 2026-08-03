@@ -14,6 +14,20 @@ public interface ICvVersionRepository
     /// <summary>Stages a new CV version for insertion; the unit of work commits it.</summary>
     void Add(CvVersion cvVersion);
 
+    /// <summary>
+    /// The next monotonic version number for a profile: one past the highest existing version, or 1 when
+    /// the profile has none yet. The version sequence never reuses a number, so history stays ordered.
+    /// </summary>
+    Task<short> NextVersionAsync(Guid profileId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Activates a freshly-built version: in one transaction it deactivates the profile's currently-active
+    /// version (if any) and inserts the new one, so there is never a moment with two active versions for a
+    /// profile that <c>uq_cv_versions_active</c> would reject (ADR-F4-0002). The deactivating UPDATE is
+    /// flushed before the INSERT, and the whole thing commits or rolls back together.
+    /// </summary>
+    Task ActivateAsync(CvVersion newVersion, CancellationToken cancellationToken = default);
+
     /// <summary>Finds a CV version by id, or null.</summary>
     Task<CvVersion?> FindAsync(Guid id, CancellationToken cancellationToken = default);
 

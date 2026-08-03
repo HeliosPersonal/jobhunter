@@ -64,6 +64,10 @@
     <PackageVersion Include="StackExchange.Redis" Version="2.13.1" />
   </ItemGroup>
 
+  <ItemGroup Label="CV text extraction — in-process, pure-managed, no shell-out (F4-T03)">
+    <PackageVersion Include="PdfPig" Version="0.1.15" />
+  </ItemGroup>
+
   <ItemGroup Label="Scrapers — registry seeding + ATS payload handling">
     <PackageVersion Include="YamlDotNet" Version="16.3.0" />
   </ItemGroup>

@@ -55,6 +55,30 @@ public sealed class CvVersionTests
     }
 
     [Fact]
+    public void Deactivating_clears_is_active_and_leaves_the_immutable_content_untouched()
+    {
+        var cv = NewCv(isActive: true);
+
+        cv.Deactivate();
+
+        cv.IsActive.ShouldBeFalse();
+        // Only the active flag changes; the version, hash and CV text stay exactly as they were.
+        cv.Version.ShouldBe((short)1);
+        cv.ContentHash.ShouldBe(ValidHash);
+        cv.ExtractedText.ShouldBe("Senior platform engineer, Go and Kubernetes.");
+    }
+
+    [Fact]
+    public void Deactivating_an_already_inactive_version_is_a_no_op()
+    {
+        var cv = NewCv(isActive: false);
+
+        cv.Deactivate();
+
+        cv.IsActive.ShouldBeFalse();
+    }
+
+    [Fact]
     public void An_empty_profile_id_is_rejected()
     {
         var clock = new FakeClock();

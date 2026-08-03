@@ -19,6 +19,39 @@ public sealed class CvVersionRepository(JobHunterDbContext context) : ICvVersion
         context.Add(cvVersion);
     }
 
+    public async Task<short> NextVersionAsync(Guid profileId, CancellationToken cancellationToken = default)
+    {
+        var highest = await context.Set<CvVersion>()
+            .Where(v => v.ProfileId == profileId)
+            .Select(v => (short?)v.Version)
+            .MaxAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return (short)((highest ?? 0) + 1);
+    }
+
+    public async Task ActivateAsync(CvVersion newVersion, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(newVersion);
+
+        await using var transaction = await context.Database
+            .BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+
+        // Deactivate the currently-active version first and flush it, so the partial unique index
+        // uq_cv_versions_active never sees the new active row alongside the old one within the transaction.
+        var current = await context.Set<CvVersion>()
+            .FirstOrDefaultAsync(v => v.ProfileId == newVersion.ProfileId && v.IsActive, cancellationToken)
+            .ConfigureAwait(false);
+        if (current is not null)
+        {
+            current.Deactivate();
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        context.Add(newVersion);
+        await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public Task<CvVersion?> FindAsync(Guid id, CancellationToken cancellationToken = default) =>
         context.Set<CvVersion>().FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
 

@@ -59,6 +59,10 @@ app.MapSearchEndpoints();
 app.MapJobEndpoints();
 app.MapCompanyEndpoints();
 
+// F4 CV upload (T03): the owner-scoped endpoint the Owner uploads a new CV through — the one place a CV
+// enters the system. Declares jobhunter:read, which the scope-plus-Owner policy gates to the Owner alone.
+app.MapCvEndpoints();
+
 // F9 operational surface (T07): reindex, source release, reprocess and corpus stats. Each route declares
 // its jobhunter:admin scope explicitly (endpoint-convention gate) so recovery never needs database access.
 app.MapAdminEndpoints();

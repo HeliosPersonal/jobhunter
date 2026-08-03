@@ -69,6 +69,10 @@ public static class DependencyInjection
         services.AddScoped<ICvVersionRepository, CvVersionRepository>();
         services.AddScoped<IMatchRepository, MatchRepository>();
         services.AddScoped<IScoreRepository, ScoreRepository>();
+
+        // F4 CV upload (T03): the in-process, pure-managed text extractor behind the upload service. No
+        // shell-out, no OCR — PdfPig reads embedded text, plain/Markdown is decoded as UTF-8.
+        services.AddSingleton<ICvTextExtractor, Cv.CvTextExtractor>();
         services.AddScoped<IDegradedCoverageQuery, DegradedCoverageQuery>();
         services.AddScoped<IClosureSweepQuery, ClosureSweepQuery>();
         services.AddScoped<IRedetectionQuery, RedetectionQuery>();

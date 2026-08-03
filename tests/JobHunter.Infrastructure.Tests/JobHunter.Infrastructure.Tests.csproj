@@ -26,6 +26,8 @@
     <PackageReference Include="Testcontainers.RabbitMq" />
     <PackageReference Include="Testcontainers.Redis" />
     <PackageReference Include="StackExchange.Redis" />
+    <!-- Builds real PDF fixtures in-process for the CV text-extractor tests (T03). -->
+    <PackageReference Include="PdfPig" />
   </ItemGroup>
 
 </Project>
