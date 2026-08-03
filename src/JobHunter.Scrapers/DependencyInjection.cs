@@ -35,6 +35,12 @@ public static class DependencyInjection
 
         services.AddSingleton<IJobSourceCatalog, JobSourceCatalog>();
 
+        // The ATS probe detector behind the Domain port, so the Application re-detection handler (T09)
+        // probes providers without referencing this layer. Scoped: it enumerates the IJobSource adapters
+        // and is resolved per re-detection run on the Worker.
+        services.AddScoped<Detection.AtsProbeDetector>();
+        services.AddScoped<IBindingDetector>(sp => sp.GetRequiredService<Detection.AtsProbeDetector>());
+
         return services;
     }
 }

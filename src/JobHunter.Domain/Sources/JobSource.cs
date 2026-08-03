@@ -79,6 +79,29 @@ public sealed class JobSource : Entity
     }
 
     /// <summary>
+    /// Re-points the operational source at a new binding after an ATS migration (AC-05): the company's
+    /// jobs now live on a different provider, so the endpoint changes and the health state resets — the new
+    /// board has not failed. The <see cref="CompanyId"/> is unchanged, which is exactly what keeps every
+    /// posting already discovered under the old binding attached to the same company (the key is the
+    /// company, not the board). Retiring the old binding and recording the new one is the caller's job.
+    /// </summary>
+    public void RebindTo(Guid bindingId, string endpointUrl, IClock clock)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        if (bindingId == Guid.Empty)
+        {
+            throw new ArgumentException("Source binding id must not be empty.", nameof(bindingId));
+        }
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(endpointUrl);
+
+        BindingId = bindingId;
+        EndpointUrl = endpointUrl;
+        ConsecutiveFailures = 0;
+        QuarantinedUntil = null;
+    }
+
+    /// <summary>
     /// Records a failed fetch. On reaching <see cref="QuarantineThreshold"/> consecutive failures the
     /// source is quarantined until <paramref name="clock"/> + <paramref name="quarantineFor"/> and the
     /// method returns <c>true</c> (the caller then publishes <c>SourceQuarantined</c>). Below the

@@ -64,6 +64,7 @@ public static class DependencyInjection
         services.AddScoped<IRawPostingRepository, RawPostingRepository>();
         services.AddScoped<IDegradedCoverageQuery, DegradedCoverageQuery>();
         services.AddScoped<IClosureSweepQuery, ClosureSweepQuery>();
+        services.AddScoped<IRedetectionQuery, RedetectionQuery>();
 
         services.AddSingleton<RecurringJobRegistry>();
 
@@ -90,6 +91,7 @@ public static class DependencyInjection
         services.AddScoped<IDiscoveryCycleQuery, DiscoveryCycleQuery>();
         services.AddScoped<DiscoveryCycleTrigger>();
         services.AddScoped<ClosureSweepTrigger>();
+        services.AddScoped<RedetectBindingTrigger>();
 
         // Bound the fetch fan-out to the configured degree (SAD §8). Harmless where Wolverine is not run
         // (Api/Telegram): the extension is only resolved and applied when a bus is bootstrapped.
@@ -124,6 +126,17 @@ public static class DependencyInjection
                 cron,
                 new RecurringJobOptions { TimeZone = timeZone })));
 
+        // Binding re-detection runs daily (SAD §6.2, T09): each company is probed on the one day its stable
+        // id-hash bucket matches, so the weekly re-probe is spread across the week rather than stampeding.
+        services.AddSingleton(new RecurringJobBinding(
+            RedetectBindingJobId,
+            RedetectBindingCron,
+            (cron, timeZone) => RecurringJob.AddOrUpdate<RedetectBindingTrigger>(
+                RedetectBindingJobId,
+                trigger => trigger.PublishAsync(),
+                cron,
+                new RecurringJobOptions { TimeZone = timeZone })));
+
         services.AddHostedService<RecurringJobApplier>();
     }
 
@@ -134,6 +147,10 @@ public static class DependencyInjection
     /// <summary>The closure sweep, five minutes past each six-hourly cycle (SAD §6.1, T13).</summary>
     private const string ClosureSweepJobId = "closure-sweep";
     private const string ClosureSweepCron = "5 */6 * * *";
+
+    /// <summary>Binding re-detection, once a day at 03:30 (SAD §6.2, T09); day buckets spread the week.</summary>
+    private const string RedetectBindingJobId = "redetect-bindings";
+    private const string RedetectBindingCron = "30 3 * * *";
 
     /// <summary>
     /// Wires the shared outbound HTTP pipeline (SAD §8, QG-2): the politeness options, the SSRF guard,

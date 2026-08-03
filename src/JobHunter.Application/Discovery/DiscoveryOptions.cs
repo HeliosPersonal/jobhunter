@@ -22,4 +22,24 @@ public sealed class DiscoveryOptions
 
     /// <summary>How long a source stays quarantined after crossing the failure threshold (AC-08).</summary>
     public TimeSpan QuarantineFor { get; init; } = TimeSpan.FromHours(24);
+
+    /// <summary>
+    /// A live binding older than this is re-detected (SAD §6.2, AC-05). Seven days, so every binding is
+    /// re-probed at least weekly and an ATS migration is caught within the week.
+    /// </summary>
+    public TimeSpan BindingMaxAge { get; init; } = TimeSpan.FromDays(7);
+
+    /// <summary>
+    /// How many consecutive most-recent successful fetches must have returned zero postings for a company
+    /// with a still-fresh binding to be re-detected anyway (AC-05). Two, so a board that legitimately has
+    /// no openings for one cycle is not re-probed on that basis.
+    /// </summary>
+    public int RedetectionEmptyCycles { get; init; } = 2;
+
+    /// <summary>
+    /// The number of buckets re-detection is spread across — one per day of the week — so the weekly
+    /// re-probe does not stampede on a single day (AC-05: "spread across the week"). A company is probed
+    /// on the day matching its stable id-hash bucket.
+    /// </summary>
+    public int RedetectionBuckets { get; init; } = 7;
 }

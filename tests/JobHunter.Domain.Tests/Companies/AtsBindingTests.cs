@@ -79,4 +79,34 @@ public sealed class AtsBindingTests
 
         binding.RetiredAt.ShouldBe(firstRetiredAt);
     }
+
+    [Fact]
+    public void Reconfirm_refreshes_the_detection_time_and_evidence_of_a_live_binding()
+    {
+        var clock = new FakeClock(new DateTimeOffset(2026, 3, 8, 3, 30, 0, TimeSpan.Zero));
+        var binding = NewBinding();
+
+        binding.Reconfirm(clock, "{\"fresh\":true}");
+
+        binding.DetectedAt.ShouldBe(clock.UtcNow);
+        binding.Evidence.ShouldBe("{\"fresh\":true}");
+        binding.IsLive.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Reconfirm_does_nothing_to_a_retired_binding()
+    {
+        var clock = new FakeClock(new DateTimeOffset(2026, 3, 1, 12, 0, 0, TimeSpan.Zero));
+        var binding = NewBinding();
+        binding.Retire(clock);
+        var retiredAt = binding.RetiredAt;
+
+        clock.Advance(TimeSpan.FromDays(7));
+        binding.Reconfirm(clock, "{\"fresh\":true}");
+
+        // A migration stands: the retired binding is not resurrected or re-dated.
+        binding.RetiredAt.ShouldBe(retiredAt);
+        binding.DetectedAt.ShouldBe(DetectedAt);
+        binding.Evidence.ShouldBe("{}");
+    }
 }

@@ -98,4 +98,23 @@ public sealed class AtsBinding : Entity
         ArgumentNullException.ThrowIfNull(clock);
         RetiredAt ??= clock.UtcNow;
     }
+
+    /// <summary>
+    /// Re-confirms a still-live binding after re-detection found the same provider still winning (AC-05):
+    /// refreshes <see cref="DetectedAt"/> to the clock's instant so the binding is no longer stale, and
+    /// records the fresh probe trail. A retired binding is never re-confirmed — the migration stands.
+    /// </summary>
+    public void Reconfirm(IClock clock, string evidence)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        ArgumentNullException.ThrowIfNull(evidence);
+
+        if (RetiredAt is not null)
+        {
+            return;
+        }
+
+        DetectedAt = clock.UtcNow;
+        Evidence = evidence;
+    }
 }

@@ -99,4 +99,36 @@ public sealed class JobSourceTests
 
         source.IsQuarantined(clock).ShouldBeFalse();
     }
+
+    [Fact]
+    public void RebindTo_repoints_the_source_and_resets_health_but_keeps_the_company()
+    {
+        var clock = new FakeClock();
+        var source = NewSource();
+        source.RecordFailure(clock, TimeSpan.FromHours(6));
+        source.RecordFailure(clock, TimeSpan.FromHours(6));
+        source.QuarantinedUntil.ShouldNotBeNull();
+
+        var newBindingId = Guid.Parse("00000000-0000-0000-0000-0000000000DD");
+        source.RebindTo(newBindingId, "https://api.lever.co/v0/postings/acme", clock);
+
+        // The migration re-points the source and clears health — the new board has not failed.
+        source.BindingId.ShouldBe(newBindingId);
+        source.EndpointUrl.ShouldBe("https://api.lever.co/v0/postings/acme");
+        source.ConsecutiveFailures.ShouldBe((short)0);
+        source.QuarantinedUntil.ShouldBeNull();
+
+        // The company id is unchanged — that is what keeps previously discovered jobs attached (AC-05).
+        source.CompanyId.ShouldBe(CompanyId);
+    }
+
+    [Fact]
+    public void RebindTo_rejects_an_empty_binding_or_blank_endpoint()
+    {
+        var source = NewSource();
+        var clock = new FakeClock();
+
+        Should.Throw<ArgumentException>(() => source.RebindTo(Guid.Empty, "https://x", clock));
+        Should.Throw<ArgumentException>(() => source.RebindTo(BindingId, " ", clock));
+    }
 }

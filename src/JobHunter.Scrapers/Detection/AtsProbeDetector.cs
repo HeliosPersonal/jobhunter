@@ -16,7 +16,7 @@ namespace JobHunter.Scrapers.Detection;
 /// and the company stays inactive, because attributing another company's jobs is a far worse failure than
 /// missing a company.
 /// </summary>
-public sealed class AtsProbeDetector
+public sealed class AtsProbeDetector : IBindingDetector
 {
     // Detection table (contract §Detection probes). A responding board is required; the rest are bonuses.
     private const decimal RespondedWeight = 0.60m;
@@ -78,6 +78,25 @@ public sealed class AtsProbeDetector
         }
 
         return Decide(company, candidates);
+    }
+
+    /// <summary>
+    /// The <see cref="IBindingDetector"/> port (SAD §6.2): probes the company and projects the rich
+    /// <see cref="DetectionResult"/> onto the Domain-level <see cref="BindingDetectionResult"/> the
+    /// Application re-detection handler consumes, so the handler never references this scrapers type.
+    /// </summary>
+    async Task<BindingDetectionResult> IBindingDetector.DetectAsync(
+        Company company,
+        CancellationToken cancellationToken)
+    {
+        var result = await DetectAsync(company, cancellationToken).ConfigureAwait(false);
+        var status = result.Status switch
+        {
+            DetectionStatus.Bound => BindingDetectionStatus.Bound,
+            DetectionStatus.Ambiguous => BindingDetectionStatus.Ambiguous,
+            _ => BindingDetectionStatus.NoBoardFound,
+        };
+        return new BindingDetectionResult(status, result.Binding);
     }
 
     private async Task<ProbeCandidate?> ProbeAsync(
