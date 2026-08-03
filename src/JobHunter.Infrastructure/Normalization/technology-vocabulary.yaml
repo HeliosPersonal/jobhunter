@@ -1,0 +1,617 @@
+# Technology vocabulary (F2 T07) — the curated set matched against a job's title and description to
+# populate `job_technologies` deterministically. Each entry is a canonical name (the spelling written to
+# the database) and its accepted aliases (all mapped onto that canonical name). Matching is whole-token,
+# case-insensitive; it never matches inside a longer token, so a two-letter name cannot hit inside a word.
+#
+# Reviewable in a diff on purpose: adding a technology or an alias is a one-line change here, never a code
+# change. Keep the list alphabetical within each section and keep aliases lower-risk than the canonical —
+# an over-broad alias ("react" for "React Native") would over-tag, so only add spellings that are safe as
+# whole tokens.
+
+# --- Languages ---
+- canonical: C
+  aliases: []
+- canonical: "C++"
+  aliases: [cpp, cplusplus]
+- canonical: "C#"
+  aliases: [csharp]
+- canonical: Go
+  aliases: [golang]
+- canonical: Rust
+  aliases: []
+- canonical: Java
+  aliases: []
+- canonical: Kotlin
+  aliases: []
+- canonical: Scala
+  aliases: []
+- canonical: Groovy
+  aliases: []
+- canonical: Clojure
+  aliases: []
+- canonical: JavaScript
+  aliases: [js, ecmascript]
+- canonical: TypeScript
+  aliases: [ts]
+- canonical: Python
+  aliases: [py]
+- canonical: Ruby
+  aliases: []
+- canonical: PHP
+  aliases: []
+- canonical: Perl
+  aliases: []
+- canonical: Swift
+  aliases: []
+- canonical: "Objective-C"
+  aliases: [objc]
+- canonical: Dart
+  aliases: []
+- canonical: Elixir
+  aliases: []
+- canonical: Erlang
+  aliases: []
+- canonical: Haskell
+  aliases: []
+- canonical: OCaml
+  aliases: []
+- canonical: "F#"
+  aliases: [fsharp]
+- canonical: Lua
+  aliases: []
+- canonical: R
+  aliases: []
+- canonical: Julia
+  aliases: []
+- canonical: MATLAB
+  aliases: []
+- canonical: Solidity
+  aliases: []
+- canonical: Zig
+  aliases: []
+- canonical: Nim
+  aliases: []
+- canonical: Crystal
+  aliases: []
+- canonical: COBOL
+  aliases: []
+- canonical: Fortran
+  aliases: []
+- canonical: Assembly
+  aliases: []
+- canonical: Bash
+  aliases: []
+- canonical: PowerShell
+  aliases: []
+- canonical: SQL
+  aliases: []
+- canonical: PL/SQL
+  aliases: [plsql]
+- canonical: "T-SQL"
+  aliases: [tsql]
+- canonical: GraphQL
+  aliases: []
+- canonical: WebAssembly
+  aliases: [wasm]
+
+# --- Runtimes and frameworks ---
+- canonical: .NET
+  aliases: [dotnet, "dot net"]
+- canonical: ASP.NET
+  aliases: [aspnet]
+- canonical: ASP.NET Core
+  aliases: []
+- canonical: Node.js
+  aliases: [nodejs, node]
+- canonical: Deno
+  aliases: []
+- canonical: Bun
+  aliases: []
+- canonical: React
+  aliases: [reactjs]
+- canonical: React Native
+  aliases: []
+- canonical: Next.js
+  aliases: [nextjs]
+- canonical: Vue.js
+  aliases: [vue, vuejs]
+- canonical: Nuxt.js
+  aliases: [nuxt, nuxtjs]
+- canonical: Angular
+  aliases: [angularjs]
+- canonical: Svelte
+  aliases: []
+- canonical: SvelteKit
+  aliases: []
+- canonical: Ember.js
+  aliases: [emberjs]
+- canonical: Backbone.js
+  aliases: [backbonejs]
+- canonical: jQuery
+  aliases: []
+- canonical: Redux
+  aliases: []
+- canonical: RxJS
+  aliases: []
+- canonical: Three.js
+  aliases: [threejs]
+- canonical: D3.js
+  aliases: [d3js]
+- canonical: Electron
+  aliases: []
+- canonical: Tauri
+  aliases: []
+- canonical: Express.js
+  aliases: [express, expressjs]
+- canonical: NestJS
+  aliases: [nestjs]
+- canonical: Fastify
+  aliases: []
+- canonical: Django
+  aliases: []
+- canonical: Flask
+  aliases: []
+- canonical: FastAPI
+  aliases: []
+- canonical: Tornado
+  aliases: []
+- canonical: Ruby on Rails
+  aliases: [rails, "ruby on rails"]
+- canonical: Sinatra
+  aliases: []
+- canonical: Laravel
+  aliases: []
+- canonical: Symfony
+  aliases: []
+- canonical: Spring
+  aliases: []
+- canonical: Spring Boot
+  aliases: [springboot]
+- canonical: Micronaut
+  aliases: []
+- canonical: Quarkus
+  aliases: []
+- canonical: Ktor
+  aliases: []
+- canonical: Phoenix
+  aliases: []
+- canonical: Gin
+  aliases: []
+- canonical: Fiber
+  aliases: []
+- canonical: Actix
+  aliases: []
+- canonical: Axum
+  aliases: []
+- canonical: Flutter
+  aliases: []
+- canonical: SwiftUI
+  aliases: []
+- canonical: Jetpack Compose
+  aliases: []
+- canonical: Xamarin
+  aliases: []
+- canonical: Ionic
+  aliases: []
+- canonical: Qt
+  aliases: []
+- canonical: Blazor
+  aliases: []
+
+# --- Data stores ---
+- canonical: PostgreSQL
+  aliases: [postgres, psql]
+- canonical: MySQL
+  aliases: []
+- canonical: MariaDB
+  aliases: []
+- canonical: SQLite
+  aliases: []
+- canonical: Microsoft SQL Server
+  aliases: [mssql, "sql server", sqlserver]
+- canonical: Oracle Database
+  aliases: []
+- canonical: MongoDB
+  aliases: [mongo]
+- canonical: Cassandra
+  aliases: []
+- canonical: ScyllaDB
+  aliases: [scylla]
+- canonical: Redis
+  aliases: []
+- canonical: Memcached
+  aliases: []
+- canonical: DynamoDB
+  aliases: []
+- canonical: CouchDB
+  aliases: []
+- canonical: Couchbase
+  aliases: []
+- canonical: Neo4j
+  aliases: []
+- canonical: ArangoDB
+  aliases: []
+- canonical: Elasticsearch
+  aliases: [elastic]
+- canonical: OpenSearch
+  aliases: []
+- canonical: Solr
+  aliases: []
+- canonical: Typesense
+  aliases: []
+- canonical: Meilisearch
+  aliases: []
+- canonical: InfluxDB
+  aliases: [influx]
+- canonical: TimescaleDB
+  aliases: [timescale]
+- canonical: Prometheus
+  aliases: []
+- canonical: ClickHouse
+  aliases: []
+- canonical: Snowflake
+  aliases: []
+- canonical: BigQuery
+  aliases: []
+- canonical: Redshift
+  aliases: []
+- canonical: Databricks
+  aliases: []
+- canonical: Cosmos DB
+  aliases: [cosmosdb]
+- canonical: FaunaDB
+  aliases: [fauna]
+- canonical: CockroachDB
+  aliases: [cockroach]
+- canonical: Firebase
+  aliases: []
+- canonical: Supabase
+  aliases: []
+- canonical: DuckDB
+  aliases: []
+
+# --- Messaging and streaming ---
+- canonical: RabbitMQ
+  aliases: []
+- canonical: Apache Kafka
+  aliases: [kafka]
+- canonical: Apache Pulsar
+  aliases: [pulsar]
+- canonical: NATS
+  aliases: []
+- canonical: ActiveMQ
+  aliases: []
+- canonical: ZeroMQ
+  aliases: [zmq]
+- canonical: Amazon SQS
+  aliases: [sqs]
+- canonical: Amazon SNS
+  aliases: [sns]
+- canonical: Google Pub/Sub
+  aliases: []
+- canonical: Apache Flink
+  aliases: [flink]
+- canonical: Apache Spark
+  aliases: [spark]
+- canonical: Apache Airflow
+  aliases: [airflow]
+- canonical: dbt
+  aliases: []
+- canonical: Apache Beam
+  aliases: []
+
+# --- Cloud and infrastructure ---
+- canonical: AWS
+  aliases: ["amazon web services"]
+- canonical: Microsoft Azure
+  aliases: [azure]
+- canonical: Google Cloud Platform
+  aliases: [gcp, "google cloud"]
+- canonical: DigitalOcean
+  aliases: []
+- canonical: Heroku
+  aliases: []
+- canonical: Vercel
+  aliases: []
+- canonical: Netlify
+  aliases: []
+- canonical: Cloudflare
+  aliases: []
+- canonical: Fly.io
+  aliases: []
+- canonical: Docker
+  aliases: []
+- canonical: Kubernetes
+  aliases: [k8s]
+- canonical: Helm
+  aliases: []
+- canonical: OpenShift
+  aliases: []
+- canonical: Nomad
+  aliases: []
+- canonical: Docker Compose
+  aliases: []
+- canonical: Podman
+  aliases: []
+- canonical: containerd
+  aliases: []
+- canonical: Terraform
+  aliases: []
+- canonical: OpenTofu
+  aliases: []
+- canonical: Pulumi
+  aliases: []
+- canonical: Ansible
+  aliases: []
+- canonical: Chef
+  aliases: []
+- canonical: Puppet
+  aliases: []
+- canonical: SaltStack
+  aliases: []
+- canonical: Vagrant
+  aliases: []
+- canonical: Packer
+  aliases: []
+- canonical: Consul
+  aliases: []
+- canonical: Vault
+  aliases: []
+- canonical: Istio
+  aliases: []
+- canonical: Linkerd
+  aliases: []
+- canonical: Envoy
+  aliases: []
+- canonical: NGINX
+  aliases: [nginx]
+- canonical: Apache HTTP Server
+  aliases: [httpd]
+- canonical: HAProxy
+  aliases: []
+- canonical: Traefik
+  aliases: []
+- canonical: Kustomize
+  aliases: []
+- canonical: Argo CD
+  aliases: [argocd]
+- canonical: Flux
+  aliases: []
+
+# --- CI/CD and developer tooling ---
+- canonical: Git
+  aliases: []
+- canonical: GitHub
+  aliases: []
+- canonical: GitLab
+  aliases: []
+- canonical: Bitbucket
+  aliases: []
+- canonical: GitHub Actions
+  aliases: []
+- canonical: GitLab CI
+  aliases: []
+- canonical: Jenkins
+  aliases: []
+- canonical: CircleCI
+  aliases: []
+- canonical: Travis CI
+  aliases: [travisci]
+- canonical: TeamCity
+  aliases: []
+- canonical: Bamboo
+  aliases: []
+- canonical: Azure DevOps
+  aliases: []
+- canonical: Spinnaker
+  aliases: []
+- canonical: SonarQube
+  aliases: []
+- canonical: Maven
+  aliases: []
+- canonical: Gradle
+  aliases: []
+- canonical: npm
+  aliases: []
+- canonical: pnpm
+  aliases: []
+- canonical: Yarn
+  aliases: []
+- canonical: Webpack
+  aliases: []
+- canonical: Vite
+  aliases: []
+- canonical: esbuild
+  aliases: []
+- canonical: Babel
+  aliases: []
+- canonical: Rollup
+  aliases: []
+- canonical: Turborepo
+  aliases: []
+- canonical: Nx
+  aliases: []
+- canonical: Bazel
+  aliases: []
+
+# --- Observability ---
+- canonical: OpenTelemetry
+  aliases: [otel]
+- canonical: Grafana
+  aliases: []
+- canonical: Loki
+  aliases: []
+- canonical: Jaeger
+  aliases: []
+- canonical: Zipkin
+  aliases: []
+- canonical: Datadog
+  aliases: []
+- canonical: New Relic
+  aliases: [newrelic]
+- canonical: Sentry
+  aliases: []
+- canonical: Splunk
+  aliases: []
+- canonical: Kibana
+  aliases: []
+- canonical: PagerDuty
+  aliases: []
+
+# --- APIs and protocols ---
+- canonical: REST
+  aliases: []
+- canonical: gRPC
+  aliases: []
+- canonical: SOAP
+  aliases: []
+- canonical: WebSocket
+  aliases: [websockets]
+- canonical: Protocol Buffers
+  aliases: [protobuf]
+- canonical: OpenAPI
+  aliases: [swagger]
+- canonical: OAuth
+  aliases: [oauth2]
+- canonical: OpenID Connect
+  aliases: [oidc]
+- canonical: SAML
+  aliases: []
+- canonical: JWT
+  aliases: []
+- canonical: Keycloak
+  aliases: []
+- canonical: Auth0
+  aliases: []
+- canonical: MQTT
+  aliases: []
+- canonical: gRPC-Web
+  aliases: []
+
+# --- Data science and ML ---
+- canonical: TensorFlow
+  aliases: []
+- canonical: PyTorch
+  aliases: [torch]
+- canonical: Keras
+  aliases: []
+- canonical: scikit-learn
+  aliases: [sklearn]
+- canonical: pandas
+  aliases: []
+- canonical: NumPy
+  aliases: [numpy]
+- canonical: SciPy
+  aliases: [scipy]
+- canonical: Jupyter
+  aliases: []
+- canonical: Hugging Face
+  aliases: [huggingface]
+- canonical: LangChain
+  aliases: []
+- canonical: OpenCV
+  aliases: []
+- canonical: XGBoost
+  aliases: []
+- canonical: Apache Hadoop
+  aliases: [hadoop]
+- canonical: Apache Hive
+  aliases: [hive]
+- canonical: Presto
+  aliases: []
+- canonical: Trino
+  aliases: []
+
+# --- Testing ---
+- canonical: JUnit
+  aliases: []
+- canonical: TestNG
+  aliases: []
+- canonical: pytest
+  aliases: []
+- canonical: Jest
+  aliases: []
+- canonical: Vitest
+  aliases: []
+- canonical: Mocha
+  aliases: []
+- canonical: Cypress
+  aliases: []
+- canonical: Playwright
+  aliases: []
+- canonical: Selenium
+  aliases: []
+- canonical: xUnit
+  aliases: [xunit]
+- canonical: NUnit
+  aliases: []
+- canonical: RSpec
+  aliases: []
+- canonical: Cucumber
+  aliases: []
+- canonical: k6
+  aliases: []
+- canonical: JMeter
+  aliases: []
+- canonical: Gatling
+  aliases: []
+
+# --- Operating systems and platforms ---
+- canonical: Linux
+  aliases: []
+- canonical: Ubuntu
+  aliases: []
+- canonical: Debian
+  aliases: []
+- canonical: "Red Hat Enterprise Linux"
+  aliases: [rhel]
+- canonical: CentOS
+  aliases: []
+- canonical: Alpine Linux
+  aliases: []
+- canonical: Windows
+  aliases: []
+- canonical: macOS
+  aliases: []
+- canonical: iOS
+  aliases: []
+- canonical: Android
+  aliases: []
+- canonical: Unix
+  aliases: []
+- canonical: FreeBSD
+  aliases: []
+
+# --- Practices and paradigms ---
+- canonical: Microservices
+  aliases: [microservice]
+- canonical: Event Sourcing
+  aliases: []
+- canonical: CQRS
+  aliases: []
+- canonical: Domain-Driven Design
+  aliases: [ddd]
+- canonical: Test-Driven Development
+  aliases: [tdd]
+- canonical: Serverless
+  aliases: []
+- canonical: DevOps
+  aliases: []
+- canonical: DevSecOps
+  aliases: []
+- canonical: Site Reliability Engineering
+  aliases: [sre]
+- canonical: Infrastructure as Code
+  aliases: [iac]
+- canonical: Continuous Integration
+  aliases: [ci]
+- canonical: Continuous Delivery
+  aliases: [cd]
+- canonical: GitOps
+  aliases: []
+- canonical: Agile
+  aliases: []
+- canonical: Scrum
+  aliases: []
+- canonical: Kanban
+  aliases: []

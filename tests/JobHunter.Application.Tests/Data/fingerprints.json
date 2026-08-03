@@ -1,0 +1,302 @@
+[
+  {
+    "domain": "acme.com",
+    "title": "senior backend engineer",
+    "locations": [{"country": "Germany", "city": "Berlin"}],
+    "fingerprint": "036cd9ffd515073e7e0884c3fb33ccbfe1e1f23722966303eb1dda60ba245869"
+  },
+  {
+    "domain": "globex.com",
+    "title": "staff frontend engineer",
+    "locations": [{"country": "Germany", "city": "Munich"}],
+    "fingerprint": "d43fab165b1ffab50a288c7f34b3a7669972e9d6adc08a5440dc448c29fb7c9f"
+  },
+  {
+    "domain": "initech.com",
+    "title": "principal platform engineer",
+    "locations": [{"country": "United Kingdom", "city": "London"}],
+    "fingerprint": "319fedcaa004d8c0d7c62fe67746e978993fcf22174cf7c237e98f9912896c55"
+  },
+  {
+    "domain": "umbrella.com",
+    "title": "lead data engineer",
+    "locations": [{"country": "United States", "region": "California", "city": "San Francisco"}],
+    "fingerprint": "78c0939957425b3290d0dd9bb4732efe67cc03c97bb409a0bef9ba4c9cf67dab"
+  },
+  {
+    "domain": "hooli.com",
+    "title": "site reliability engineer",
+    "locations": [{"country": "France", "city": "Paris"}],
+    "fingerprint": "1d9fd659fed005f348fa651bfac356a57984fb4063c4daf21a80760548468d14"
+  },
+  {
+    "domain": "stark.com",
+    "title": "machine learning engineer",
+    "locations": [{"country": "Netherlands", "city": "Amsterdam"}],
+    "fingerprint": "c10ae9723eaf8d740836f48233970b78242ad714b76d5da79821efcdb04a6392"
+  },
+  {
+    "domain": "wayne.com",
+    "title": "junior devops engineer",
+    "locations": [{"country": "Poland", "city": "Warsaw"}],
+    "fingerprint": "49707a799823ef0f5f2c1211c3bcfd4e5e1a1f554572ef7bd81211148320fdeb"
+  },
+  {
+    "domain": "cyberdyne.com",
+    "title": "mid security engineer",
+    "locations": [{"country": "Spain", "city": "Madrid"}],
+    "fingerprint": "36e1884f3f3aa6c7c23d10392f8edb778d2bab9b33a8688714a2ae49b0cc3139"
+  },
+  {
+    "domain": "soylent.com",
+    "title": "senior mobile engineer",
+    "locations": [{"country": "Ireland", "city": "Dublin"}],
+    "fingerprint": "b3ec691ef5bcbc62d0dba11cb17a572bd6cc103d184ee6a6ccc8e24b4e9b3a44"
+  },
+  {
+    "domain": "wonka.com",
+    "title": "staff full stack engineer",
+    "locations": [{"country": "Canada", "region": "Ontario", "city": "Toronto"}],
+    "fingerprint": "888187d41b732927704c0404400629ac35ae489aa8c9d4c56b4b8b29ad7304c0"
+  },
+  {
+    "domain": "acme.com",
+    "title": "lead data engineer",
+    "locations": [{"country": "United States", "region": "California", "city": "San Francisco"}],
+    "fingerprint": "126f30b6c5b665ca7d00f0e94d93d1e0fdc73685c53620e78c00c3d4ca0c9049"
+  },
+  {
+    "domain": "globex.com",
+    "title": "site reliability engineer",
+    "locations": [{"country": "France", "city": "Paris"}],
+    "fingerprint": "aaaf0141ed3952dfe5204bea1474651727f5078171f1384d77e80ee7f63b1ae2"
+  },
+  {
+    "domain": "initech.com",
+    "title": "machine learning engineer",
+    "locations": [{"country": "Netherlands", "city": "Amsterdam"}],
+    "fingerprint": "9a65f929614887b7f9c8bee5c07c2da33c2bc9f65cad4a6c5877cba9ebb5a73b"
+  },
+  {
+    "domain": "umbrella.com",
+    "title": "junior devops engineer",
+    "locations": [{"country": "Poland", "city": "Warsaw"}],
+    "fingerprint": "4d6964bba98da574b4efb76359e49c2db8735f040266b3bcdbe9264e566311a3"
+  },
+  {
+    "domain": "hooli.com",
+    "title": "mid security engineer",
+    "locations": [{"country": "Spain", "city": "Madrid"}],
+    "fingerprint": "9d5d52aabfdd64ddd126bf9cf2b89a4bc6a504c8fc7f9ccc5895f6faba38acc8"
+  },
+  {
+    "domain": "stark.com",
+    "title": "senior mobile engineer",
+    "locations": [{"country": "Ireland", "city": "Dublin"}],
+    "fingerprint": "3d26882f5708fb327efb005c7518c8671c8441cdada14ce295772b6293b3a588"
+  },
+  {
+    "domain": "wayne.com",
+    "title": "staff full stack engineer",
+    "locations": [{"country": "Canada", "region": "Ontario", "city": "Toronto"}],
+    "fingerprint": "b59154d278da00edee21dcc2f41073a6a523ff34a247b1d6ee8e3b03c6b2c51c"
+  },
+  {
+    "domain": "cyberdyne.com",
+    "title": "senior backend engineer",
+    "locations": [{"country": "Germany", "city": "Berlin"}],
+    "fingerprint": "64411a20922435038e923f85554b53840d6eb26a8054438e656047985a570f5d"
+  },
+  {
+    "domain": "soylent.com",
+    "title": "staff frontend engineer",
+    "locations": [{"country": "Germany", "city": "Munich"}],
+    "fingerprint": "ade369a475eae17d3bd996ddf3cbba93d22139d1b5523b6168037aab36d12c3a"
+  },
+  {
+    "domain": "wonka.com",
+    "title": "principal platform engineer",
+    "locations": [{"country": "United Kingdom", "city": "London"}],
+    "fingerprint": "db93c39cd4b0e0c8b367c8343ada4d3d7efcea1dec04b54c9c734f3e9911d723"
+  },
+  {
+    "domain": "cyberdyne.com",
+    "title": "senior backend engineer",
+    "locations": [{"country": "Germany", "city": "Berlin"}],
+    "fingerprint": "64411a20922435038e923f85554b53840d6eb26a8054438e656047985a570f5d"
+  },
+  {
+    "domain": "soylent.com",
+    "title": "staff frontend engineer",
+    "locations": [{"country": "Germany", "city": "Munich"}],
+    "fingerprint": "ade369a475eae17d3bd996ddf3cbba93d22139d1b5523b6168037aab36d12c3a"
+  },
+  {
+    "domain": "wonka.com",
+    "title": "principal platform engineer",
+    "locations": [{"country": "United Kingdom", "city": "London"}],
+    "fingerprint": "db93c39cd4b0e0c8b367c8343ada4d3d7efcea1dec04b54c9c734f3e9911d723"
+  },
+  {
+    "domain": "acme.com",
+    "title": "lead data engineer",
+    "locations": [{"country": "United States", "region": "California", "city": "San Francisco"}],
+    "fingerprint": "126f30b6c5b665ca7d00f0e94d93d1e0fdc73685c53620e78c00c3d4ca0c9049"
+  },
+  {
+    "domain": "globex.com",
+    "title": "site reliability engineer",
+    "locations": [{"country": "France", "city": "Paris"}],
+    "fingerprint": "aaaf0141ed3952dfe5204bea1474651727f5078171f1384d77e80ee7f63b1ae2"
+  },
+  {
+    "domain": "initech.com",
+    "title": "machine learning engineer",
+    "locations": [{"country": "Netherlands", "city": "Amsterdam"}],
+    "fingerprint": "9a65f929614887b7f9c8bee5c07c2da33c2bc9f65cad4a6c5877cba9ebb5a73b"
+  },
+  {
+    "domain": "umbrella.com",
+    "title": "junior devops engineer",
+    "locations": [{"country": "Poland", "city": "Warsaw"}],
+    "fingerprint": "4d6964bba98da574b4efb76359e49c2db8735f040266b3bcdbe9264e566311a3"
+  },
+  {
+    "domain": "hooli.com",
+    "title": "mid security engineer",
+    "locations": [{"country": "Spain", "city": "Madrid"}],
+    "fingerprint": "9d5d52aabfdd64ddd126bf9cf2b89a4bc6a504c8fc7f9ccc5895f6faba38acc8"
+  },
+  {
+    "domain": "stark.com",
+    "title": "senior mobile engineer",
+    "locations": [{"country": "Ireland", "city": "Dublin"}],
+    "fingerprint": "3d26882f5708fb327efb005c7518c8671c8441cdada14ce295772b6293b3a588"
+  },
+  {
+    "domain": "wayne.com",
+    "title": "staff full stack engineer",
+    "locations": [{"country": "Canada", "region": "Ontario", "city": "Toronto"}],
+    "fingerprint": "b59154d278da00edee21dcc2f41073a6a523ff34a247b1d6ee8e3b03c6b2c51c"
+  },
+  {
+    "domain": "acme.com",
+    "title": "machine learning engineer",
+    "locations": [{"country": "Germany", "city": "Berlin"}],
+    "fingerprint": "77a17c97ce3caac6b98bb501fbddb5708497804efa39adfc5e54e8c851059712"
+  },
+  {
+    "domain": "globex.com",
+    "title": "junior devops engineer",
+    "locations": [{"country": "Germany", "city": "Munich"}],
+    "fingerprint": "99898dd206cff5604b3f49e0e4970cce2da277ccc3e60802ead0919e7a815242"
+  },
+  {
+    "domain": "initech.com",
+    "title": "mid security engineer",
+    "locations": [{"country": "United Kingdom", "city": "London"}],
+    "fingerprint": "49f876610d1e33bc9f4212b2bb0675bcf8d9f2251390b568c2a24091c52289fb"
+  },
+  {
+    "domain": "umbrella.com",
+    "title": "senior mobile engineer",
+    "locations": [{"country": "United States", "region": "California", "city": "San Francisco"}],
+    "fingerprint": "125759b7f9f0412f69a6d8aa9efbcbfca9fd010d1635b5c75a4e08ec56906978"
+  },
+  {
+    "domain": "hooli.com",
+    "title": "staff full stack engineer",
+    "locations": [{"country": "France", "city": "Paris"}],
+    "fingerprint": "14e70b5865e1f83f5170846f93f0b7902e11e92252ac7997a32512ea42a51989"
+  },
+  {
+    "domain": "stark.com",
+    "title": "senior backend engineer",
+    "locations": [{"country": "Netherlands", "city": "Amsterdam"}],
+    "fingerprint": "fe8df7d2ca329043d0b061106297cad5058f4c6a78b711e5c6147c67d6914e47"
+  },
+  {
+    "domain": "wayne.com",
+    "title": "staff frontend engineer",
+    "locations": [{"country": "Poland", "city": "Warsaw"}],
+    "fingerprint": "30f8ec41a95be4d51c9df585594764ce23ef790b3e1e7379430e5ac95bff007c"
+  },
+  {
+    "domain": "cyberdyne.com",
+    "title": "principal platform engineer",
+    "locations": [{"country": "Spain", "city": "Madrid"}],
+    "fingerprint": "7494fd77f7535b11da911aef063d7c5fd7e44ae4771c49fb513adf3d7b2f9e62"
+  },
+  {
+    "domain": "soylent.com",
+    "title": "lead data engineer",
+    "locations": [{"country": "Ireland", "city": "Dublin"}],
+    "fingerprint": "17791447244b855acefeb6a15589c259eed884051bf749ba4853618af1b5d983"
+  },
+  {
+    "domain": "wonka.com",
+    "title": "site reliability engineer",
+    "locations": [{"country": "Canada", "region": "Ontario", "city": "Toronto"}],
+    "fingerprint": "cd42f79af907984ad69f77cdc563118bb08e1b07714e506cbee37a7e79647990"
+  },
+  {
+    "domain": "acme.com",
+    "title": "senior backend engineer",
+    "locations": [],
+    "fingerprint": "90a0a027a60c3dbb38dee734043684b08176d6f286d68c2a1b409adbde873c27"
+  },
+  {
+    "domain": "globex.com",
+    "title": "staff frontend engineer",
+    "locations": [],
+    "fingerprint": "23f0f038356f56c8796075d482db1d7f7135655d6bb627730188b8bd52b2d45d"
+  },
+  {
+    "domain": "initech.com",
+    "title": "principal platform engineer",
+    "locations": [],
+    "fingerprint": "724d89252bab487fed0749fb670fbf9a21eabf3fb8f65b4b217a6007ce1cd19b"
+  },
+  {
+    "domain": "umbrella.com",
+    "title": "lead data engineer",
+    "locations": [],
+    "fingerprint": "677ed0cdc3ddff506401afd5580b5985558804d08fc1fc4d9f23076097639f9c"
+  },
+  {
+    "domain": "hooli.com",
+    "title": "site reliability engineer",
+    "locations": [],
+    "fingerprint": "d4e99cf5fea3eab031356e16ec67f1d7b300dc1cb6c9697af47c7e5d10bd56d5"
+  },
+  {
+    "domain": "stark.com",
+    "title": "machine learning engineer",
+    "locations": [],
+    "fingerprint": "0125d9091273b66641a5a679638d1f850652102961548ac45efc1435383cd97d"
+  },
+  {
+    "domain": "acme.com",
+    "title": "senior backend engineer",
+    "locations": [{"country": "Germany", "city": "Berlin"}, {"country": "United Kingdom", "city": "London"}],
+    "fingerprint": "9971243177ca8a5eaa8441484a849457caf28a7cf49c768bae8feeb735764ff3"
+  },
+  {
+    "domain": "globex.com",
+    "title": "staff frontend engineer",
+    "locations": [{"country": "United States", "region": "California", "city": "San Francisco"}, {"country": "Canada", "region": "Ontario", "city": "Toronto"}],
+    "fingerprint": "2e82a63233c9d68800aeb1489d3d368261d25423c23fae2cb8e9914091a81857"
+  },
+  {
+    "domain": "hooli.com",
+    "title": "lead data engineer",
+    "locations": [{"country": "France", "city": "Paris"}, {"country": "Netherlands", "city": "Amsterdam"}, {"country": "Spain", "city": "Madrid"}],
+    "fingerprint": "253e6a78dd2ad0d54e39223c66db86abbea61aa83e1212aa46137caa426bb742"
+  },
+  {
+    "domain": "stark.com",
+    "title": "machine learning engineer",
+    "locations": [{"country": "Poland", "city": "Warsaw"}, {"country": "Ireland", "city": "Dublin"}],
+    "fingerprint": "e829712e31042bc56913f63b1ca21b9d380d7aa1675c2338ff994045575d1844"
+  }
+]

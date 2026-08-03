@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using JobHunter.Application.Normalization;
+using JobHunter.Application.Normalization.Providers;
 using JobHunter.Domain.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -28,6 +30,17 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton(sp =>
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Discovery.DiscoveryOptions>>().Value);
+
+        // F2 normalisation — one pure normaliser per ATS provider, indexed by the catalog so the handler
+        // dispatches by AtsKind without switching on a provider enum (SAD §5). Adding a provider is a new
+        // registration here, not a change to NormalizationHandler.
+        services.AddSingleton<IPostingNormalizer, GreenhousePostingNormalizer>();
+        services.AddSingleton<IPostingNormalizer, LeverPostingNormalizer>();
+        services.AddSingleton<IPostingNormalizer, AshbyPostingNormalizer>();
+        services.AddSingleton<IPostingNormalizer, WorkablePostingNormalizer>();
+        services.AddSingleton<IPostingNormalizer, CareersPagePostingNormalizer>();
+        services.AddSingleton<IPostingNormalizerCatalog, PostingNormalizerCatalog>();
+
         return services;
     }
 }

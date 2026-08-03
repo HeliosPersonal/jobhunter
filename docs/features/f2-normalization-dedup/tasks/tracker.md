@@ -19,15 +19,15 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 
 | ID | Task | Layer | Deps | Est | Status |
 |---|---|---|---|---|---|
-| T01 | [[T01-domain-job\|Domain: Job, Fingerprint, SalaryRange, LocationSet]] | domain | — | M | pending |
-| T02 | [[T02-title-normalization\|Title normalisation and seniority extraction]] | app | T01 | M | pending |
-| T03 | [[T03-location-salary-parsing\|Location, remote policy and salary parsing]] | app | T01 | L | pending |
-| T04 | [[T04-normalization-handler\|Per-provider normalizers and the normalisation handler]] | app | T02, T03 | M | pending |
-| T05 | [[T05-jobs-persistence\|Migration and repositories for jobs and aliases]] | infra/db | T01 | M | pending |
-| T06 | [[T06-fingerprint-dedup\|Fingerprint calculation and the deduplication handler]] | app | T04, T05 | L | pending |
-| T07 | [[T07-technology-tagging\|Technology vocabulary tagging]] | app | T04 | S | pending |
-| T08 | [[T08-lifecycle-grouping\|Job lifecycle: closure and reopening]] | app | T06 | M | pending |
-| T09 | [[T09-reprocessing\|Reprocessing and retention]] | app | T06 | M | pending |
+| T01 | [[T01-domain-job\|Domain: Job, Fingerprint, SalaryRange, LocationSet]] | domain | — | M | done |
+| T02 | [[T02-title-normalization\|Title normalisation and seniority extraction]] | app | T01 | M | done |
+| T03 | [[T03-location-salary-parsing\|Location, remote policy and salary parsing]] | app | T01 | L | done |
+| T04 | [[T04-normalization-handler\|Per-provider normalizers and the normalisation handler]] | app | T02, T03 | M | done |
+| T05 | [[T05-jobs-persistence\|Migration and repositories for jobs and aliases]] | infra/db | T01 | M | done |
+| T06 | [[T06-fingerprint-dedup\|Fingerprint calculation and the deduplication handler]] | app | T04, T05 | L | done |
+| T07 | [[T07-technology-tagging\|Technology vocabulary tagging]] | app | T04 | S | done |
+| T08 | [[T08-lifecycle-grouping\|Job lifecycle: closure and reopening]] | app | T06 | M | done |
+| T09 | [[T09-reprocessing\|Reprocessing and retention]] | app | T06 | M | done |
 
 **9 tasks · 1×S + 6×M + 2×L ≈ 5.25 person-days.**
 `NearDuplicateGrouper` (formerly bundled in T08) is **relocated to F5** digest assembly per

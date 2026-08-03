@@ -140,6 +140,183 @@ namespace JobHunter.Infrastructure.Persistence.Migrations
                     b.ToTable("companies", (string)null);
                 });
 
+            modelBuilder.Entity("JobHunter.Domain.Jobs.Job", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ApplyUrl")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("apply_url");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("closed_at");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<string>("EmploymentType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("employment_type");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasColumnType("char(64)")
+                        .HasColumnName("fingerprint");
+
+                    b.Property<short>("FingerprintVersion")
+                        .HasColumnType("smallint")
+                        .HasColumnName("fingerprint_version");
+
+                    b.Property<DateTimeOffset>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_seen_at");
+
+                    b.Property<bool>("IsTier2")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_tier2");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<string>("Locations")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("locations");
+
+                    b.Property<string>("NormalisedTitle")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("normalised_title");
+
+                    b.Property<Guid>("OriginRawPostingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("origin_raw_posting_id");
+
+                    b.Property<DateTimeOffset?>("PostedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("posted_at");
+
+                    b.Property<string>("PostedAtGranularity")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("posted_at_granularity");
+
+                    b.Property<string>("RemotePolicy")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("remote_policy");
+
+                    b.Property<string>("SalaryRaw")
+                        .HasColumnType("text")
+                        .HasColumnName("salary_raw");
+
+                    b.Property<string>("Seniority")
+                        .HasColumnType("text")
+                        .HasColumnName("seniority");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<Guid?>("SupersededBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("superseded_by");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Fingerprint")
+                        .IsUnique()
+                        .HasDatabaseName("uq_jobs_fingerprint");
+
+                    b.HasIndex("FirstSeenAt")
+                        .HasDatabaseName("idx_jobs_first_seen")
+                        .HasFilter("status = 'Live'");
+
+                    b.HasIndex("LastSeenAt")
+                        .HasDatabaseName("idx_jobs_last_seen")
+                        .HasFilter("status = 'Live'");
+
+                    b.HasIndex("CompanyId", "Status")
+                        .HasDatabaseName("idx_jobs_company_status");
+
+                    b.ToTable("jobs", (string)null);
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Jobs.JobAlias", b =>
+                {
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_id");
+
+                    b.Property<Guid>("RawPostingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("raw_posting_id");
+
+                    b.Property<DateTimeOffset>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_seen_at");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.HasKey("JobId", "RawPostingId");
+
+                    b.HasIndex("RawPostingId")
+                        .HasDatabaseName("idx_job_aliases_raw");
+
+                    b.HasIndex("SourceId");
+
+                    b.ToTable("job_aliases", (string)null);
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Jobs.JobTechnology", b =>
+                {
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_id");
+
+                    b.Property<string>("Technology")
+                        .HasColumnType("text")
+                        .HasColumnName("technology");
+
+                    b.Property<string>("MatchedVia")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("matched_via");
+
+                    b.HasKey("JobId", "Technology");
+
+                    b.HasIndex("Technology")
+                        .HasDatabaseName("idx_job_technologies_tech");
+
+                    b.ToTable("job_technologies", (string)null);
+                });
+
             modelBuilder.Entity("JobHunter.Domain.Postings.RawPosting", b =>
                 {
                     b.Property<Guid>("Id")
@@ -335,6 +512,78 @@ namespace JobHunter.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("JobHunter.Domain.Jobs.Job", b =>
+                {
+                    b.HasOne("JobHunter.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsOne("JobHunter.Domain.Jobs.SalaryRange", "Salary", b1 =>
+                        {
+                            b1.Property<Guid>("JobId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasColumnType("char(3)")
+                                .HasColumnName("salary_currency");
+
+                            b1.Property<decimal>("Max")
+                                .HasColumnType("numeric(12,2)")
+                                .HasColumnName("salary_max");
+
+                            b1.Property<decimal>("Min")
+                                .HasColumnType("numeric(12,2)")
+                                .HasColumnName("salary_min");
+
+                            b1.Property<string>("Period")
+                                .IsRequired()
+                                .HasColumnType("text")
+                                .HasColumnName("salary_period");
+
+                            b1.HasKey("JobId");
+
+                            b1.ToTable("jobs");
+
+                            b1.WithOwner()
+                                .HasForeignKey("JobId");
+                        });
+
+                    b.Navigation("Salary");
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Jobs.JobAlias", b =>
+                {
+                    b.HasOne("JobHunter.Domain.Jobs.Job", null)
+                        .WithMany("Aliases")
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JobHunter.Domain.Postings.RawPosting", null)
+                        .WithMany()
+                        .HasForeignKey("RawPostingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("JobHunter.Domain.Sources.JobSource", null)
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Jobs.JobTechnology", b =>
+                {
+                    b.HasOne("JobHunter.Domain.Jobs.Job", null)
+                        .WithMany("Technologies")
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("JobHunter.Domain.Postings.RawPosting", b =>
                 {
                     b.HasOne("JobHunter.Domain.Sources.JobSource", null)
@@ -366,6 +615,13 @@ namespace JobHunter.Infrastructure.Persistence.Migrations
                         .HasForeignKey("SourceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Jobs.Job", b =>
+                {
+                    b.Navigation("Aliases");
+
+                    b.Navigation("Technologies");
                 });
 #pragma warning restore 612, 618
         }

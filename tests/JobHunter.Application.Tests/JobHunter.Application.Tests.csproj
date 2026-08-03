@@ -9,4 +9,11 @@
     <ProjectReference Include="..\JobHunter.TestKit\JobHunter.TestKit.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The labelled dedup corpus (T06) and the frozen fingerprint set are data files read at test time. -->
+    <PackageReference Include="YamlDotNet" />
+    <None Update="Data\dedup-corpus.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Data\fingerprints.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
