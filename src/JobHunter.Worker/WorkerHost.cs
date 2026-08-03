@@ -5,6 +5,7 @@ using JobHunter.Infrastructure.Configuration;
 using JobHunter.Infrastructure.Messaging;
 using JobHunter.Infrastructure.Scheduling;
 using JobHunter.Scrapers;
+using JobHunter.Search;
 using JobHunter.ServiceDefaults;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,6 +31,11 @@ public static class WorkerHost
 
         builder.Services.AddJobHunterApplication();
         builder.Services.AddJobHunterInfrastructure(builder.Configuration);
+
+        // The Worker owns indexing: it runs the SearchIndexingHandler (writes a document per JobIndexRequested)
+        // and the nightly reconcile/rebuild (F9-T02/T08), so it composes the Typesense adapter. The Api also
+        // composes it, for the read side and the operator reindex endpoint.
+        builder.Services.AddJobHunterSearch(builder.Configuration);
 
         // The Worker is the only host that fetches boards, so it composes the ATS adapter layer: the five
         // IJobSource adapters and the catalog the fetch handler dispatches through (dependency rule:

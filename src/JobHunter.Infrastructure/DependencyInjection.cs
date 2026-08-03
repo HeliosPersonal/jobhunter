@@ -68,6 +68,8 @@ public static class DependencyInjection
         services.AddScoped<IRedetectionQuery, RedetectionQuery>();
         services.AddScoped<ILiveJobsQuery, LiveJobsQuery>();
         services.AddScoped<ICompanyJobsQuery, CompanyJobsQuery>();
+        services.AddScoped<ILiveJobCounter, LiveJobCountQuery>();
+        services.AddScoped<IJobProjectionSource, JobProjectionQuery>();
         services.AddScoped<IStaleJobsQuery, StaleJobsQuery>();
         services.AddScoped<IRawPostingReader, RawPostingReaderQuery>();
         services.AddScoped<IReprocessableJobsQuery, ReprocessableJobsQuery>();
@@ -126,6 +128,7 @@ public static class DependencyInjection
         services.AddScoped<ClosureSweepTrigger>();
         services.AddScoped<RedetectBindingTrigger>();
         services.AddScoped<JobLivenessCheckTrigger>();
+        services.AddScoped<IndexReconcileTrigger>();
 
         services.AddSingleton(new RecurringJobBinding(
             DiscoveryCycleJobId,
@@ -170,6 +173,19 @@ public static class DependencyInjection
                 cron,
                 new RecurringJobOptions { TimeZone = timeZone })));
 
+        // The nightly index reconcile at 04:00 (SAD §6.3, T08): compare the live-job count against the
+        // document count and re-index the live set when they diverge above the drift threshold. It runs
+        // directly rather than publishing a message — reconcile is a self-contained maintenance operation,
+        // not a pipeline stage — so the trigger resolves the Application service and awaits it.
+        services.AddSingleton(new RecurringJobBinding(
+            IndexReconcileJobId,
+            IndexReconcileCron,
+            (cron, timeZone) => RecurringJob.AddOrUpdate<IndexReconcileTrigger>(
+                IndexReconcileJobId,
+                trigger => trigger.RunAsync(),
+                cron,
+                new RecurringJobOptions { TimeZone = timeZone })));
+
         services.AddHostedService<RecurringJobApplier>();
     }
 
@@ -188,6 +204,10 @@ public static class DependencyInjection
     /// <summary>The daily job-liveness check at 01:00 (SAD §6.2, T08): closes jobs stale across all sources.</summary>
     private const string JobLivenessCheckJobId = "job-liveness-check";
     private const string JobLivenessCheckCron = "0 1 * * *";
+
+    /// <summary>The nightly search-index reconcile at 04:00 (SAD §6.3, F9-T08): re-indexes drift above 1%.</summary>
+    private const string IndexReconcileJobId = "index-reconcile";
+    private const string IndexReconcileCron = "0 4 * * *";
 
     /// <summary>
     /// Wires the shared outbound HTTP pipeline (SAD §8, QG-2): the politeness options, the SSRF guard,

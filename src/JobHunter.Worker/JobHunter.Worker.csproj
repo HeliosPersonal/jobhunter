@@ -5,6 +5,7 @@
     <ProjectReference Include="..\JobHunter.Infrastructure\JobHunter.Infrastructure.csproj" />
     <ProjectReference Include="..\JobHunter.Application\JobHunter.Application.csproj" />
     <ProjectReference Include="..\JobHunter.Scrapers\JobHunter.Scrapers.csproj" />
+    <ProjectReference Include="..\JobHunter.Search\JobHunter.Search.csproj" />
   </ItemGroup>
 
   <ItemGroup>
