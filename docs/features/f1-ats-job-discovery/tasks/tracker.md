@@ -34,8 +34,8 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T11 | [[T11-raw-ingestion-dedup\|Raw posting ingestion with content-hash dedup]] | app | T10 | M | done |
 | T12 | [[T12-quarantine-logging\|Quarantine, fetch logging and degraded reporting]] | app | T11 | M | done |
 | T13 | [[T13-closure-sweep\|Closure sweep: emit JobClosed for postings gone from their board]] | app | T11 | S | done |
-| T14 | [[T14-ai-devtools-company-universe\|Grow the company registry with pure-play AI / dev-tools / infra employers]] | app | T03 | L | pending |
-| T15 | [[T15-comp-band-remote-tagging\|Tag companies by comp band and remote-from-EMEA posture]] | app | T03 | M | pending |
+| T14 | [[T14-ai-devtools-company-universe\|Grow the company registry with pure-play AI / dev-tools / infra employers]] | app | T03 | L | done |
+| T15 | [[T15-comp-band-remote-tagging\|Tag companies by comp band and remote-from-EMEA posture]] | app | T03 | M | done |
 
 **13 tasks · 1×S + 9×M + 3×L ≈ 7.5 person-days** (T13 is the small closure sweep).
 

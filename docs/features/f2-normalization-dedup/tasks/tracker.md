@@ -30,8 +30,8 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T07 | [[T07-technology-tagging\|Technology vocabulary tagging]] | app | T04 | S | done |
 | T08 | [[T08-lifecycle-grouping\|Job lifecycle: closure and reopening]] | app | T06 | M | done |
 | T09 | [[T09-reprocessing\|Reprocessing and retention]] | app | T06 | M | done |
-| T10 | [[T10-target-stack-vocabulary\|Extend the technology vocabulary with target-stack coverage]] | app | T07 | M | pending |
-| T11 | [[T11-title-tiers-config\|Encode Tier-1/2/3 target titles as a reference config]] | app | T02 | S | pending |
+| T10 | [[T10-target-stack-vocabulary\|Extend the technology vocabulary with target-stack coverage]] | app | T07 | M | done |
+| T11 | [[T11-title-tiers-config\|Encode Tier-1/2/3 target titles as a reference config]] | app | T02 | S | done |
 
 **9 tasks · 1×S + 6×M + 2×L ≈ 5.25 person-days.**
 `NearDuplicateGrouper` (formerly bundled in T08) is **relocated to F5** digest assembly per

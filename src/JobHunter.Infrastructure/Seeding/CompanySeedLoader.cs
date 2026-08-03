@@ -94,7 +94,45 @@ public static class CompanySeedLoader
             atsKind,
             boardToken,
             Optional(mapping, "careers_url"),
-            Optional(mapping, "hq_country"));
+            Optional(mapping, "hq_country"),
+            OptionalCompBand(mapping, line),
+            OptionalBool(mapping, "remote_emea_friendly", line));
+    }
+
+    private static CompBand? OptionalCompBand(YamlMappingNode mapping, long line)
+    {
+        var raw = Optional(mapping, "comp_band");
+        if (raw is null)
+        {
+            return null;
+        }
+
+        if (!Enum.TryParse<CompBand>(raw, ignoreCase: false, out var band) || !Enum.IsDefined(band))
+        {
+            throw new CompanySeedException(
+                $"Company seed entry at line {line} has an unknown comp_band '{raw}'. " +
+                $"Expected one of: {string.Join(", ", Enum.GetNames<CompBand>())}.");
+        }
+
+        return band;
+    }
+
+    private static bool? OptionalBool(YamlMappingNode mapping, string key, long line)
+    {
+        var raw = Optional(mapping, key);
+        if (raw is null)
+        {
+            return null;
+        }
+
+        if (!bool.TryParse(raw, out var value))
+        {
+            throw new CompanySeedException(
+                $"Company seed entry at line {line} has a non-boolean '{key}' value '{raw}'. " +
+                "Expected true or false.");
+        }
+
+        return value;
     }
 
     private static string Required(YamlMappingNode mapping, string key, long line)

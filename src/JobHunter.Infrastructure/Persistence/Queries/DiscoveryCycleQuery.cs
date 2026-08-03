@@ -17,9 +17,14 @@ public sealed class DiscoveryCycleQuery(INpgsqlConnectionFactory connectionFacto
     // Joined on the live binding so a company with only a retired or low-confidence binding never fans
     // out. quarantined_until is honoured against `now`, so an expired quarantine becomes due again on the
     // next cycle rather than being retried immediately. last_fetched_at NULL (never fetched) is always due.
+    // comp_band and remote_emea_friendly are the curated comp-and-remote segmentation (T15). They are
+    // carried through so the cycle can bias the fan-out order toward the target band; they filter nothing,
+    // so the WHERE clause is unchanged and every due source is still returned. s.id remains the tie-break so
+    // the read is stable — the band-aware ordering is applied by DiscoveryPrioritizer, not the SQL.
     private const string Sql =
         """
-        SELECT s.id AS SourceId, s.company_id AS CompanyId, b.ats_kind AS AtsKind
+        SELECT s.id AS SourceId, s.company_id AS CompanyId, b.ats_kind AS AtsKind,
+               c.comp_band AS CompBand, c.remote_emea_friendly AS RemoteEmeaFriendly
         FROM job_sources s
         JOIN companies c ON c.id = s.company_id
         JOIN ats_bindings b ON b.id = s.binding_id

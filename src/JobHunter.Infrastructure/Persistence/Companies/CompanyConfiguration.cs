@@ -28,6 +28,14 @@ internal sealed class CompanyConfiguration : IEntityTypeConfiguration<Company>
         b.Property(x => x.HqCountry).HasColumnName("hq_country").HasMaxLength(2);
         b.Property(x => x.Stage).HasColumnName("stage").HasMaxLength(64);
         b.Property(x => x.EmployeeBand).HasColumnName("employee_band").HasMaxLength(64);
+
+        // Comp band persists as text (a category label, not money) so a re-order of the enum never
+        // silently repoints existing rows; null means untagged. Remote-from-EMEA is a nullable boolean.
+        b.Property(x => x.CompBand)
+            .HasColumnName("comp_band")
+            .HasConversion<string?>()
+            .HasMaxLength(16);
+        b.Property(x => x.RemoteEmeaFriendly).HasColumnName("remote_emea_friendly");
         b.Property(x => x.Source)
             .HasColumnName("source")
             .HasConversion<string>()

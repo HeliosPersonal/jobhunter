@@ -72,7 +72,8 @@ public sealed class CompanyRegistryService(
             var companyId = _ids.NewId();
             var company = new Company(
                 companyId, domain.Value, entry.DisplayName, CompanySource.Curated, _clock.UtcNow,
-                entry.CareersUrl, entry.HqCountry, isActive: false);
+                entry.CareersUrl, entry.HqCountry, isActive: false,
+                compBand: entry.CompBand, remoteEmeaFriendly: entry.RemoteEmeaFriendly);
 
             var binding = new AtsBinding(
                 _ids.NewId(), companyId, entry.AtsKind, entry.BoardToken,

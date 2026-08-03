@@ -50,6 +50,46 @@ public sealed class RegistryPersistenceTests
     }
 
     [RequiresDockerFact]
+    public async Task Comp_band_and_remote_emea_round_trip_and_band_persists_as_text()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        var taggedId = Guid.CreateVersion7();
+        var untaggedId = Guid.CreateVersion7();
+
+        await using (var write = database.CreateContext())
+        {
+            var repo = new CompanyRepository(write);
+            await repo.AddAsync(new Company(
+                taggedId, CanonicalDomain.TryCreate("tagged.com").Value, "Tagged", CompanySource.Curated, Now,
+                compBand: CompBand.Top, remoteEmeaFriendly: true));
+            // An untagged company still persists — the columns are nullable and advisory.
+            await repo.AddAsync(new Company(
+                untaggedId, CanonicalDomain.TryCreate("untagged.com").Value, "Untagged", CompanySource.Curated, Now));
+            await repo.SaveChangesAsync();
+        }
+
+        await using (var read = database.CreateContext())
+        {
+            var repo = new CompanyRepository(read);
+            var tagged = await repo.FindByDomainAsync(CanonicalDomain.TryCreate("tagged.com").Value);
+            tagged!.CompBand.ShouldBe(CompBand.Top);
+            tagged.RemoteEmeaFriendly.ShouldBe(true);
+
+            var untagged = await repo.FindByDomainAsync(CanonicalDomain.TryCreate("untagged.com").Value);
+            untagged!.CompBand.ShouldBeNull();
+            untagged.RemoteEmeaFriendly.ShouldBeNull();
+        }
+
+        await using var connection = new Npgsql.NpgsqlConnection(database.ConnectionString);
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT comp_band FROM companies WHERE id = @id";
+        command.Parameters.AddWithValue("id", taggedId);
+        var stored = (string?)await command.ExecuteScalarAsync();
+        stored.ShouldBe("Top");
+    }
+
+    [RequiresDockerFact]
     public async Task Confidence_persists_as_numeric_and_ats_kind_as_text()
     {
         await using var database = await TestDatabase.CreateAsync();

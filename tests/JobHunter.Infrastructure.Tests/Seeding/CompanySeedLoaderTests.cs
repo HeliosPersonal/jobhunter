@@ -51,6 +51,59 @@ public sealed class CompanySeedLoaderTests
 
         entry.CareersUrl.ShouldBeNull();
         entry.HqCountry.ShouldBeNull();
+        entry.CompBand.ShouldBeNull();
+        entry.RemoteEmeaFriendly.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Parses_the_comp_band_and_remote_emea_segmentation_fields()
+    {
+        const string yaml = """
+            - domain: stripe.com
+              display_name: Stripe
+              ats_kind: Greenhouse
+              board_token: stripe
+              comp_band: Top
+              remote_emea_friendly: true
+            """;
+
+        var entry = CompanySeedLoader.Parse(yaml).ShouldHaveSingleItem();
+
+        entry.CompBand.ShouldBe(CompBand.Top);
+        entry.RemoteEmeaFriendly.ShouldBe(true);
+    }
+
+    [Fact]
+    public void An_unknown_comp_band_fails_naming_the_line_and_the_allowed_values()
+    {
+        const string yaml = """
+            - domain: stripe.com
+              display_name: Stripe
+              ats_kind: Greenhouse
+              board_token: stripe
+              comp_band: Platinum
+            """;
+
+        var ex = Should.Throw<CompanySeedException>(() => CompanySeedLoader.Parse(yaml));
+        ex.Message.ShouldContain("line 1");
+        ex.Message.ShouldContain("Platinum");
+        ex.Message.ShouldContain("Top");
+    }
+
+    [Fact]
+    public void A_non_boolean_remote_emea_friendly_fails_naming_the_line()
+    {
+        const string yaml = """
+            - domain: stripe.com
+              display_name: Stripe
+              ats_kind: Greenhouse
+              board_token: stripe
+              remote_emea_friendly: maybe
+            """;
+
+        var ex = Should.Throw<CompanySeedException>(() => CompanySeedLoader.Parse(yaml));
+        ex.Message.ShouldContain("line 1");
+        ex.Message.ShouldContain("remote_emea_friendly");
     }
 
     [Fact]

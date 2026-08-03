@@ -14,6 +14,8 @@
   <ItemGroup>
     <!-- The committed technology vocabulary (T07) ships in the image so the tagger cannot start without it. -->
     <EmbeddedResource Include="Normalization\technology-vocabulary.yaml" />
+    <!-- The committed title-tier reference config (T11) ships in the image alongside the vocabulary. -->
+    <EmbeddedResource Include="Normalization\title-tiers.yaml" />
   </ItemGroup>
 
   <ItemGroup>
