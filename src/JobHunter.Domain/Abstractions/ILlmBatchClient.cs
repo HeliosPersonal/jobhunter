@@ -27,7 +27,28 @@ public interface ILlmBatchClient
     /// or provider error, so one bad item is one recorded failure rather than a failed batch.
     /// </summary>
     IAsyncEnumerable<BatchResultItem> GetResultsAsync(string providerBatchId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Lists the provider's batches created on or after <paramref name="createdOnOrAfter"/>, most recent
+    /// first. This is the reconciliation read that closes the one window in the whole feature where money
+    /// could be spent without a record (SAD §11 D5, crash-matrix checkpoint 4): the provider id lives only
+    /// in the persisted batch row, and there is a one-statement gap between <see cref="SubmitAsync"/>
+    /// returning that id and the row committing. A restart in that gap must <em>adopt</em> the batch the
+    /// provider already holds rather than submit — and pay — a second time. A single active Run submits
+    /// exactly one enrichment batch, so at most one batch created since the Run began can be its own, which
+    /// is what makes adoption unambiguous.
+    /// </summary>
+    Task<IReadOnlyList<ProviderBatchRef>> ListRecentBatchesAsync(
+        DateTimeOffset createdOnOrAfter,
+        CancellationToken cancellationToken);
 }
+
+/// <summary>
+/// A provider batch seen from the outside during reconciliation: its id and the instant the provider
+/// created it. Deliberately minimal — it carries only what adoption needs (SAD §11 D5). The item-level
+/// detail is reached later through <see cref="ILlmBatchClient.GetResultsAsync"/>.
+/// </summary>
+public sealed record ProviderBatchRef(string ProviderBatchId, DateTimeOffset CreatedAt);
 
 /// <summary>One batch to submit: the tier, the prompt version stamped on every row, and the items.</summary>
 public sealed record BatchSubmission(

@@ -23,6 +23,39 @@ internal static class AnthropicResponseParser
     }
 
     /// <summary>
+    /// Reads a batch-list response body into the <see cref="ProviderBatchRef"/> vocabulary reconciliation
+    /// works in (SAD §11 D5). The <c>data</c> array carries each batch's <c>id</c> and <c>created_at</c>;
+    /// an entry missing either is skipped rather than throwing, so a provider adding fields never breaks
+    /// the read. Order is preserved as returned (the API lists most-recent-first).
+    /// </summary>
+    public static IReadOnlyList<ProviderBatchRef> ParseBatchList(string responseBody)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(responseBody);
+        using var doc = JsonDocument.Parse(responseBody);
+        var root = doc.RootElement;
+
+        var refs = new List<ProviderBatchRef>();
+        if (!root.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Array)
+        {
+            return refs;
+        }
+
+        foreach (var entry in data.EnumerateArray())
+        {
+            if (!entry.TryGetProperty("id", out var idElement) || idElement.GetString() is not { } id
+                || !entry.TryGetProperty("created_at", out var createdElement)
+                || !createdElement.TryGetDateTimeOffset(out var createdAt))
+            {
+                continue;
+            }
+
+            refs.Add(new ProviderBatchRef(id, createdAt));
+        }
+
+        return refs;
+    }
+
+    /// <summary>
     /// Maps the status body's <c>processing_status</c> and <c>request_counts</c> onto the small
     /// provider-agnostic <see cref="BatchStatus"/> vocabulary. Only <see cref="ProviderBatchState.Ended"/>
     /// triggers retrieval.

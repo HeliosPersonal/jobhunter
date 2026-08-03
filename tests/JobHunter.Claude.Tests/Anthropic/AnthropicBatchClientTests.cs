@@ -175,6 +175,36 @@ public sealed class AnthropicBatchClientTests
     }
 
     [Fact]
+    public async Task List_recent_batches_reads_the_ids_and_created_at_and_filters_by_the_bound()
+    {
+        // D5 / checkpoint 4: the reconciliation read. The list is parsed into ProviderBatchRefs, an entry
+        // missing created_at is skipped rather than throwing, and only batches created on or after the bound
+        // (the Run's start) are returned — most recent first.
+        var handler = StubHttpMessageHandler.Always(await File.ReadAllTextAsync(Path.Combine(FixtureDir, "list-batches.json")));
+        var client = NewClient(handler);
+
+        var bound = new DateTimeOffset(2026, 8, 3, 0, 0, 0, TimeSpan.Zero);
+        var refs = await client.ListRecentBatchesAsync(bound, CancellationToken.None);
+
+        refs.Count.ShouldBe(1);
+        refs[0].ProviderBatchId.ShouldBe("msgbatch_recent_02");
+        handler.Requests[0].Method.ShouldBe(HttpMethod.Get);
+        handler.Requests[0].Uri!.AbsolutePath.ShouldBe("/v1/messages/batches");
+    }
+
+    [Fact]
+    public async Task List_recent_batches_returns_all_recorded_batches_when_the_bound_is_open()
+    {
+        var handler = StubHttpMessageHandler.Always(await File.ReadAllTextAsync(Path.Combine(FixtureDir, "list-batches.json")));
+        var client = NewClient(handler);
+
+        var refs = await client.ListRecentBatchesAsync(DateTimeOffset.MinValue, CancellationToken.None);
+
+        // The entry without a created_at is dropped; the two well-formed entries remain, most recent first.
+        refs.Select(r => r.ProviderBatchId).ShouldBe(["msgbatch_recent_02", "msgbatch_recent_01"]);
+    }
+
+    [Fact]
     public async Task A_4xx_does_not_retry_and_surfaces_the_status()
     {
         var handler = new StubHttpMessageHandler((_, _) =>

@@ -126,9 +126,11 @@ public sealed class EnrichmentSubmitHandler(
             await _runs.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        // Only now — after the estimate is durable — is the one spend-committing call made.
+        // Only now — after the estimate is durable — is the one spend-committing call made, and even that is
+        // guarded by reconciliation so the single window where money could be spent without a record is closed.
         var submission = new BatchSubmission(Tier, request.PromptVersion, request.Items);
-        var providerBatchId = await _client.SubmitAsync(submission, cancellationToken).ConfigureAwait(false);
+        var providerBatchId = await ReconcileOrSubmitAsync(run, submission, alreadyEstimated, cancellationToken)
+            .ConfigureAwait(false);
 
         // The provider id is persisted immediately, in the same transaction that records the batch, its
         // items and the Run's move to Enriching (SAD §6.2 steps 5–6, done-when #3). The unique index makes
@@ -162,6 +164,36 @@ public sealed class EnrichmentSubmitHandler(
         _logger.LogInformation(
             "Submitted enrichment batch {ProviderBatchId} for Run {RunId}: {ItemCount} items, estimate {Estimate}.",
             providerBatchId, run.Id, request.Items.Count, estimate);
+    }
+
+    /// <summary>
+    /// The mitigation for SAD §11 D5 and crash-matrix checkpoint 4. There is a one-statement window between
+    /// <see cref="ILlmBatchClient.SubmitAsync"/> returning a provider id and the batch row committing that
+    /// id; a crash inside it leaves the provider holding a batch the database has no record of. A naive
+    /// resume would resubmit and pay twice. So when a prior attempt is known to have reached at least the
+    /// estimate commit (<paramref name="priorAttempt"/>), the client's recent batches are listed first: if
+    /// one created since this Run began already exists, it is <em>adopted</em> rather than resubmitted, and
+    /// the client is never called a second time. A single active Run submits exactly one enrichment batch,
+    /// so at most one such batch can exist and the adoption is unambiguous. On a first attempt, or when no
+    /// orphan is found, the one spend-committing call is made.
+    /// </summary>
+    private async Task<string> ReconcileOrSubmitAsync(
+        Run run, BatchSubmission submission, bool priorAttempt, CancellationToken cancellationToken)
+    {
+        if (priorAttempt)
+        {
+            var recent = await _client.ListRecentBatchesAsync(run.StartedAt, cancellationToken).ConfigureAwait(false);
+            if (recent.Count > 0)
+            {
+                var adopted = recent[0];
+                _logger.LogWarning(
+                    "Run {RunId} found an unrecorded provider batch {ProviderBatchId} on resume; adopting it rather than resubmitting (D5, checkpoint 4).",
+                    run.Id, adopted.ProviderBatchId);
+                return adopted.ProviderBatchId;
+            }
+        }
+
+        return await _client.SubmitAsync(submission, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<IReadOnlyList<EnrichmentJobContent>> LoadScopeAsync(Run run, CancellationToken cancellationToken)

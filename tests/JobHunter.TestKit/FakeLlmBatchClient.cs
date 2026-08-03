@@ -110,8 +110,21 @@ public sealed class FakeLlmBatchClient : ILlmBatchClient
 
     public int ResultsCallCount { get; private set; }
 
+    public int ListCallCount { get; private set; }
+
     /// <summary>The most recent submission, so a test can assert item count, tier and prompt version.</summary>
     public BatchSubmission? LastSubmission { get; private set; }
+
+    /// <summary>
+    /// The provider-side view every accepted submission leaves behind, so the reconciliation read can find
+    /// a batch the provider already holds even when the local batch row never committed (SAD §11 D5,
+    /// crash-matrix checkpoint 4). A test seeds <see cref="ProviderCreatedAt"/> before submitting so the
+    /// created-at bound reconciliation applies is deterministic under <see cref="FakeClock"/>.
+    /// </summary>
+    private readonly List<ProviderBatchRef> _providerBatches = [];
+
+    /// <summary>The created-at stamped on the next accepted submission's provider-side record.</summary>
+    public DateTimeOffset ProviderCreatedAt { get; set; } = FakeClock.DefaultNow;
 
     public async Task<string> SubmitAsync(BatchSubmission submission, CancellationToken cancellationToken)
     {
@@ -126,8 +139,23 @@ public sealed class FakeLlmBatchClient : ILlmBatchClient
         }
 
         LastSubmission = submission;
+        // The provider now holds this batch, whether or not the caller lives long enough to persist its id.
+        // A reconciling restart finds it here, which is the whole point of checkpoint 4.
+        _providerBatches.Add(new ProviderBatchRef(ProviderBatchId, ProviderCreatedAt));
         await MaybeDelayAsync(cancellationToken).ConfigureAwait(false);
         return ProviderBatchId;
+    }
+
+    public async Task<IReadOnlyList<ProviderBatchRef>> ListRecentBatchesAsync(
+        DateTimeOffset createdOnOrAfter,
+        CancellationToken cancellationToken)
+    {
+        ListCallCount++;
+        await MaybeDelayAsync(cancellationToken).ConfigureAwait(false);
+        return _providerBatches
+            .Where(b => b.CreatedAt >= createdOnOrAfter)
+            .OrderByDescending(b => b.CreatedAt)
+            .ToList();
     }
 
     public async Task<BatchStatus> GetStatusAsync(string providerBatchId, CancellationToken cancellationToken)

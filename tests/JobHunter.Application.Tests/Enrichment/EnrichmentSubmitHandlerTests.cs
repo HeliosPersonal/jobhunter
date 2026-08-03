@@ -285,6 +285,73 @@ public sealed class EnrichmentSubmitHandlerTests
         _client.SubmitCallCount.ShouldBe(1);
     }
 
+    // ---- D5 / checkpoint 4: adopt an unrecorded provider batch rather than resubmitting -----------
+
+    [Fact]
+    public async Task A_prior_attempt_that_left_an_unrecorded_provider_batch_is_adopted_not_resubmitted()
+    {
+        // Checkpoint 4: the estimate committed and SubmitAsync ran before the crash, so the provider holds a
+        // batch the database never recorded. The resume must reconcile — find that batch and adopt it — and
+        // never call SubmitAsync a second time (SAD §11 D5). SubmitCallCount stays at the one prior call.
+        var run = CreatedRun();
+        _runs.FindAsync(RunId, Arg.Any<CancellationToken>()).Returns(run);
+        GivenScope(Job());
+        GivenEstimate(0.43m);
+        _runs.HasLedgerEntryAsync(RunId, BatchStage.Enrichment, ModelTier.Cheap, LedgerEntryKind.Estimated,
+            Arg.Any<CancellationToken>()).Returns(true);
+
+        // The provider batch the crashed attempt left behind, created after the Run began.
+        _client.ProviderBatchId = "msgbatch_orphan_01";
+        _client.ProviderCreatedAt = run.StartedAt.AddMinutes(1);
+        await _client.SubmitAsync(
+            new BatchSubmission(ModelTier.Cheap, "enrich-v1", []), CancellationToken.None);
+        var submitCallsBeforeResume = _client.SubmitCallCount;
+
+        Batch? persisted = null;
+        _runs.When(r => r.AddBatch(Arg.Any<Batch>())).Do(ci => persisted = ci.Arg<Batch>());
+
+        await CreateHandler().Handle(new EnrichmentSubmissionDue(RunId), _bus, CancellationToken.None);
+
+        _client.SubmitCallCount.ShouldBe(submitCallsBeforeResume);
+        _client.ListCallCount.ShouldBe(1);
+        persisted.ShouldNotBeNull().ProviderBatchId.ShouldBe("msgbatch_orphan_01");
+        run.State.ShouldBe(RunState.Enriching);
+    }
+
+    [Fact]
+    public async Task A_prior_estimate_with_no_provider_batch_submits_exactly_once()
+    {
+        // Checkpoint 3: the estimate committed but the crash fell before SubmitAsync, so the provider holds
+        // nothing. Reconciliation finds no orphan and submission happens — exactly once.
+        var run = CreatedRun();
+        _runs.FindAsync(RunId, Arg.Any<CancellationToken>()).Returns(run);
+        GivenScope(Job());
+        GivenEstimate(0.43m);
+        _runs.HasLedgerEntryAsync(RunId, BatchStage.Enrichment, ModelTier.Cheap, LedgerEntryKind.Estimated,
+            Arg.Any<CancellationToken>()).Returns(true);
+
+        await CreateHandler().Handle(new EnrichmentSubmissionDue(RunId), _bus, CancellationToken.None);
+
+        _client.ListCallCount.ShouldBe(1);
+        _client.SubmitCallCount.ShouldBe(1);
+        run.State.ShouldBe(RunState.Enriching);
+    }
+
+    [Fact]
+    public async Task A_first_attempt_submits_without_a_reconciliation_read()
+    {
+        // No prior estimate: the happy path must not pay for a list call it does not need.
+        var run = CreatedRun();
+        _runs.FindAsync(RunId, Arg.Any<CancellationToken>()).Returns(run);
+        GivenScope(Job());
+        GivenEstimate(0.43m);
+
+        await CreateHandler().Handle(new EnrichmentSubmissionDue(RunId), _bus, CancellationToken.None);
+
+        _client.ListCallCount.ShouldBe(0);
+        _client.SubmitCallCount.ShouldBe(1);
+    }
+
     // ---- Edge cases -----------------------------------------------------------------------------
 
     [Fact]
@@ -347,5 +414,9 @@ public sealed class EnrichmentSubmitHandlerTests
             await Task.CompletedTask;
             yield break;
         }
+
+        public Task<IReadOnlyList<ProviderBatchRef>> ListRecentBatchesAsync(
+            DateTimeOffset createdOnOrAfter, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<ProviderBatchRef>>([]);
     }
 }

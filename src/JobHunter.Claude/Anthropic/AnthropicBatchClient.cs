@@ -84,6 +84,23 @@ public sealed class AnthropicBatchClient : ILlmBatchClient
         return AnthropicResponseParser.ParseStatus(content);
     }
 
+    public async Task<IReadOnlyList<ProviderBatchRef>> ListRecentBatchesAsync(
+        DateTimeOffset createdOnOrAfter,
+        CancellationToken cancellationToken)
+    {
+        // The list endpoint pages most-recent-first; one page is ample for reconciliation, which only cares
+        // about batches created since the current Run began (SAD §11 D5). The created-on-or-after bound is
+        // applied client-side because the batch list is small and the filter keeps the adapter provider-shaped.
+        using var request = NewRequest(HttpMethod.Get, "/v1/messages/batches?limit=100");
+        using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+            .ConfigureAwait(false);
+        await EnsureSuccessAsync(response, "list", cancellationToken).ConfigureAwait(false);
+
+        var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        var all = AnthropicResponseParser.ParseBatchList(content);
+        return all.Where(b => b.CreatedAt >= createdOnOrAfter).ToList();
+    }
+
     public async IAsyncEnumerable<BatchResultItem> GetResultsAsync(
         string providerBatchId,
         [EnumeratorCancellation] CancellationToken cancellationToken)
