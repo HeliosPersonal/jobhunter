@@ -6,7 +6,8 @@ namespace JobHunter.ArchitectureTests;
 /// <summary>
 /// Architecture rule 8: a public type in <c>JobHunter.Infrastructure</c> must be one of the sanctioned
 /// cross-project seams — a DI extension class, an <c>*Options</c> class, a factory, a configuration
-/// helper, a repository/query, a DTO row or a test attribute — never a leaked concrete service. The
+/// helper, a repository/query, a DTO row, a boundary <c>*Exception</c> (thrown by a public adapter and
+/// caught by its caller, e.g. the seed CLI) or a test attribute — never a leaked concrete service. The
 /// internal adapters (e.g. the RabbitMQ replayer) satisfy this by being <c>internal</c>, so they never
 /// reach this rule. Anything public that does not match the allowed shapes fails.
 /// </summary>
@@ -25,6 +26,7 @@ public sealed class PublicInfrastructureTypeRule : ICustomRule
         "Registry",
         "DependencyInjection",
         "Attribute",
+        "Exception",
     ];
 
     public bool MeetsRule(TypeDefinition type)

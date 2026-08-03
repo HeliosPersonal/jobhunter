@@ -63,6 +63,7 @@ public static class DependencyInjection
         services.AddScoped<IJobSourceRepository, JobSourceRepository>();
         services.AddScoped<IRawPostingRepository, RawPostingRepository>();
         services.AddScoped<IDegradedCoverageQuery, DegradedCoverageQuery>();
+        services.AddScoped<IClosureSweepQuery, ClosureSweepQuery>();
 
         services.AddSingleton<RecurringJobRegistry>();
 
@@ -88,6 +89,7 @@ public static class DependencyInjection
         // query is harmless anywhere, and the trigger is only resolved by the Worker's Hangfire server.
         services.AddScoped<IDiscoveryCycleQuery, DiscoveryCycleQuery>();
         services.AddScoped<DiscoveryCycleTrigger>();
+        services.AddScoped<ClosureSweepTrigger>();
 
         // Bound the fetch fan-out to the configured degree (SAD §8). Harmless where Wolverine is not run
         // (Api/Telegram): the extension is only resolved and applied when a bus is bootstrapped.
@@ -111,12 +113,27 @@ public static class DependencyInjection
                 cron,
                 new RecurringJobOptions { TimeZone = timeZone })));
 
+        // The closure sweep runs just after each discovery cycle so a board that dropped a posting this cycle
+        // is closed the same day (SAD §6.1, T13). Same cadence, offset by five minutes to follow the fetch.
+        services.AddSingleton(new RecurringJobBinding(
+            ClosureSweepJobId,
+            ClosureSweepCron,
+            (cron, timeZone) => RecurringJob.AddOrUpdate<ClosureSweepTrigger>(
+                ClosureSweepJobId,
+                trigger => trigger.PublishAsync(),
+                cron,
+                new RecurringJobOptions { TimeZone = timeZone })));
+
         services.AddHostedService<RecurringJobApplier>();
     }
 
     /// <summary>The recurring-job id and cron (every six hours) for the discovery cycle (SAD §6.1).</summary>
     private const string DiscoveryCycleJobId = "discovery-cycle";
     private const string DiscoveryCycleCron = "0 */6 * * *";
+
+    /// <summary>The closure sweep, five minutes past each six-hourly cycle (SAD §6.1, T13).</summary>
+    private const string ClosureSweepJobId = "closure-sweep";
+    private const string ClosureSweepCron = "5 */6 * * *";
 
     /// <summary>
     /// Wires the shared outbound HTTP pipeline (SAD §8, QG-2): the politeness options, the SSRF guard,
