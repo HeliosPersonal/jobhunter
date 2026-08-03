@@ -1,4 +1,5 @@
 using System.Globalization;
+using JobHunter.Application.Common;
 using JobHunter.Contracts.Pipeline;
 using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Pipeline;
@@ -163,6 +164,13 @@ public sealed class BatchResultProcessingHandler(
         if (!outcome.IsSuccess)
         {
             item.MarkParseFailed(outcome.FailureReason!, result.RawJson);
+
+            // Instrument #8: an item the provider returned but that failed schema validation (observability
+            // §2). Labelled by stage and tier only — never the job id — so cardinality stays bounded.
+            Telemetry.ParseFailures.Add(
+                1,
+                new KeyValuePair<string, object?>(TelemetryLabels.Stage, Stage.ToString()),
+                new KeyValuePair<string, object?>(TelemetryLabels.Tier, Tier.ToString()));
             return false;
         }
 
@@ -199,6 +207,21 @@ public sealed class BatchResultProcessingHandler(
         // The denormalised SpentUsd retains the pre-submission estimate; the ledger is authoritative for
         // attribution (data-model §cost_ledger_entries, §runs). Keeping the pessimistic estimate rather than
         // reconciling it down is the safe direction the ceiling relies on (ADR-F3-0002).
+
+        // Instruments #2 and #5 are recorded here, inside the same once-only ledger guard, so a reprocess
+        // after a crash (checkpoints 7-8) adds no duplicate cost point and no duplicate latency point — the
+        // metric totals match an uninterrupted Run exactly (observability §2). Labelled by stage and tier
+        // only; the run id lives on spans, never on a metric label.
+        Telemetry.RunCost.Record(
+            (double)actual.CostUsd,
+            new KeyValuePair<string, object?>(TelemetryLabels.Stage, Stage.ToString()),
+            new KeyValuePair<string, object?>(TelemetryLabels.Tier, Tier.ToString()));
+
+        var latency = _clock.UtcNow - batch.SubmittedAt;
+        Telemetry.BatchLatency.Record(
+            latency.TotalSeconds,
+            new KeyValuePair<string, object?>(TelemetryLabels.Stage, Stage.ToString()),
+            new KeyValuePair<string, object?>(TelemetryLabels.Tier, Tier.ToString()));
     }
 
     private async Task AdvanceRunAsync(Run run, IMessageBus bus, CancellationToken cancellationToken)
