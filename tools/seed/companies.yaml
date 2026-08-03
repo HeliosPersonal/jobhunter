@@ -6,12 +6,18 @@
 # inactive under `DirectoryCrawl` instead.
 #
 # Schema (validated by CompanySeedLoader, which fails naming the offending line):
-#   domain:        required, canonicalisable registrable domain (natural key, unique)
-#   display_name:  required
-#   ats_kind:      required, one of Greenhouse | Lever | Ashby | Workable | CareersPage
-#   board_token:   required, the provider's board slug (or full careers URL for CareersPage)
-#   careers_url:   optional detection hint
-#   hq_country:    optional ISO-3166-1 alpha-2
+#   domain:                required, canonicalisable registrable domain (natural key, unique)
+#   display_name:          required
+#   ats_kind:              required, one of Greenhouse | Lever | Ashby | Workable | CareersPage
+#   board_token:           required, the provider's board slug (or full careers URL for CareersPage)
+#   careers_url:           optional detection hint
+#   hq_country:            optional ISO-3166-1 alpha-2
+#   comp_band:             optional, one of Top | High | Mid — the employer's coarse comp posture
+#   remote_emea_friendly:  optional true|false — hires remote from EMEA / Ukraine
+#
+# comp_band and remote_emea_friendly (T15, TUNE-10) are advisory: they bias discovery fan-out and digest
+# ordering toward the Owner's target band, reason-visible, and never filter a company out. Leave them off
+# when unknown — an untagged row still discovers and delivers, it just sorts after tagged ones.
 #
 # Curation (which companies belong here) is deliberately out of scope of the code: add, remove or correct
 # a row and re-run `seed` — it is idempotent and reports zero inserts when nothing changed.
@@ -22,180 +28,240 @@
   board_token: stripe
   careers_url: https://stripe.com/jobs
   hq_country: US
+  comp_band: Top
+  remote_emea_friendly: true
 
 - domain: airtable.com
   display_name: Airtable
   ats_kind: Greenhouse
   board_token: airtable
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: gitlab.com
   display_name: GitLab
   ats_kind: Greenhouse
   board_token: gitlab
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: databricks.com
   display_name: Databricks
   ats_kind: Greenhouse
   board_token: databricks
   hq_country: US
+  comp_band: Top
+  remote_emea_friendly: false
 
 - domain: benchling.com
   display_name: Benchling
   ats_kind: Greenhouse
   board_token: benchling
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: robinhood.com
   display_name: Robinhood
   ats_kind: Greenhouse
   board_token: robinhood
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: coinbase.com
   display_name: Coinbase
   ats_kind: Greenhouse
   board_token: coinbase
   hq_country: US
+  comp_band: Top
+  remote_emea_friendly: true
 
 - domain: dropbox.com
   display_name: Dropbox
   ats_kind: Greenhouse
   board_token: dropbox
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: cloudflare.com
   display_name: Cloudflare
   ats_kind: Greenhouse
   board_token: cloudflare
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: reddit.com
   display_name: Reddit
   ats_kind: Greenhouse
   board_token: reddit
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: figma.com
   display_name: Figma
   ats_kind: Greenhouse
   board_token: figma
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: brex.com
   display_name: Brex
   ats_kind: Greenhouse
   board_token: brex
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: plaid.com
   display_name: Plaid
   ats_kind: Lever
   board_token: plaid
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: netlify.com
   display_name: Netlify
   ats_kind: Greenhouse
   board_token: netlify
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: mixpanel.com
   display_name: Mixpanel
   ats_kind: Greenhouse
   board_token: mixpanel
   hq_country: US
+  comp_band: Mid
+  remote_emea_friendly: false
 
 - domain: nutanix.com
   display_name: Nutanix
   ats_kind: Lever
   board_token: nutanix
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: ramp.com
   display_name: Ramp
   ats_kind: Ashby
   board_token: ramp
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: linear.app
   display_name: Linear
   ats_kind: Ashby
   board_token: linear
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: posthog.com
   display_name: PostHog
   ats_kind: Ashby
   board_token: posthog
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: deel.com
   display_name: Deel
   ats_kind: Ashby
   board_token: deel
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: monzo.com
   display_name: Monzo
   ats_kind: Greenhouse
   board_token: monzo
   hq_country: GB
+  comp_band: Mid
+  remote_emea_friendly: false
 
 - domain: wise.com
   display_name: Wise
   ats_kind: Greenhouse
   board_token: transferwise
   hq_country: GB
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: gymshark.com
   display_name: Gymshark
   ats_kind: Workable
   board_token: gymshark
   hq_country: GB
+  comp_band: Mid
+  remote_emea_friendly: false
 
 - domain: remote.com
   display_name: Remote
   ats_kind: Greenhouse
   board_token: remotecom
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: elastic.co
   display_name: Elastic
   ats_kind: Greenhouse
   board_token: elastic
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: hashicorp.com
   display_name: HashiCorp
   ats_kind: Greenhouse
   board_token: hashicorp
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: sourcegraph.com
   display_name: Sourcegraph
   ats_kind: Greenhouse
   board_token: sourcegraph91
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: vercel.com
   display_name: Vercel
   ats_kind: Greenhouse
   board_token: vercel
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: mistral.ai
   display_name: Mistral AI
   ats_kind: Lever
   board_token: mistral
   hq_country: FR
+  comp_band: Top
+  remote_emea_friendly: true
 
 - domain: anthropic.com
   display_name: Anthropic
   ats_kind: Greenhouse
   board_token: anthropic
   hq_country: US
+  comp_band: Top
+  remote_emea_friendly: false
 
 # --- Pure-play AI / dev-tools / infra employers (T14, TUNE-09) ---
 # Every binding below was verified live against its provider's public board API before committing.
@@ -209,123 +275,165 @@
   ats_kind: Ashby
   board_token: openai
   hq_country: US
+  comp_band: Top
+  remote_emea_friendly: false
 
 - domain: cursor.com
   display_name: Cursor
   ats_kind: Ashby
   board_token: cursor
   hq_country: US
+  comp_band: Top
+  remote_emea_friendly: false
 
 - domain: langchain.com
   display_name: LangChain
   ats_kind: Ashby
   board_token: langchain
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: perplexity.ai
   display_name: Perplexity
   ats_kind: Ashby
   board_token: perplexity
   hq_country: US
+  comp_band: Top
+  remote_emea_friendly: false
 
 - domain: cohere.com
   display_name: Cohere
   ats_kind: Ashby
   board_token: cohere
   hq_country: CA
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: together.ai
   display_name: Together AI
   ats_kind: Greenhouse
   board_token: togetherai
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: pinecone.io
   display_name: Pinecone
   ats_kind: Ashby
   board_token: pinecone
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: weaviate.io
   display_name: Weaviate
   ats_kind: Ashby
   board_token: weaviate
   hq_country: NL
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: modal.com
   display_name: Modal
   ats_kind: Ashby
   board_token: modal
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: baseten.co
   display_name: Baseten
   ats_kind: Ashby
   board_token: baseten
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: temporal.io
   display_name: Temporal
   ats_kind: Ashby
   board_token: temporal
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: railway.com
   display_name: Railway
   ats_kind: Ashby
   board_token: railway
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: render.com
   display_name: Render
   ats_kind: Ashby
   board_token: render
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: grafana.com
   display_name: Grafana Labs
   ats_kind: Greenhouse
   board_token: grafanalabs
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: confluent.io
   display_name: Confluent
   ats_kind: Ashby
   board_token: confluent
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: zapier.com
   display_name: Zapier
   ats_kind: Ashby
   board_token: zapier
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: replit.com
   display_name: Replit
   ats_kind: Ashby
   board_token: replit
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: zed.dev
   display_name: Zed
   ats_kind: Ashby
   board_token: zed
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: notion.so
   display_name: Notion
   ats_kind: Ashby
   board_token: notion
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: false
 
 - domain: supabase.com
   display_name: Supabase
   ats_kind: Ashby
   board_token: supabase
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true
 
 - domain: airbyte.com
   display_name: Airbyte
   ats_kind: Ashby
   board_token: airbyte
   hq_country: US
+  comp_band: High
+  remote_emea_friendly: true

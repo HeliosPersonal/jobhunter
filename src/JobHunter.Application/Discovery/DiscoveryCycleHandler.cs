@@ -43,17 +43,28 @@ public sealed class DiscoveryCycleHandler(
         var fetchedBefore = message.WindowStart - options.RecentFetchWindow;
         var due = await _dueSources.DueSourcesAsync(now, fetchedBefore, cancellationToken).ConfigureAwait(false);
 
-        foreach (var source in due)
+        // Bias the fan-out toward the Owner's target comp-and-remote band (T15): a higher-band,
+        // remote-from-EMEA-friendly source is fetched first when a window's fan-out is large. It is a
+        // re-order, never a filter — every due source is still published, so coverage is unchanged.
+        var prioritized = DiscoveryPrioritizer.Prioritize(due);
+
+        foreach (var entry in prioritized)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
+            var source = entry.Source;
             await bus.PublishAsync(new SourceFetchRequested(
                 source.SourceId, source.CompanyId, source.AtsKind, message.WindowStart, now))
                 .ConfigureAwait(false);
+
+            _logger.LogDebug(
+                "Source {SourceId} queued for window {WindowStart:o}. {Reason}",
+                source.SourceId, message.WindowStart, entry.Reason);
         }
 
         _logger.LogInformation(
-            "Discovery cycle for window {WindowStart:o} fanned out {Count} source fetch request(s).",
-            message.WindowStart, due.Count);
+            "Discovery cycle for window {WindowStart:o} fanned out {Count} source fetch request(s), " +
+            "ordered toward the target comp-and-remote band.",
+            message.WindowStart, prioritized.Count);
     }
 }

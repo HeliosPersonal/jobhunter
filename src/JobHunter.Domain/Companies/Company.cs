@@ -28,7 +28,9 @@ public sealed class Company : Entity
         DateTimeOffset firstSeenAt,
         string? careersUrl = null,
         string? hqCountry = null,
-        bool isActive = true)
+        bool isActive = true,
+        CompBand? compBand = null,
+        bool? remoteEmeaFriendly = null)
         : base(id)
     {
         ArgumentNullException.ThrowIfNull(canonicalDomain);
@@ -40,6 +42,8 @@ public sealed class Company : Entity
         CareersUrl = careersUrl;
         HqCountry = hqCountry;
         IsActive = isActive;
+        CompBand = compBand;
+        RemoteEmeaFriendly = remoteEmeaFriendly;
         FirstSeenAt = firstSeenAt;
         LastSeenAt = firstSeenAt;
     }
@@ -65,6 +69,18 @@ public sealed class Company : Entity
 
     /// <summary>Set by F8, not at discovery.</summary>
     public string? EmployeeBand { get; private set; }
+
+    /// <summary>
+    /// The employer's coarse comp posture (T15), from the curated seed. Advisory: it biases discovery and
+    /// digest ordering toward the target band, never a hard filter. Null when the row is untagged.
+    /// </summary>
+    public CompBand? CompBand { get; private set; }
+
+    /// <summary>
+    /// Whether the employer hires remote from EMEA / Ukraine (T15), from the curated seed. Advisory: it
+    /// feeds acquisition prioritisation with a reason, never a silent exclusion. Null when untagged.
+    /// </summary>
+    public bool? RemoteEmeaFriendly { get; private set; }
 
     /// <summary>Where the registry entry came from.</summary>
     public CompanySource Source { get; private set; }

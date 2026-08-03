@@ -14,7 +14,9 @@ public sealed record CompanySeedEntry(
     AtsKind AtsKind,
     string BoardToken,
     string? CareersUrl = null,
-    string? HqCountry = null);
+    string? HqCountry = null,
+    CompBand? CompBand = null,
+    bool? RemoteEmeaFriendly = null);
 
 /// <summary>
 /// A company proposed by the weekly directory-expansion crawl (T03, ADR-F1-0001). It has no trusted

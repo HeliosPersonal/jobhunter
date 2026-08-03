@@ -110,4 +110,47 @@ public sealed class DiscoveryCycleHandlerTests
             WindowStart - _options.RecentFetchWindow,
             Arg.Any<CancellationToken>());
     }
+
+    [Fact]
+    public async Task It_fans_out_the_target_band_source_before_an_equivalent_lower_band_one()
+    {
+        // Two otherwise-identical due sources arriving in the "wrong" order: the lower-band one first.
+        // The bias must fetch the Top / remote-from-EMEA-friendly source before the untagged one (T15).
+        var lowerBand = new DueSource(
+            Guid.CreateVersion7(), Guid.CreateVersion7(), nameof(AtsKind.Greenhouse));
+        var targetBand = new DueSource(
+            Guid.CreateVersion7(), Guid.CreateVersion7(), nameof(AtsKind.Ashby),
+            CompBand: nameof(CompBand.Top), RemoteEmeaFriendly: true);
+        _due.DueSourcesAsync(Arg.Any<DateTimeOffset>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
+            .Returns([lowerBand, targetBand]);
+
+        var published = new List<SourceFetchRequested>();
+        await _bus.PublishAsync(Arg.Do<SourceFetchRequested>(m => published.Add(m)));
+
+        await CreateHandler().Handle(new DiscoveryCycleDue(WindowStart), _bus, _options, CancellationToken.None);
+
+        // Both are still published — the bias re-orders, it never filters.
+        published.Count.ShouldBe(2);
+        published[0].SourceId.ShouldBe(targetBand.SourceId);
+        published[1].SourceId.ShouldBe(lowerBand.SourceId);
+    }
+
+    [Fact]
+    public async Task Untagged_sources_keep_fanning_out_in_their_original_order()
+    {
+        // No comp band, no remote flag on any source: the fan-out must be unchanged from the read order,
+        // so an untagged registry (the pre-T15 state) has no behaviour regression.
+        var first = new DueSource(Guid.CreateVersion7(), Guid.CreateVersion7(), nameof(AtsKind.Greenhouse));
+        var second = new DueSource(Guid.CreateVersion7(), Guid.CreateVersion7(), nameof(AtsKind.Lever));
+        var third = new DueSource(Guid.CreateVersion7(), Guid.CreateVersion7(), nameof(AtsKind.Ashby));
+        _due.DueSourcesAsync(Arg.Any<DateTimeOffset>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
+            .Returns([first, second, third]);
+
+        var published = new List<SourceFetchRequested>();
+        await _bus.PublishAsync(Arg.Do<SourceFetchRequested>(m => published.Add(m)));
+
+        await CreateHandler().Handle(new DiscoveryCycleDue(WindowStart), _bus, _options, CancellationToken.None);
+
+        published.Select(m => m.SourceId).ShouldBe([first.SourceId, second.SourceId, third.SourceId]);
+    }
 }
