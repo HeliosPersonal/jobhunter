@@ -123,6 +123,38 @@ public sealed class JobSourceTests
     }
 
     [Fact]
+    public void ReleaseQuarantine_lifts_the_hold_and_resets_failures()
+    {
+        var clock = new FakeClock();
+        var source = NewSource();
+        source.RecordFailure(clock, TimeSpan.FromHours(6));
+        source.RecordFailure(clock, TimeSpan.FromHours(6));
+        source.QuarantinedUntil.ShouldNotBeNull();
+
+        var released = source.ReleaseQuarantine();
+
+        released.ShouldBeTrue();
+        source.QuarantinedUntil.ShouldBeNull();
+        source.ConsecutiveFailures.ShouldBe((short)0);
+        source.IsQuarantined(clock).ShouldBeFalse();
+
+        // No fetch has happened — the operator only lifted the hold, so LastFetchedAt is untouched.
+        source.LastFetchedAt.ShouldBe(clock.UtcNow);
+    }
+
+    [Fact]
+    public void ReleaseQuarantine_on_a_healthy_source_is_a_no_op_and_reports_nothing_to_do()
+    {
+        var source = NewSource();
+
+        var released = source.ReleaseQuarantine();
+
+        released.ShouldBeFalse();
+        source.QuarantinedUntil.ShouldBeNull();
+        source.ConsecutiveFailures.ShouldBe((short)0);
+    }
+
+    [Fact]
     public void RebindTo_rejects_an_empty_binding_or_blank_endpoint()
     {
         var source = NewSource();

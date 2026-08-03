@@ -87,6 +87,12 @@ public static class DependencyInjection
 
         services.AddSingleton<RecurringJobRegistry>();
 
+        // F9 operational endpoints (T07): the Api enqueues a full reindex or a history reprocess through this
+        // port; Hangfire's PostgreSQL storage is composed in every host (ADR-0004) so the job is enqueued
+        // from the Api and executed on the Worker's background server. Depends on IBackgroundJobClient, which
+        // AddHangfire registers — present in the Api and Worker, the two hosts that compose Hangfire.
+        services.AddScoped<IOperationScheduler, HangfireOperationScheduler>();
+
         AddDiscovery(services, configuration);
         AddPoliteHttp(services, configuration);
 
@@ -129,6 +135,12 @@ public static class DependencyInjection
         services.AddScoped<RedetectBindingTrigger>();
         services.AddScoped<JobLivenessCheckTrigger>();
         services.AddScoped<IndexReconcileTrigger>();
+
+        // The operator-requested rebuild and reprocess bodies (F9-T07): enqueued from the Api, executed here
+        // on the Worker's Hangfire server. Registered alongside the recurring triggers so the server resolves
+        // them; unlike the recurring bindings they carry no cron — they run on demand.
+        services.AddScoped<IndexRebuildTrigger>();
+        services.AddScoped<ReprocessTrigger>();
 
         services.AddSingleton(new RecurringJobBinding(
             DiscoveryCycleJobId,

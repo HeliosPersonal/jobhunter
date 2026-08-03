@@ -25,7 +25,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T04 | [[T04-api-host-auth\|API host: auth, fallback-deny, OpenAPI]] | api | — | M | done |
 | T05 | [[T05-search-job-endpoints\|Search, job and CV endpoints]] | api | T03, T04 | M | done |
 | T06 | [[T06-company-run-preference-endpoints\|Company, run lifecycle and preference endpoints]] | api | T04 | M | done |
-| T07 | [[T07-admin-endpoints\|Operational endpoints]] | api | T04, T02 | M | pending |
+| T07 | [[T07-admin-endpoints\|Operational endpoints]] | api | T04, T02 | M | done |
 | T08 | [[T08-reconcile-rebuild\|Reconcile and rebuild]] | search | T02 | M | done |
 | T09 | [[T09-telegram-search\|Telegram search command]] | telegram | T03 | S | pending |
 | T10 | [[T10-verification-suites\|Index scan, rebuild and convention suites]] | tests | T05, T06, T07, T08 | L | pending |

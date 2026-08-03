@@ -169,3 +169,29 @@ public sealed record AddCompanyRequest(
     string DisplayName,
     string? CareersUrl,
     string? HqCountry);
+
+/// <summary>
+/// The acknowledgement for a long-running operational action that was enqueued rather than run inline
+/// (<c>POST /api/admin/search/reindex</c>, <c>POST /api/admin/jobs/reprocess</c>). The
+/// <c>operationId</c> is the background-job id the operator can quote when checking progress; recovery
+/// never blocks the request thread (T07 "return a job identifier rather than blocking").
+/// </summary>
+public sealed record OperationAcceptedResponse(string OperationId, string Status);
+
+/// <summary>The request body for <c>POST /api/admin/jobs/reprocess</c> — the inclusive lower bound of the window.</summary>
+public sealed record ReprocessRequest(DateTimeOffset? FirstSeenFrom);
+
+/// <summary>The outcome of <c>POST /api/admin/sources/{id}/unquarantine</c> — whether the hold was actually lifted.</summary>
+public sealed record UnquarantineResponse(Guid SourceId, string Outcome);
+
+/// <summary>
+/// The corpus snapshot from <c>GET /api/admin/stats</c>: the authoritative live-job count in PostgreSQL,
+/// the index document count (null when the index is unreachable), the drift between them (null likewise)
+/// and whether the index answered. The cost trend F3 owns is a deferred, empty slot until F3 merges (the
+/// cross-feature decoupling decision), never fabricated.
+/// </summary>
+public sealed record StatsResponse(
+    long LiveJobs,
+    long? IndexedDocuments,
+    double? IndexDrift,
+    bool IndexAvailable);

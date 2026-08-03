@@ -118,10 +118,15 @@ kubectl exec -n infra-production $PGPOD -- psql -U postgres -d production_jobhun
 | All sources failing | Cluster egress or DNS | `kubectl exec deploy/jobhunter-worker -- curl -sS -o /dev/null -w '%{http_code}' https://boards-api.greenhouse.io/v1/boards/stripe/jobs` |
 | Zero jobs but no failures | Empty or fully quarantined registry | `SELECT count(*) FROM companies WHERE is_active;` — then unquarantine or re-seed |
 
-Un-quarantine a source once fixed:
-```sql
-UPDATE job_sources SET quarantined_until = NULL WHERE id = '<source-id>';
+Un-quarantine a source once fixed — through the admin endpoint (F9-T07), so recovery needs no database
+access. It answers `200 {"outcome":"Released"}` when the hold was lifted, `200 {"outcome":"NotQuarantined"}`
+when the source was already healthy, and `404` for an unknown id:
+```bash
+curl -X POST https://jobhunter.devoverflow.org/api/admin/sources/<source-id>/unquarantine \
+  -H "Authorization: Bearer $TOKEN"
 ```
+The endpoint requires the `jobhunter:admin` scope. Prefer it to a direct `UPDATE job_sources` — the
+aggregate also resets the consecutive-failure counter so the next cycle starts clean.
 
 ---
 
@@ -198,16 +203,30 @@ kubectl logs -n $NS <pod> --previous --tail=80
 
 **Severity:** info · **Impact:** search results stale; the digest is unaffected
 
+Check the drift through the admin stats endpoint (F9-T07) — no Typesense or database access needed. It
+returns the authoritative live-job count, the index document count and the normalised drift between them
+(the same figure the nightly reconcile acts on), and stays answerable with `"indexAvailable": false`
+even while Typesense is down:
 ```bash
-curl -s -H "X-TYPESENSE-API-KEY: $TS_KEY" \
-  "http://typesense.infra-production.svc.cluster.local:8108/collections/production_jobhunter_jobs" | jq .num_documents
-# compare with: SELECT count(*) FROM jobs WHERE status = 'Live';
+curl -s https://jobhunter.devoverflow.org/api/admin/stats -H "Authorization: Bearer $TOKEN" | jq .
 ```
 
-Full rebuild — safe at any time, takes minutes, and the digest never reads from Typesense:
+Full rebuild — safe at any time, takes minutes, and the digest never reads from Typesense. The endpoint
+enqueues the rebuild and answers `202` with the operation id rather than blocking:
 ```bash
 curl -X POST https://jobhunter.devoverflow.org/api/admin/search/reindex -H "Authorization: Bearer $TOKEN"
 ```
+
+If normalisation itself was wrong (a bad extraction rule, since fixed), re-normalise the affected jobs
+from their immutable raw postings through the reprocess endpoint (F2 AC-09) — `firstSeenFrom` bounds the
+window, and an absent body reprocesses the full history:
+```bash
+curl -X POST https://jobhunter.devoverflow.org/api/admin/jobs/reprocess \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"firstSeenFrom":"2026-01-01T00:00:00Z"}'
+```
+
+All three endpoints require the `jobhunter:admin` scope.
 
 ---
 

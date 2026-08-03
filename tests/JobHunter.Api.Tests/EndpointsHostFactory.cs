@@ -30,6 +30,18 @@ public sealed class EndpointsHostFactory : WebApplicationFactory<Program>
 
     public ICompanyJobsQuery CompanyJobs { get; } = Substitute.For<ICompanyJobsQuery>();
 
+    /// <summary>The scheduler the operational endpoints enqueue reindex and reprocess through (T07).</summary>
+    public IOperationScheduler Operations { get; } = Substitute.For<IOperationScheduler>();
+
+    /// <summary>The write port behind the source-release service; a substitute keeps the endpoint offline.</summary>
+    public IJobSourceRepository Sources { get; } = Substitute.For<IJobSourceRepository>();
+
+    /// <summary>The live-job count the corpus-stats service reads (the authoritative PostgreSQL side).</summary>
+    public ILiveJobCounter LiveJobCounter { get; } = Substitute.For<ILiveJobCounter>();
+
+    /// <summary>The search index the corpus-stats service counts against; failures exercise QG-3.</summary>
+    public ISearchIndex Index { get; } = Substitute.For<ISearchIndex>();
+
     /// <summary>A client presenting a valid Owner token with the given scope (read by default).</summary>
     public HttpClient OwnerClient(string scope = "jobhunter:read")
     {
@@ -68,6 +80,17 @@ public sealed class EndpointsHostFactory : WebApplicationFactory<Program>
             services.AddScoped(_ => LiveJobs);
             services.RemoveAll<ICompanyJobsQuery>();
             services.AddScoped(_ => CompanyJobs);
+
+            // Operational-endpoint ports (T07): the Hangfire-backed scheduler and the index/counter/source
+            // dependencies behind the admin services, so a reindex or stats read dials nothing.
+            services.RemoveAll<IOperationScheduler>();
+            services.AddSingleton(Operations);
+            services.RemoveAll<IJobSourceRepository>();
+            services.AddScoped(_ => Sources);
+            services.RemoveAll<ILiveJobCounter>();
+            services.AddScoped(_ => LiveJobCounter);
+            services.RemoveAll<ISearchIndex>();
+            services.AddSingleton(Index);
         });
     }
 }

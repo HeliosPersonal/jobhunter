@@ -41,6 +41,12 @@ public static class DependencyInjection
         services.AddSingleton<Search.IndexMaintenanceGate>();
         services.AddScoped<Search.IndexRebuildService>();
         services.AddScoped<Search.IndexReconcileService>();
+
+        // F9 operational endpoints (T07): the corpus-stats snapshot the /api/admin/stats endpoint reads and
+        // the source-unquarantine action /api/admin/sources/{id}/unquarantine drives. Both are pure
+        // coordinators over Domain ports, resolved by the Api.
+        services.AddScoped<Search.CorpusStatsService>();
+        services.AddScoped<Search.SourceQuarantineService>();
         services.AddOptions<Search.ReconcileOptions>()
             .Validate(o => o.DriftThreshold is > 0 and < 1, "Search:Reconcile:DriftThreshold must be between 0 and 1.")
             .Validate(o => o.BatchSize > 0, "Search:Reconcile:BatchSize must be positive.")
