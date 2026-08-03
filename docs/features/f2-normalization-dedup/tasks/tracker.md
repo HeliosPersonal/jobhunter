@@ -13,6 +13,8 @@ tags: [sdlc/stage-13, feature/f2-normalization-dedup, mvp, jobhunter]
 
 Epic: [[_epic|_epic]]. Zero false merges is the property this feature exists to have; everything else is negotiable.
 
+> Tasks T10–T11 added from the [[../../../reviews/career-alignment-tuning-backlog|career-alignment tuning backlog]] (career-goal alignment).
+
 Each task is one reviewable PR (≤500 LOC), ≤1 day. Owner: Viacheslav (solo).
 Estimate legend: **S** ≈ 2 h · **M** ≈ half a day · **L** ≈ a full day.
 Status: `pending` → `in_progress` → `in_review` → `done`.
@@ -28,10 +30,17 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T07 | [[T07-technology-tagging\|Technology vocabulary tagging]] | app | T04 | S | done |
 | T08 | [[T08-lifecycle-grouping\|Job lifecycle: closure and reopening]] | app | T06 | M | done |
 | T09 | [[T09-reprocessing\|Reprocessing and retention]] | app | T06 | M | done |
+| T10 | [[T10-target-stack-vocabulary\|Extend the technology vocabulary with target-stack coverage]] | app | T07 | M | pending |
+| T11 | [[T11-title-tiers-config\|Encode Tier-1/2/3 target titles as a reference config]] | app | T02 | S | pending |
 
 **9 tasks · 1×S + 6×M + 2×L ≈ 5.25 person-days.**
 `NearDuplicateGrouper` (formerly bundled in T08) is **relocated to F5** digest assembly per
 [[../adr/0001-conservative-fingerprint|ADR-F2-0001]]; the estimate is unchanged.
+
+**Career-alignment tuning tasks (T10–T11): 1×M + 1×S ≈ 0.75 person-day.** Added from the
+[[../../../reviews/career-alignment-tuning-backlog|career-alignment tuning backlog]] (TUNE-07, TUNE-12);
+they audit and extend the technology vocabulary for target-stack coverage and commit a `title-tiers.yaml`
+reference config consumed later by the F3 RoleFamily classifier and F4 Profile goal fields.
 
 ## Dependency graph
 
@@ -44,6 +53,8 @@ graph LR
   T05 --> T06 --> T08
   T04 --> T07
   T06 --> T09
+  T07 --> T10
+  T02 --> T11
 ```
 
 ## DoR / DoD
