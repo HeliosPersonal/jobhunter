@@ -1,0 +1,7 @@
+{
+  "id": "msgbatch_01HxYzAbCdEfGhIjKlMnOpQr",
+  "type": "message_batch",
+  "processing_status": "in_progress",
+  "request_counts": { "processing": 3, "succeeded": 0, "errored": 0, "canceled": 0, "expired": 0 },
+  "created_at": "2026-08-03T02:00:00Z"
+}

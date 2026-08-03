@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using JobHunter.Claude.Anthropic;
 using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Pipeline;
 using Microsoft.Extensions.Configuration;
@@ -27,6 +28,19 @@ public static class DependencyInjection
 
         services.AddSingleton<ITokenCounter, HeuristicTokenCounter>();
         services.AddSingleton<ICostAccountant, CostAccountant>();
+
+        services.AddOptions<AnthropicOptions>()
+            .Bind(configuration.GetSection(AnthropicOptions.SectionName))
+            .Validate(o => !string.IsNullOrWhiteSpace(o.ApiKey), "Anthropic:ApiKey is required.")
+            .Validate(o => !string.IsNullOrWhiteSpace(o.BaseUrl), "Anthropic:BaseUrl is required.")
+            .Validate(o => o.MaxOutputTokens > 0, "Anthropic:MaxOutputTokens must be positive.")
+            .ValidateOnStart();
+
+        // The batch client resolves a named HttpClient with the standard resilience handler: transient
+        // transport faults and 5xx retry with backoff; a 4xx surfaces without retry (SAD §5). The API key
+        // is set per-request in the adapter, never captured in the handler pipeline (invariant 12).
+        services.AddHttpClient<ILlmBatchClient, AnthropicBatchClient>(AnthropicBatchClient.ClientName)
+            .AddStandardResilienceHandler();
 
         return services;
     }
