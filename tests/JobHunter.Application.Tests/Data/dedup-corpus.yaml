@@ -1,0 +1,3436 @@
+# F2 labelled dedup corpus (T06). Generated deterministically; grows by defect. Each pair carries
+# two postings, an expect of merge|distinct, and why. A distinct pair MUST NOT share a fingerprint
+# (zero false merges, QG-1). A merge pair should normalise to an identical (domain, title, location)
+# triple; the fingerprint ignores employment type and description by design (ADR-F2-0001).
+- id: 1
+  expect: merge
+  why: "Sr. abbreviation equals Senior; same company and location"
+  a:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Sr. Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 2
+  expect: merge
+  why: "(Remote) bracket decoration is dropped by normalisation"
+  a:
+    domain: "acme.com"
+    title: "Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Backend Engineer (Remote)"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 3
+  expect: merge
+  why: "Case folding: an all-caps title is the same opening"
+  a:
+    domain: "acme.com"
+    title: "Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "BACKEND ENGINEER"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 4
+  expect: merge
+  why: "Pipe-separated team equals space-separated team after normalisation"
+  a:
+    domain: "acme.com"
+    title: "Backend Engineer | Core"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Backend Engineer Core"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 5
+  expect: merge
+  why: "Dash location suffix is dropped; both list the same location"
+  a:
+    domain: "acme.com"
+    title: "Backend Engineer - Berlin"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 6
+  expect: merge
+  why: "Location order is insensitive; the set is identical"
+  a:
+    domain: "acme.com"
+    title: "Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+      - country: "Germany"
+        city: "Berlin"
+- id: 7
+  expect: merge
+  why: "Reposted identically on the same board"
+  a:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 8
+  expect: merge
+  why: "Snr and Jr abbreviations canonicalise to Senior and Junior"
+  a:
+    domain: "acme.com"
+    title: "Snr Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 9
+  expect: merge
+  why: "Square-bracket [Remote] decoration is dropped"
+  a:
+    domain: "acme.com"
+    title: "Backend Engineer [Remote]"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 10
+  expect: merge
+  why: "Em-dash location suffix is dropped"
+  a:
+    domain: "acme.com"
+    title: "Backend Engineer — Berlin"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 11
+  expect: merge
+  why: "Jnr abbreviation canonicalises to Junior"
+  a:
+    domain: "acme.com"
+    title: "Jnr Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Junior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 12
+  expect: merge
+  why: "Nested bracket decorations are all dropped"
+  a:
+    domain: "acme.com"
+    title: "Backend Engineer (Berlin) (Remote)"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 13
+  expect: merge
+  why: "Sr. abbreviation equals Senior; same company and location"
+  a:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Sr. Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 14
+  expect: merge
+  why: "(Remote) bracket decoration is dropped by normalisation"
+  a:
+    domain: "globex.com"
+    title: "Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Frontend Engineer (Remote)"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 15
+  expect: merge
+  why: "Case folding: an all-caps title is the same opening"
+  a:
+    domain: "globex.com"
+    title: "Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "FRONTEND ENGINEER"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 16
+  expect: merge
+  why: "Pipe-separated team equals space-separated team after normalisation"
+  a:
+    domain: "globex.com"
+    title: "Frontend Engineer | Core"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Frontend Engineer Core"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 17
+  expect: merge
+  why: "Dash location suffix is dropped; both list the same location"
+  a:
+    domain: "globex.com"
+    title: "Frontend Engineer - Munich"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 18
+  expect: merge
+  why: "Location order is insensitive; the set is identical"
+  a:
+    domain: "globex.com"
+    title: "Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "globex.com"
+    title: "Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+      - country: "Germany"
+        city: "Munich"
+- id: 19
+  expect: merge
+  why: "Reposted identically on the same board"
+  a:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 20
+  expect: merge
+  why: "Snr and Jr abbreviations canonicalise to Senior and Junior"
+  a:
+    domain: "globex.com"
+    title: "Snr Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 21
+  expect: merge
+  why: "Square-bracket [Remote] decoration is dropped"
+  a:
+    domain: "globex.com"
+    title: "Frontend Engineer [Remote]"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 22
+  expect: merge
+  why: "Em-dash location suffix is dropped"
+  a:
+    domain: "globex.com"
+    title: "Frontend Engineer — Munich"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 23
+  expect: merge
+  why: "Jnr abbreviation canonicalises to Junior"
+  a:
+    domain: "globex.com"
+    title: "Jnr Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Junior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 24
+  expect: merge
+  why: "Nested bracket decorations are all dropped"
+  a:
+    domain: "globex.com"
+    title: "Frontend Engineer (Munich) (Remote)"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 25
+  expect: merge
+  why: "Sr. abbreviation equals Senior; same company and location"
+  a:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Sr. Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 26
+  expect: merge
+  why: "(Remote) bracket decoration is dropped by normalisation"
+  a:
+    domain: "initech.com"
+    title: "Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Platform Engineer (Remote)"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 27
+  expect: merge
+  why: "Case folding: an all-caps title is the same opening"
+  a:
+    domain: "initech.com"
+    title: "Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "PLATFORM ENGINEER"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 28
+  expect: merge
+  why: "Pipe-separated team equals space-separated team after normalisation"
+  a:
+    domain: "initech.com"
+    title: "Platform Engineer | Core"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Platform Engineer Core"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 29
+  expect: merge
+  why: "Dash location suffix is dropped; both list the same location"
+  a:
+    domain: "initech.com"
+    title: "Platform Engineer - London"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 30
+  expect: merge
+  why: "Location order is insensitive; the set is identical"
+  a:
+    domain: "initech.com"
+    title: "Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "initech.com"
+    title: "Platform Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+      - country: "United Kingdom"
+        city: "London"
+- id: 31
+  expect: merge
+  why: "Reposted identically on the same board"
+  a:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 32
+  expect: merge
+  why: "Snr and Jr abbreviations canonicalise to Senior and Junior"
+  a:
+    domain: "initech.com"
+    title: "Snr Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 33
+  expect: merge
+  why: "Square-bracket [Remote] decoration is dropped"
+  a:
+    domain: "initech.com"
+    title: "Platform Engineer [Remote]"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 34
+  expect: merge
+  why: "Em-dash location suffix is dropped"
+  a:
+    domain: "initech.com"
+    title: "Platform Engineer — London"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 35
+  expect: merge
+  why: "Jnr abbreviation canonicalises to Junior"
+  a:
+    domain: "initech.com"
+    title: "Jnr Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Junior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 36
+  expect: merge
+  why: "Nested bracket decorations are all dropped"
+  a:
+    domain: "initech.com"
+    title: "Platform Engineer (London) (Remote)"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 37
+  expect: merge
+  why: "Sr. abbreviation equals Senior; same company and location"
+  a:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Sr. Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 38
+  expect: merge
+  why: "(Remote) bracket decoration is dropped by normalisation"
+  a:
+    domain: "umbrella.com"
+    title: "Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Data Engineer (Remote)"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 39
+  expect: merge
+  why: "Case folding: an all-caps title is the same opening"
+  a:
+    domain: "umbrella.com"
+    title: "Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "DATA ENGINEER"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 40
+  expect: merge
+  why: "Pipe-separated team equals space-separated team after normalisation"
+  a:
+    domain: "umbrella.com"
+    title: "Data Engineer | Core"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Data Engineer Core"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 41
+  expect: merge
+  why: "Dash location suffix is dropped; both list the same location"
+  a:
+    domain: "umbrella.com"
+    title: "Data Engineer - New York"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 42
+  expect: merge
+  why: "Location order is insensitive; the set is identical"
+  a:
+    domain: "umbrella.com"
+    title: "Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "umbrella.com"
+    title: "Data Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+      - country: "United States"
+        city: "New York"
+- id: 43
+  expect: merge
+  why: "Reposted identically on the same board"
+  a:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 44
+  expect: merge
+  why: "Snr and Jr abbreviations canonicalise to Senior and Junior"
+  a:
+    domain: "umbrella.com"
+    title: "Snr Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 45
+  expect: merge
+  why: "Square-bracket [Remote] decoration is dropped"
+  a:
+    domain: "umbrella.com"
+    title: "Data Engineer [Remote]"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 46
+  expect: merge
+  why: "Em-dash location suffix is dropped"
+  a:
+    domain: "umbrella.com"
+    title: "Data Engineer — New York"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 47
+  expect: merge
+  why: "Jnr abbreviation canonicalises to Junior"
+  a:
+    domain: "umbrella.com"
+    title: "Jnr Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Junior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 48
+  expect: merge
+  why: "Nested bracket decorations are all dropped"
+  a:
+    domain: "umbrella.com"
+    title: "Data Engineer (New York) (Remote)"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 49
+  expect: merge
+  why: "Sr. abbreviation equals Senior; same company and location"
+  a:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Sr. Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 50
+  expect: merge
+  why: "(Remote) bracket decoration is dropped by normalisation"
+  a:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer (Remote)"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 51
+  expect: merge
+  why: "Case folding: an all-caps title is the same opening"
+  a:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "SITE RELIABILITY ENGINEER"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 52
+  expect: merge
+  why: "Pipe-separated team equals space-separated team after normalisation"
+  a:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer | Core"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer Core"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 53
+  expect: merge
+  why: "Dash location suffix is dropped; both list the same location"
+  a:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer - Paris"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 54
+  expect: merge
+  why: "Location order is insensitive; the set is identical"
+  a:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+      - country: "France"
+        city: "Paris"
+- id: 55
+  expect: merge
+  why: "Reposted identically on the same board"
+  a:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 56
+  expect: merge
+  why: "Snr and Jr abbreviations canonicalise to Senior and Junior"
+  a:
+    domain: "hooli.com"
+    title: "Snr Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 57
+  expect: merge
+  why: "Square-bracket [Remote] decoration is dropped"
+  a:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer [Remote]"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 58
+  expect: merge
+  why: "Em-dash location suffix is dropped"
+  a:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer — Paris"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 59
+  expect: merge
+  why: "Jnr abbreviation canonicalises to Junior"
+  a:
+    domain: "hooli.com"
+    title: "Jnr Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Junior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 60
+  expect: merge
+  why: "Nested bracket decorations are all dropped"
+  a:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer (Paris) (Remote)"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 61
+  expect: merge
+  why: "Sr. abbreviation equals Senior; same company and location"
+  a:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Sr. Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 62
+  expect: merge
+  why: "(Remote) bracket decoration is dropped by normalisation"
+  a:
+    domain: "stark.com"
+    title: "Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Machine Learning Engineer (Remote)"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 63
+  expect: merge
+  why: "Case folding: an all-caps title is the same opening"
+  a:
+    domain: "stark.com"
+    title: "Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "MACHINE LEARNING ENGINEER"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 64
+  expect: merge
+  why: "Pipe-separated team equals space-separated team after normalisation"
+  a:
+    domain: "stark.com"
+    title: "Machine Learning Engineer | Core"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Machine Learning Engineer Core"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 65
+  expect: merge
+  why: "Dash location suffix is dropped; both list the same location"
+  a:
+    domain: "stark.com"
+    title: "Machine Learning Engineer - Amsterdam"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 66
+  expect: merge
+  why: "Location order is insensitive; the set is identical"
+  a:
+    domain: "stark.com"
+    title: "Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "stark.com"
+    title: "Machine Learning Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 67
+  expect: merge
+  why: "Reposted identically on the same board"
+  a:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 68
+  expect: merge
+  why: "Snr and Jr abbreviations canonicalise to Senior and Junior"
+  a:
+    domain: "stark.com"
+    title: "Snr Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 69
+  expect: merge
+  why: "Square-bracket [Remote] decoration is dropped"
+  a:
+    domain: "stark.com"
+    title: "Machine Learning Engineer [Remote]"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 70
+  expect: merge
+  why: "Em-dash location suffix is dropped"
+  a:
+    domain: "stark.com"
+    title: "Machine Learning Engineer — Amsterdam"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 71
+  expect: merge
+  why: "Jnr abbreviation canonicalises to Junior"
+  a:
+    domain: "stark.com"
+    title: "Jnr Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Junior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 72
+  expect: merge
+  why: "Nested bracket decorations are all dropped"
+  a:
+    domain: "stark.com"
+    title: "Machine Learning Engineer (Amsterdam) (Remote)"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 73
+  expect: merge
+  why: "Sr. abbreviation equals Senior; same company and location"
+  a:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "Sr. DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 74
+  expect: merge
+  why: "(Remote) bracket decoration is dropped by normalisation"
+  a:
+    domain: "wayne.com"
+    title: "DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "DevOps Engineer (Remote)"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 75
+  expect: merge
+  why: "Case folding: an all-caps title is the same opening"
+  a:
+    domain: "wayne.com"
+    title: "DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "DEVOPS ENGINEER"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 76
+  expect: merge
+  why: "Pipe-separated team equals space-separated team after normalisation"
+  a:
+    domain: "wayne.com"
+    title: "DevOps Engineer | Core"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "DevOps Engineer Core"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 77
+  expect: merge
+  why: "Dash location suffix is dropped; both list the same location"
+  a:
+    domain: "wayne.com"
+    title: "DevOps Engineer - Warsaw"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 78
+  expect: merge
+  why: "Location order is insensitive; the set is identical"
+  a:
+    domain: "wayne.com"
+    title: "DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "wayne.com"
+    title: "DevOps Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+      - country: "Poland"
+        city: "Warsaw"
+- id: 79
+  expect: merge
+  why: "Reposted identically on the same board"
+  a:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 80
+  expect: merge
+  why: "Snr and Jr abbreviations canonicalise to Senior and Junior"
+  a:
+    domain: "wayne.com"
+    title: "Snr DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 81
+  expect: merge
+  why: "Square-bracket [Remote] decoration is dropped"
+  a:
+    domain: "wayne.com"
+    title: "DevOps Engineer [Remote]"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 82
+  expect: merge
+  why: "Em-dash location suffix is dropped"
+  a:
+    domain: "wayne.com"
+    title: "DevOps Engineer — Warsaw"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 83
+  expect: merge
+  why: "Jnr abbreviation canonicalises to Junior"
+  a:
+    domain: "wayne.com"
+    title: "Jnr DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "Junior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 84
+  expect: merge
+  why: "Nested bracket decorations are all dropped"
+  a:
+    domain: "wayne.com"
+    title: "DevOps Engineer (Warsaw) (Remote)"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 85
+  expect: merge
+  why: "Sr. abbreviation equals Senior; same company and location"
+  a:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Sr. Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 86
+  expect: merge
+  why: "(Remote) bracket decoration is dropped by normalisation"
+  a:
+    domain: "cyberdyne.com"
+    title: "Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Security Engineer (Remote)"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 87
+  expect: merge
+  why: "Case folding: an all-caps title is the same opening"
+  a:
+    domain: "cyberdyne.com"
+    title: "Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "SECURITY ENGINEER"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 88
+  expect: merge
+  why: "Pipe-separated team equals space-separated team after normalisation"
+  a:
+    domain: "cyberdyne.com"
+    title: "Security Engineer | Core"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Security Engineer Core"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 89
+  expect: merge
+  why: "Dash location suffix is dropped; both list the same location"
+  a:
+    domain: "cyberdyne.com"
+    title: "Security Engineer - Madrid"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 90
+  expect: merge
+  why: "Location order is insensitive; the set is identical"
+  a:
+    domain: "cyberdyne.com"
+    title: "Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "cyberdyne.com"
+    title: "Security Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+      - country: "Spain"
+        city: "Madrid"
+- id: 91
+  expect: merge
+  why: "Reposted identically on the same board"
+  a:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 92
+  expect: merge
+  why: "Snr and Jr abbreviations canonicalise to Senior and Junior"
+  a:
+    domain: "cyberdyne.com"
+    title: "Snr Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 93
+  expect: merge
+  why: "Square-bracket [Remote] decoration is dropped"
+  a:
+    domain: "cyberdyne.com"
+    title: "Security Engineer [Remote]"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 94
+  expect: merge
+  why: "Em-dash location suffix is dropped"
+  a:
+    domain: "cyberdyne.com"
+    title: "Security Engineer — Madrid"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 95
+  expect: merge
+  why: "Jnr abbreviation canonicalises to Junior"
+  a:
+    domain: "cyberdyne.com"
+    title: "Jnr Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Junior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 96
+  expect: merge
+  why: "Nested bracket decorations are all dropped"
+  a:
+    domain: "cyberdyne.com"
+    title: "Security Engineer (Madrid) (Remote)"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 97
+  expect: merge
+  why: "Sr. abbreviation equals Senior; same company and location"
+  a:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Sr. Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 98
+  expect: merge
+  why: "(Remote) bracket decoration is dropped by normalisation"
+  a:
+    domain: "soylent.com"
+    title: "Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Mobile Engineer (Remote)"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 99
+  expect: merge
+  why: "Case folding: an all-caps title is the same opening"
+  a:
+    domain: "soylent.com"
+    title: "Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "MOBILE ENGINEER"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 100
+  expect: merge
+  why: "Pipe-separated team equals space-separated team after normalisation"
+  a:
+    domain: "soylent.com"
+    title: "Mobile Engineer | Core"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Mobile Engineer Core"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 101
+  expect: merge
+  why: "Dash location suffix is dropped; both list the same location"
+  a:
+    domain: "soylent.com"
+    title: "Mobile Engineer - Dublin"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 102
+  expect: merge
+  why: "Location order is insensitive; the set is identical"
+  a:
+    domain: "soylent.com"
+    title: "Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "soylent.com"
+    title: "Mobile Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+      - country: "Ireland"
+        city: "Dublin"
+- id: 103
+  expect: merge
+  why: "Reposted identically on the same board"
+  a:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 104
+  expect: merge
+  why: "Snr and Jr abbreviations canonicalise to Senior and Junior"
+  a:
+    domain: "soylent.com"
+    title: "Snr Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 105
+  expect: merge
+  why: "Square-bracket [Remote] decoration is dropped"
+  a:
+    domain: "soylent.com"
+    title: "Mobile Engineer [Remote]"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 106
+  expect: merge
+  why: "Em-dash location suffix is dropped"
+  a:
+    domain: "soylent.com"
+    title: "Mobile Engineer — Dublin"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 107
+  expect: merge
+  why: "Jnr abbreviation canonicalises to Junior"
+  a:
+    domain: "soylent.com"
+    title: "Jnr Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Junior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 108
+  expect: merge
+  why: "Nested bracket decorations are all dropped"
+  a:
+    domain: "soylent.com"
+    title: "Mobile Engineer (Dublin) (Remote)"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 109
+  expect: merge
+  why: "Sr. abbreviation equals Senior; same company and location"
+  a:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Sr. Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 110
+  expect: merge
+  why: "(Remote) bracket decoration is dropped by normalisation"
+  a:
+    domain: "wonka.com"
+    title: "Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Full Stack Engineer (Remote)"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 111
+  expect: merge
+  why: "Case folding: an all-caps title is the same opening"
+  a:
+    domain: "wonka.com"
+    title: "Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "FULL STACK ENGINEER"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 112
+  expect: merge
+  why: "Pipe-separated team equals space-separated team after normalisation"
+  a:
+    domain: "wonka.com"
+    title: "Full Stack Engineer | Core"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Full Stack Engineer Core"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 113
+  expect: merge
+  why: "Dash location suffix is dropped; both list the same location"
+  a:
+    domain: "wonka.com"
+    title: "Full Stack Engineer - Toronto"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 114
+  expect: merge
+  why: "Location order is insensitive; the set is identical"
+  a:
+    domain: "wonka.com"
+    title: "Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "wonka.com"
+    title: "Full Stack Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+      - country: "Canada"
+        city: "Toronto"
+- id: 115
+  expect: merge
+  why: "Reposted identically on the same board"
+  a:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 116
+  expect: merge
+  why: "Snr and Jr abbreviations canonicalise to Senior and Junior"
+  a:
+    domain: "wonka.com"
+    title: "Snr Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 117
+  expect: merge
+  why: "Square-bracket [Remote] decoration is dropped"
+  a:
+    domain: "wonka.com"
+    title: "Full Stack Engineer [Remote]"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 118
+  expect: merge
+  why: "Em-dash location suffix is dropped"
+  a:
+    domain: "wonka.com"
+    title: "Full Stack Engineer — Toronto"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 119
+  expect: merge
+  why: "Jnr abbreviation canonicalises to Junior"
+  a:
+    domain: "wonka.com"
+    title: "Jnr Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Junior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 120
+  expect: merge
+  why: "Nested bracket decorations are all dropped"
+  a:
+    domain: "wonka.com"
+    title: "Full Stack Engineer (Toronto) (Remote)"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 121
+  expect: distinct
+  why: "Different city — two openings, not one"
+  a:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 122
+  expect: distinct
+  why: "Different seniority — Staff is not Senior"
+  a:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Staff Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 123
+  expect: distinct
+  why: "Different company (domain) — never merge across employers"
+  a:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "globex.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 124
+  expect: distinct
+  why: "Different team after a comma survives normalisation"
+  a:
+    domain: "acme.com"
+    title: "Backend Engineer, Payments"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Backend Engineer, Search"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 125
+  expect: distinct
+  why: "Location superset — one lists an extra office"
+  a:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+      - country: "Germany"
+        city: "Munich"
+- id: 126
+  expect: distinct
+  why: "Engineer vs Developer wording — a near-duplicate we keep apart"
+  a:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Senior Backend Developer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 127
+  expect: distinct
+  why: "Fully remote (no location) vs a located opening"
+  a:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations: []
+  b:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 128
+  expect: distinct
+  why: "Different role at the same company and city"
+  a:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 129
+  expect: distinct
+  why: "Different country, same city name is coincidental"
+  a:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Berlin"
+- id: 130
+  expect: distinct
+  why: "Junior is not Senior — a distinct opening"
+  a:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Junior Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 131
+  expect: distinct
+  why: "Different city — two openings, not one"
+  a:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 132
+  expect: distinct
+  why: "Different seniority — Staff is not Senior"
+  a:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Staff Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 133
+  expect: distinct
+  why: "Different company (domain) — never merge across employers"
+  a:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "initech.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 134
+  expect: distinct
+  why: "Different team after a comma survives normalisation"
+  a:
+    domain: "globex.com"
+    title: "Frontend Engineer, Payments"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Frontend Engineer, Search"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 135
+  expect: distinct
+  why: "Location superset — one lists an extra office"
+  a:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+      - country: "United Kingdom"
+        city: "London"
+- id: 136
+  expect: distinct
+  why: "Engineer vs Developer wording — a near-duplicate we keep apart"
+  a:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Senior Frontend Developer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 137
+  expect: distinct
+  why: "Fully remote (no location) vs a located opening"
+  a:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations: []
+  b:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 138
+  expect: distinct
+  why: "Different role at the same company and city"
+  a:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 139
+  expect: distinct
+  why: "Different country, same city name is coincidental"
+  a:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Poland"
+        city: "Munich"
+- id: 140
+  expect: distinct
+  why: "Junior is not Senior — a distinct opening"
+  a:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Junior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
+- id: 141
+  expect: distinct
+  why: "Different city — two openings, not one"
+  a:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 142
+  expect: distinct
+  why: "Different seniority — Staff is not Senior"
+  a:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Staff Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 143
+  expect: distinct
+  why: "Different company (domain) — never merge across employers"
+  a:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "umbrella.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 144
+  expect: distinct
+  why: "Different team after a comma survives normalisation"
+  a:
+    domain: "initech.com"
+    title: "Platform Engineer, Payments"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Platform Engineer, Search"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 145
+  expect: distinct
+  why: "Location superset — one lists an extra office"
+  a:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+      - country: "United States"
+        city: "New York"
+- id: 146
+  expect: distinct
+  why: "Engineer vs Developer wording — a near-duplicate we keep apart"
+  a:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Senior Platform Developer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 147
+  expect: distinct
+  why: "Fully remote (no location) vs a located opening"
+  a:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations: []
+  b:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 148
+  expect: distinct
+  why: "Different role at the same company and city"
+  a:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 149
+  expect: distinct
+  why: "Different country, same city name is coincidental"
+  a:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "Spain"
+        city: "London"
+- id: 150
+  expect: distinct
+  why: "Junior is not Senior — a distinct opening"
+  a:
+    domain: "initech.com"
+    title: "Senior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "initech.com"
+    title: "Junior Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 151
+  expect: distinct
+  why: "Different city — two openings, not one"
+  a:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 152
+  expect: distinct
+  why: "Different seniority — Staff is not Senior"
+  a:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Staff Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 153
+  expect: distinct
+  why: "Different company (domain) — never merge across employers"
+  a:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "hooli.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 154
+  expect: distinct
+  why: "Different team after a comma survives normalisation"
+  a:
+    domain: "umbrella.com"
+    title: "Data Engineer, Payments"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Data Engineer, Search"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 155
+  expect: distinct
+  why: "Location superset — one lists an extra office"
+  a:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+      - country: "France"
+        city: "Paris"
+- id: 156
+  expect: distinct
+  why: "Engineer vs Developer wording — a near-duplicate we keep apart"
+  a:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Senior Data Developer"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 157
+  expect: distinct
+  why: "Fully remote (no location) vs a located opening"
+  a:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations: []
+  b:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 158
+  expect: distinct
+  why: "Different role at the same company and city"
+  a:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 159
+  expect: distinct
+  why: "Different country, same city name is coincidental"
+  a:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "Ireland"
+        city: "New York"
+- id: 160
+  expect: distinct
+  why: "Junior is not Senior — a distinct opening"
+  a:
+    domain: "umbrella.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+  b:
+    domain: "umbrella.com"
+    title: "Junior Data Engineer"
+    locations:
+      - country: "United States"
+        city: "New York"
+- id: 161
+  expect: distinct
+  why: "Different city — two openings, not one"
+  a:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 162
+  expect: distinct
+  why: "Different seniority — Staff is not Senior"
+  a:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Staff Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 163
+  expect: distinct
+  why: "Different company (domain) — never merge across employers"
+  a:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "stark.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 164
+  expect: distinct
+  why: "Different team after a comma survives normalisation"
+  a:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer, Payments"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Site Reliability Engineer, Search"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 165
+  expect: distinct
+  why: "Location superset — one lists an extra office"
+  a:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 166
+  expect: distinct
+  why: "Engineer vs Developer wording — a near-duplicate we keep apart"
+  a:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Developer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 167
+  expect: distinct
+  why: "Fully remote (no location) vs a located opening"
+  a:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations: []
+  b:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 168
+  expect: distinct
+  why: "Different role at the same company and city"
+  a:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 169
+  expect: distinct
+  why: "Different country, same city name is coincidental"
+  a:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "Canada"
+        city: "Paris"
+- id: 170
+  expect: distinct
+  why: "Junior is not Senior — a distinct opening"
+  a:
+    domain: "hooli.com"
+    title: "Senior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Junior Site Reliability Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 171
+  expect: distinct
+  why: "Different city — two openings, not one"
+  a:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 172
+  expect: distinct
+  why: "Different seniority — Staff is not Senior"
+  a:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Staff Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 173
+  expect: distinct
+  why: "Different company (domain) — never merge across employers"
+  a:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "wayne.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 174
+  expect: distinct
+  why: "Different team after a comma survives normalisation"
+  a:
+    domain: "stark.com"
+    title: "Machine Learning Engineer, Payments"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Machine Learning Engineer, Search"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 175
+  expect: distinct
+  why: "Location superset — one lists an extra office"
+  a:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+      - country: "Poland"
+        city: "Warsaw"
+- id: 176
+  expect: distinct
+  why: "Engineer vs Developer wording — a near-duplicate we keep apart"
+  a:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Senior Machine Learning Developer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 177
+  expect: distinct
+  why: "Fully remote (no location) vs a located opening"
+  a:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations: []
+  b:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 178
+  expect: distinct
+  why: "Different role at the same company and city"
+  a:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 179
+  expect: distinct
+  why: "Different country, same city name is coincidental"
+  a:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Germany"
+        city: "Amsterdam"
+- id: 180
+  expect: distinct
+  why: "Junior is not Senior — a distinct opening"
+  a:
+    domain: "stark.com"
+    title: "Senior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+  b:
+    domain: "stark.com"
+    title: "Junior Machine Learning Engineer"
+    locations:
+      - country: "Netherlands"
+        city: "Amsterdam"
+- id: 181
+  expect: distinct
+  why: "Different city — two openings, not one"
+  a:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 182
+  expect: distinct
+  why: "Different seniority — Staff is not Senior"
+  a:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "Staff DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 183
+  expect: distinct
+  why: "Different company (domain) — never merge across employers"
+  a:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "cyberdyne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 184
+  expect: distinct
+  why: "Different team after a comma survives normalisation"
+  a:
+    domain: "wayne.com"
+    title: "DevOps Engineer, Payments"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "DevOps Engineer, Search"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 185
+  expect: distinct
+  why: "Location superset — one lists an extra office"
+  a:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+      - country: "Spain"
+        city: "Madrid"
+- id: 186
+  expect: distinct
+  why: "Engineer vs Developer wording — a near-duplicate we keep apart"
+  a:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "Senior DevOps Developer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 187
+  expect: distinct
+  why: "Fully remote (no location) vs a located opening"
+  a:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations: []
+  b:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 188
+  expect: distinct
+  why: "Different role at the same company and city"
+  a:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 189
+  expect: distinct
+  why: "Different country, same city name is coincidental"
+  a:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Germany"
+        city: "Warsaw"
+- id: 190
+  expect: distinct
+  why: "Junior is not Senior — a distinct opening"
+  a:
+    domain: "wayne.com"
+    title: "Senior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+  b:
+    domain: "wayne.com"
+    title: "Junior DevOps Engineer"
+    locations:
+      - country: "Poland"
+        city: "Warsaw"
+- id: 191
+  expect: distinct
+  why: "Different city — two openings, not one"
+  a:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 192
+  expect: distinct
+  why: "Different seniority — Staff is not Senior"
+  a:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Staff Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 193
+  expect: distinct
+  why: "Different company (domain) — never merge across employers"
+  a:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "soylent.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 194
+  expect: distinct
+  why: "Different team after a comma survives normalisation"
+  a:
+    domain: "cyberdyne.com"
+    title: "Security Engineer, Payments"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Security Engineer, Search"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 195
+  expect: distinct
+  why: "Location superset — one lists an extra office"
+  a:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+      - country: "Ireland"
+        city: "Dublin"
+- id: 196
+  expect: distinct
+  why: "Engineer vs Developer wording — a near-duplicate we keep apart"
+  a:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Senior Security Developer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 197
+  expect: distinct
+  why: "Fully remote (no location) vs a located opening"
+  a:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations: []
+  b:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 198
+  expect: distinct
+  why: "Different role at the same company and city"
+  a:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 199
+  expect: distinct
+  why: "Different country, same city name is coincidental"
+  a:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "Madrid"
+- id: 200
+  expect: distinct
+  why: "Junior is not Senior — a distinct opening"
+  a:
+    domain: "cyberdyne.com"
+    title: "Senior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+  b:
+    domain: "cyberdyne.com"
+    title: "Junior Security Engineer"
+    locations:
+      - country: "Spain"
+        city: "Madrid"
+- id: 201
+  expect: distinct
+  why: "Different city — two openings, not one"
+  a:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 202
+  expect: distinct
+  why: "Different seniority — Staff is not Senior"
+  a:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Staff Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 203
+  expect: distinct
+  why: "Different company (domain) — never merge across employers"
+  a:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "wonka.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 204
+  expect: distinct
+  why: "Different team after a comma survives normalisation"
+  a:
+    domain: "soylent.com"
+    title: "Mobile Engineer, Payments"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Mobile Engineer, Search"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 205
+  expect: distinct
+  why: "Location superset — one lists an extra office"
+  a:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+      - country: "Canada"
+        city: "Toronto"
+- id: 206
+  expect: distinct
+  why: "Engineer vs Developer wording — a near-duplicate we keep apart"
+  a:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Senior Mobile Developer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 207
+  expect: distinct
+  why: "Fully remote (no location) vs a located opening"
+  a:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations: []
+  b:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 208
+  expect: distinct
+  why: "Different role at the same company and city"
+  a:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 209
+  expect: distinct
+  why: "Different country, same city name is coincidental"
+  a:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "United States"
+        city: "Dublin"
+- id: 210
+  expect: distinct
+  why: "Junior is not Senior — a distinct opening"
+  a:
+    domain: "soylent.com"
+    title: "Senior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+  b:
+    domain: "soylent.com"
+    title: "Junior Mobile Engineer"
+    locations:
+      - country: "Ireland"
+        city: "Dublin"
+- id: 211
+  expect: distinct
+  why: "Different city — two openings, not one"
+  a:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 212
+  expect: distinct
+  why: "Different seniority — Staff is not Senior"
+  a:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Staff Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 213
+  expect: distinct
+  why: "Different company (domain) — never merge across employers"
+  a:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "acme.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 214
+  expect: distinct
+  why: "Different team after a comma survives normalisation"
+  a:
+    domain: "wonka.com"
+    title: "Full Stack Engineer, Payments"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Full Stack Engineer, Search"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 215
+  expect: distinct
+  why: "Location superset — one lists an extra office"
+  a:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+      - country: "Germany"
+        city: "Berlin"
+- id: 216
+  expect: distinct
+  why: "Engineer vs Developer wording — a near-duplicate we keep apart"
+  a:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Senior Full Stack Developer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 217
+  expect: distinct
+  why: "Fully remote (no location) vs a located opening"
+  a:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations: []
+  b:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 218
+  expect: distinct
+  why: "Different role at the same company and city"
+  a:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 219
+  expect: distinct
+  why: "Different country, same city name is coincidental"
+  a:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "France"
+        city: "Toronto"
+- id: 220
+  expect: distinct
+  why: "Junior is not Senior — a distinct opening"
+  a:
+    domain: "wonka.com"
+    title: "Senior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+  b:
+    domain: "wonka.com"
+    title: "Junior Full Stack Engineer"
+    locations:
+      - country: "Canada"
+        city: "Toronto"
+- id: 221
+  expect: distinct
+  why: "Domain boundary: acme.com + 'x' is not acme.co + 'mx' (unit separator)"
+  a:
+    domain: "acme.com"
+    title: "x Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.co"
+    title: "mx Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 222
+  expect: distinct
+  why: "Region distinguishes two same-named cities"
+  a:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "United States"
+        region: "California"
+        city: "Springfield"
+  b:
+    domain: "acme.com"
+    title: "Senior Backend Engineer"
+    locations:
+      - country: "United States"
+        region: "Illinois"
+        city: "Springfield"
+- id: 223
+  expect: distinct
+  why: "Principal is not Staff"
+  a:
+    domain: "globex.com"
+    title: "Principal Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+  b:
+    domain: "globex.com"
+    title: "Staff Platform Engineer"
+    locations:
+      - country: "United Kingdom"
+        city: "London"
+- id: 224
+  expect: distinct
+  why: "Lead is not Senior"
+  a:
+    domain: "hooli.com"
+    title: "Lead Data Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+  b:
+    domain: "hooli.com"
+    title: "Senior Data Engineer"
+    locations:
+      - country: "France"
+        city: "Paris"
+- id: 225
+  expect: merge
+  why: "Mid-level and Intermediate canonicalise the same"
+  a:
+    domain: "acme.com"
+    title: "Mid-level Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+  b:
+    domain: "acme.com"
+    title: "Intermediate Backend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Berlin"
+- id: 226
+  expect: merge
+  why: "Trailing whitespace and doubled spaces collapse"
+  a:
+    domain: "globex.com"
+    title: "Senior  Frontend   Engineer "
+    locations:
+      - country: "Germany"
+        city: "Munich"
+  b:
+    domain: "globex.com"
+    title: "Senior Frontend Engineer"
+    locations:
+      - country: "Germany"
+        city: "Munich"
