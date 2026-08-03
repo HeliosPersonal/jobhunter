@@ -1,13 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Typesense search adapter layer. Empty in F0 — F9 fills it with the ISearchIndex projection.
-    Present now so the dependency direction is guarded by T12 and F9 adds a class, not a project
-    reference (QG-1).
+    Typesense search adapter layer (F9). The ISearchIndex/ISearchQuery projection over a shared Typesense
+    instance: a thin HTTP adapter, no third-party client, so the wire shape stays an explicit statement of
+    the JobDocument allowlist (QG-2) and the dependency direction stays guarded by the architecture tests.
   -->
   <ItemGroup>
     <ProjectReference Include="..\JobHunter.Application\JobHunter.Application.csproj" />
     <ProjectReference Include="..\JobHunter.Domain\JobHunter.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The serialisation helper and wire shapes are internal; the tests project drives them directly. -->
+    <InternalsVisibleTo Include="JobHunter.Search.Tests" />
   </ItemGroup>
 
 </Project>
