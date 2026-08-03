@@ -1,9 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
 using JobHunter.Claude.Anthropic;
+using JobHunter.Claude.Ollama;
 using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Pipeline;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace JobHunter.Claude;
 
@@ -39,6 +42,25 @@ public static class DependencyInjection
         // Application result-processing handler (T12) depends on the Domain port, not on the parser here.
         services.AddSingleton<IEnrichmentResultParser, Enrichment.EnrichmentResultParser>();
 
+        // The cheap-tier provider is a configuration switch, not a fork in the pipeline: the orchestrator,
+        // the cost gate and the result-processing handler all submit through the same ILlmBatchClient port
+        // (SAD S6, ADR-0005). Ollama on the cluster is the fallback whose absence degrades quality, not
+        // availability — so it is only selected when explicitly configured.
+        var provider = configuration.GetValue<string>("Llm:Provider");
+        if (string.Equals(provider, "Ollama", StringComparison.OrdinalIgnoreCase))
+        {
+            AddOllama(services, configuration);
+        }
+        else
+        {
+            AddAnthropic(services, configuration);
+        }
+
+        return services;
+    }
+
+    private static void AddAnthropic(IServiceCollection services, IConfiguration configuration)
+    {
         services.AddOptions<AnthropicOptions>()
             .Bind(configuration.GetSection(AnthropicOptions.SectionName))
             .Validate(o => !string.IsNullOrWhiteSpace(o.ApiKey), "Anthropic:ApiKey is required.")
@@ -51,8 +73,30 @@ public static class DependencyInjection
         // is set per-request in the adapter, never captured in the handler pipeline (invariant 12).
         services.AddHttpClient<ILlmBatchClient, AnthropicBatchClient>(AnthropicBatchClient.ClientName)
             .AddStandardResilienceHandler();
+    }
 
-        return services;
+    private static void AddOllama(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<OllamaOptions>()
+            .Bind(configuration.GetSection(OllamaOptions.SectionName))
+            .Validate(o => !string.IsNullOrWhiteSpace(o.BaseUrl), "Ollama:BaseUrl is required.")
+            .Validate(o => !string.IsNullOrWhiteSpace(o.Model), "Ollama:Model is required.")
+            .Validate(o => o.MaxOutputTokens > 0, "Ollama:MaxOutputTokens must be positive.")
+            .ValidateOnStart();
+
+        // The synthesised batch lifecycle needs its result store to outlive a single adapter instance, so it
+        // is a singleton (SAD §3). The chat client uses the same standard resilience handler as the Anthropic
+        // tier; a per-item transport fault is caught in the adapter and recorded, never thrown (QG-3). The
+        // adapter is composed from a named HttpClient by hand so its collaborators stay internal to the layer.
+        services.AddSingleton<IOllamaResultStore, InMemoryOllamaResultStore>();
+        services.AddHttpClient(OllamaBatchClient.ClientName).AddStandardResilienceHandler();
+        services.AddSingleton<ILlmBatchClient>(sp => new OllamaBatchClient(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient(OllamaBatchClient.ClientName),
+            sp.GetRequiredService<IOptions<OllamaOptions>>(),
+            sp.GetRequiredService<IOllamaResultStore>(),
+            sp.GetRequiredService<IClock>(),
+            sp.GetRequiredService<IIdGenerator>(),
+            sp.GetRequiredService<ILogger<OllamaBatchClient>>()));
     }
 
     private static bool HasEveryTier(PricingOptions options) =>

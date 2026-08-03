@@ -1,0 +1,12 @@
+{
+  "model": "llama3.1:8b",
+  "created_at": "2026-08-03T02:00:01.123Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\"isRemote\":true,\"isContractorFriendly\":false,\"timezoneBand\":\"EMEA\",\"aiUsage\":\"High\",\"companyStage\":\"SeriesB\",\"technologies\":[\"Go\",\"Kubernetes\"],\"reasons\":[\"Posting states fully remote across EMEA\",\"Describes building LLM inference infrastructure\"]}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "prompt_eval_count": 3800,
+  "eval_count": 260
+}

@@ -34,7 +34,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T11 | [[T11-batch-poller\|Batch poller with backoff and deadline]] | app | T10 | M | pending |
 | T12 | [[T12-result-processing\|Result processing, per-item isolation and retry]] | app | T11, T05 | L | pending |
 | T13 | [[T13-crash-matrix-golden\|Crash matrix, golden set and cost dashboards]] | tests | T12 | L | done |
-| T14 | [[T14-ollama-fallback-adapter\|Ollama cheap-tier fallback adapter]] | claude | T07 | S | pending |
+| T14 | [[T14-ollama-fallback-adapter\|Ollama cheap-tier fallback adapter]] | claude | T07 | S | done |
 | T15 | [[T15-role-family-classification\|Emit a RoleFamily / title-tier classification]] | claude | T02, T08 | M | pending |
 | T16 | [[T16-aiusage-subsignals\|Refine AiUsage resolution with sub-signals]] | claude | T08 | M | pending |
 | T17 | [[T17-ai-company-crud-guard\|Sharpen the "AI company, CRUD work" guard into an acted-on signal]] | claude | T15 | S | pending |
