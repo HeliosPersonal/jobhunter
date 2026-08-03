@@ -34,6 +34,15 @@ public sealed class SalaryRange : ValueObject
         MinMaxSwapped = minMaxSwapped;
     }
 
+    /// <summary>
+    /// EF Core materialisation constructor. A stored range is always normalised (min ≤ max), so the
+    /// swap flag — a parse-time anomaly, not a persisted column — is false on rehydration.
+    /// </summary>
+    private SalaryRange(decimal min, decimal max, string currency, SalaryPeriod period)
+        : this(min, max, currency, period, false)
+    {
+    }
+
     /// <summary>The lower bound (equals <see cref="Max"/> when only one figure was published).</summary>
     public decimal Min { get; }
 
