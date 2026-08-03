@@ -88,6 +88,31 @@ internal static class ResponseMapping
         FirstSeenAt: alias.FirstSeenAt.ToUnixTimeSeconds(),
         LastSeenAt: alias.LastSeenAt.ToUnixTimeSeconds());
 
+    public static CompanyDetailResponse ToCompanyDetail(
+        Company company,
+        IReadOnlyList<AtsBinding> bindings,
+        IReadOnlyList<LiveJob> liveJobs) => new(
+        Id: company.Id,
+        Name: company.DisplayName,
+        Domain: company.CanonicalDomain.Value,
+        Stage: company.Stage,
+        HqCountry: company.HqCountry,
+        Source: company.Source.ToString(),
+        IsActive: company.IsActive,
+        FirstSeenAt: company.FirstSeenAt.ToUnixTimeSeconds(),
+        LastSeenAt: company.LastSeenAt.ToUnixTimeSeconds(),
+        Bindings: [.. bindings.Select(ToBinding)],
+        LiveJobs: [.. liveJobs.Select(ToSummary)],
+        // The dossier is owned by F8; until it merges a company carries no research. Modelled as null,
+        // never fabricated — an uncited claim is discarded, not shown (invariant 5).
+        Research: null);
+
+    public static AtsBindingResponse ToBinding(AtsBinding binding) => new(
+        AtsKind: binding.AtsKind.ToString(),
+        BoardToken: binding.BoardToken,
+        Confidence: binding.Confidence.Value,
+        DetectedAt: binding.DetectedAt.ToUnixTimeSeconds());
+
     public static JobSummaryResponse ToSummary(LiveJob job) => new(
         Id: job.Id,
         Title: job.Title,

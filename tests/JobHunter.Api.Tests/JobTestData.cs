@@ -55,6 +55,15 @@ internal static class JobTestData
         firstSeenAt: Seen,
         hqCountry: "US");
 
+    public static AtsBinding Binding(Guid companyId) => new(
+        id: Guid.NewGuid(),
+        companyId: companyId,
+        atsKind: AtsKind.Greenhouse,
+        boardToken: "snowflake",
+        confidence: BindingConfidence.TryCreate(0.95m).Value,
+        evidence: """{"detector":"curated-seed"}""",
+        detectedAt: Seen);
+
     public static LiveJob LiveJob(Guid id, DateTimeOffset firstSeen) => new(
         Id: id,
         CompanyId: Guid.NewGuid(),

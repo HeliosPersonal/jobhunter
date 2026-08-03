@@ -275,6 +275,41 @@ public sealed class JobPersistenceTests
         ((long)(await index.ExecuteScalarAsync() ?? 0L)).ShouldBe(1);
     }
 
+    [RequiresDockerFact]
+    public async Task CompanyJobsQuery_returns_only_the_companys_live_jobs_and_excludes_the_closed()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+        var repo = NewRepository(seed);
+
+        await repo.InsertAsync(BuildJob(seed, Hex('a'), "First Role"));
+        await repo.InsertAsync(BuildJob(seed, Hex('b'), "Second Role"));
+        var closed = BuildJob(seed, Hex('c'), "Closed Role");
+        await repo.InsertAsync(closed);
+
+        var toClose = await repo.FindAsync(closed.Id);
+        toClose!.Close(Now.AddHours(1));
+        await repo.SaveChangesAsync();
+
+        var query = new CompanyJobsQuery(new NpgsqlConnectionFactory(seed.Database.ConnectionString));
+        var rows = await query.LiveForCompanyAsync(seed.CompanyId);
+
+        rows.Select(r => r.Title).ShouldBe(["First Role", "Second Role"], ignoreOrder: true);
+        rows.ShouldNotContain(r => r.Title == "Closed Role");
+    }
+
+    [RequiresDockerFact]
+    public async Task CompanyJobsQuery_returns_nothing_for_a_company_with_no_live_jobs()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+
+        var query = new CompanyJobsQuery(new NpgsqlConnectionFactory(seed.Database.ConnectionString));
+        var rows = await query.LiveForCompanyAsync(Guid.NewGuid());
+
+        rows.ShouldBeEmpty();
+    }
+
     private static JobRepository NewRepository(Seed seed) =>
         new(seed.Database.CreateContext(), new NpgsqlConnectionFactory(seed.Database.ConnectionString));
 

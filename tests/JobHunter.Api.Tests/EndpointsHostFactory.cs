@@ -28,6 +28,8 @@ public sealed class EndpointsHostFactory : WebApplicationFactory<Program>
 
     public ILiveJobsQuery LiveJobs { get; } = Substitute.For<ILiveJobsQuery>();
 
+    public ICompanyJobsQuery CompanyJobs { get; } = Substitute.For<ICompanyJobsQuery>();
+
     /// <summary>A client presenting a valid Owner token with the given scope (read by default).</summary>
     public HttpClient OwnerClient(string scope = "jobhunter:read")
     {
@@ -64,6 +66,8 @@ public sealed class EndpointsHostFactory : WebApplicationFactory<Program>
             services.AddScoped(_ => Companies);
             services.RemoveAll<ILiveJobsQuery>();
             services.AddScoped(_ => LiveJobs);
+            services.RemoveAll<ICompanyJobsQuery>();
+            services.AddScoped(_ => CompanyJobs);
         });
     }
 }

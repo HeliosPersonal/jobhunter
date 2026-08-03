@@ -43,6 +43,7 @@ app.MapDefaultEndpoints();
 // jobhunter:read scope explicitly (endpoint-convention gate).
 app.MapSearchEndpoints();
 app.MapJobEndpoints();
+app.MapCompanyEndpoints();
 
 await app.RunAsync();
 

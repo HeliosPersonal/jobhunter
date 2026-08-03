@@ -115,3 +115,57 @@ public sealed record JobSummaryResponse(
 public sealed record JobsListResponse(
     IReadOnlyList<JobSummaryResponse> Jobs,
     string? NextCursor);
+
+/// <summary>
+/// One live ATS binding on a company's detail (<c>GET /api/companies/{domain}</c>): where the company's
+/// jobs actually live and how strongly detection believes it (F2 §ats_bindings). The verbatim evidence
+/// JSON is deliberately not exposed on the read surface — it is an internal debugging artefact, not a
+/// public field; only the provider, board token and confidence are shown.
+/// </summary>
+public sealed record AtsBindingResponse(
+    string AtsKind,
+    string BoardToken,
+    decimal Confidence,
+    long DetectedAt);
+
+/// <summary>
+/// The full detail of one company (<c>GET /api/companies/{domain}</c>): its registry identity, its live
+/// ATS bindings and its currently-open jobs. The latest research dossier F8 owns is a nullable slot —
+/// null until F8 merges (the F9 cross-feature decoupling decision) — and is never fabricated. No
+/// CV-derived value, match reason or application note is present (QG-2).
+/// </summary>
+public sealed record CompanyDetailResponse(
+    Guid Id,
+    string Name,
+    string Domain,
+    string? Stage,
+    string? HqCountry,
+    string Source,
+    bool IsActive,
+    long FirstSeenAt,
+    long LastSeenAt,
+    IReadOnlyList<AtsBindingResponse> Bindings,
+    IReadOnlyList<JobSummaryResponse> LiveJobs,
+    CompanyResearchResponse? Research);
+
+/// <summary>
+/// The latest research dossier slot on a company's detail (F8-owned). Modelled here so the company
+/// contract is complete, but populated as null until F8 merges — an uncited or absent dossier is never
+/// invented (invariant 5, the decoupling decision).
+/// </summary>
+public sealed record CompanyResearchResponse(
+    long ComputedAt,
+    IReadOnlyList<CompanyClaimResponse> Claims);
+
+/// <summary>One dossier claim with its mandatory source URL and the date it was asserted (invariant 5).</summary>
+public sealed record CompanyClaimResponse(
+    string Statement,
+    string SourceUrl,
+    long AsOf);
+
+/// <summary>The request body for <c>POST /api/companies</c> — the Owner adds a company to the registry.</summary>
+public sealed record AddCompanyRequest(
+    string Domain,
+    string DisplayName,
+    string? CareersUrl,
+    string? HqCountry);
