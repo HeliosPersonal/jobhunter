@@ -34,6 +34,11 @@ public static class DependencyInjection
         // enters and the Application submit handler depends on the Domain port, not on Anthropic (T10).
         services.AddSingleton<IEnrichmentRequestBuilder, Enrichment.EnrichmentRequestBuilder>();
 
+        // The result parser is the other half of the same boundary: it turns a batch item's raw tool-use
+        // JSON into a validated Enrichment aggregate through the tolerant eight-step parser, so the
+        // Application result-processing handler (T12) depends on the Domain port, not on the parser here.
+        services.AddSingleton<IEnrichmentResultParser, Enrichment.EnrichmentResultParser>();
+
         services.AddOptions<AnthropicOptions>()
             .Bind(configuration.GetSection(AnthropicOptions.SectionName))
             .Validate(o => !string.IsNullOrWhiteSpace(o.ApiKey), "Anthropic:ApiKey is required.")

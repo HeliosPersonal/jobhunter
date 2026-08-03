@@ -70,6 +70,13 @@ public static class DependencyInjection
         services.AddSingleton(sp =>
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Enrichment.PollOptions>>().Value);
 
+        // The result-processing step (T12): streams the ended batch's results, parses each item
+        // independently through the Domain port, upserts the valid enrichments (idempotent on
+        // (job_id, run_id)), records the bad ones, writes the actual-cost ledger entry and advances the Run
+        // to Matching (AC-06, AC-07, AC-10, QG-3). Resolved by Wolverine for BatchResultsReady; the parser
+        // implementation is registered by Claude.
+        services.AddScoped<Enrichment.BatchResultProcessingHandler>();
+
         return services;
     }
 }
