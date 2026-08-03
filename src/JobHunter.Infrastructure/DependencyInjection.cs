@@ -86,12 +86,8 @@ public static class DependencyInjection
     /// </summary>
     private static void AddDiscovery(IServiceCollection services, IConfiguration configuration)
     {
-        // The due-source read model (Dapper) and the thin Hangfire trigger. Registered in every host: the
-        // query is harmless anywhere, and the trigger is only resolved by the Worker's Hangfire server.
+        // The due-source read model (Dapper). Registered in every host: the query is harmless anywhere.
         services.AddScoped<IDiscoveryCycleQuery, DiscoveryCycleQuery>();
-        services.AddScoped<DiscoveryCycleTrigger>();
-        services.AddScoped<ClosureSweepTrigger>();
-        services.AddScoped<RedetectBindingTrigger>();
 
         // Bound the fetch fan-out to the configured degree (SAD §8). Harmless where Wolverine is not run
         // (Api/Telegram): the extension is only resolved and applied when a bus is bootstrapped.
@@ -102,9 +98,16 @@ public static class DependencyInjection
         if (!hangfire.EnableServer)
         {
             // Only the Hangfire-server host installs the recurring schedule; other hosts have no Hangfire
-            // storage, so declaring the job there would fault at start.
+            // storage, so declaring the job there would fault at start. The triggers depend on Wolverine's
+            // IMessageBus, which only the Hangfire-server host (the Worker) runs — so they are registered
+            // here too, keeping hosts without a bus (Api/Telegram) valid under container validation.
             return;
         }
+
+        // The thin Hangfire job bodies; only ever resolved by the Worker's Hangfire server, where the bus runs.
+        services.AddScoped<DiscoveryCycleTrigger>();
+        services.AddScoped<ClosureSweepTrigger>();
+        services.AddScoped<RedetectBindingTrigger>();
 
         services.AddSingleton(new RecurringJobBinding(
             DiscoveryCycleJobId,
