@@ -19,7 +19,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 
 | ID | Task | Layer | Deps | Est | Status |
 |---|---|---|---|---|---|
-| T01 | [[T01-search-port-document\|ISearchIndex port and JobDocument allowlist]] | domain/search | — | S | pending |
+| T01 | [[T01-search-port-document\|ISearchIndex port and JobDocument allowlist]] | domain/search | — | S | done |
 | T02 | [[T02-typesense-indexer\|Typesense schema and indexer]] | search | T01 | M | pending |
 | T03 | [[T03-query-service\|Query service, filters and facets]] | search | T02 | M | pending |
 | T04 | [[T04-api-host-auth\|API host: auth, fallback-deny, OpenAPI]] | api | — | M | pending |
