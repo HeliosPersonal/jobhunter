@@ -615,3 +615,77 @@
   aliases: []
 - canonical: Kanban
   aliases: []
+
+# --- AI-native and agentic tooling (T10) ---
+# The Owner's target stack. LangChain and Hugging Face already live under "Data science and ML" above;
+# they are not repeated here. Named products (Claude, Cursor, Bedrock, Gemini, Temporal) are whole-token
+# safe — in an engineering posting these spellings overwhelmingly name the product — so they are kept even
+# though the bare word has an everyday meaning. The identity-provider-colliding acronym "IDP" is deliberately
+# NOT an alias of "Internal Developer Platform" (it would over-tag every OIDC/SAML mention); the full phrase
+# carries the signal instead.
+- canonical: Agent Orchestration
+  aliases: ["agentic workflows"]
+- canonical: AutoGen
+  aliases: []
+- canonical: Azure OpenAI
+  aliases: []
+- canonical: Bedrock
+  aliases: ["amazon bedrock"]
+- canonical: Claude
+  aliases: [anthropic]
+- canonical: CrewAI
+  aliases: []
+- canonical: Cursor
+  aliases: []
+- canonical: Fine-Tuning
+  aliases: ["fine tuning", finetuning]
+- canonical: Function Calling
+  aliases: ["tool calling"]
+- canonical: Gemini
+  aliases: []
+- canonical: Guardrails
+  aliases: []
+- canonical: Inference Serving
+  aliases: []
+- canonical: LangGraph
+  aliases: []
+- canonical: LLM Evaluation
+  aliases: ["llm eval", "llm evals"]
+- canonical: MCP
+  aliases: ["model context protocol"]
+- canonical: Ollama
+  aliases: []
+- canonical: OpenAI
+  aliases: [gpt]
+- canonical: Prompt Management
+  aliases: []
+- canonical: Semantic Kernel
+  aliases: []
+- canonical: Vercel AI SDK
+  aliases: ["ai sdk"]
+- canonical: Vertex AI
+  aliases: []
+
+# --- Retrieval and vectors (T10) ---
+- canonical: AI Gateway
+  aliases: []
+- canonical: Embeddings
+  aliases: [embedding]
+- canonical: RAG
+  aliases: ["retrieval-augmented generation", "retrieval augmented generation"]
+- canonical: Vector Database
+  aliases: [Pinecone, Weaviate, pgvector, Qdrant, Milvus, Chroma]
+
+# --- Platform engineering (T10) ---
+# Kubernetes, Docker, Terraform, Istio/Linkerd/Envoy, GitOps, CI/CD, Kafka and RabbitMQ already appear
+# above under Cloud/CI-CD/Messaging; only the genuinely-missing platform-engineering terms are added here.
+- canonical: Event-Driven Architecture
+  aliases: ["event-driven", "event driven"]
+- canonical: Internal Developer Platform
+  aliases: []
+- canonical: Platform Engineering
+  aliases: []
+- canonical: Service Mesh
+  aliases: []
+- canonical: Temporal
+  aliases: []
