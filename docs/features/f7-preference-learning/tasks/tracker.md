@@ -13,6 +13,8 @@ tags: [sdlc/stage-13, feature/f7-preference-learning, mvp, jobhunter]
 
 Epic: [[_epic|_epic]]. Explainability is a hard requirement here: a filter the Owner cannot see is indistinguishable from a bug.
 
+> Task T10 added from the [[../../../reviews/career-alignment-tuning-backlog|career-alignment tuning backlog]] (career-goal alignment).
+
 Each task is one reviewable PR (≤500 LOC), ≤1 day. Owner: Viacheslav (solo).
 Estimate legend: **S** ≈ 2 h · **M** ≈ half a day · **L** ≈ a full day.
 Status: `pending` → `in_progress` → `in_review` → `done`.
@@ -28,8 +30,14 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T07 | [[T07-suppression-floor\|Suppression evaluation and the card floor]] | app | T06, **O5 [?]** | M | pending |
 | T08 | [[T08-explainability-overrides\|Explainability view and Owner overrides]] | app/api | T07, ⟂F9 T04 | M | pending |
 | T09 | [[T09-corpus-and-metrics\|Synthetic corpus, property suite and precision tracking]] | tests | T04, T07 | L | pending |
+| T10 | [[T10-aiusage-rolefamily-dimensions\|Add AiUsage and RoleFamily as preference dimensions]] | domain | T01 | M | pending |
 
 **9 tasks · 2×S + 5×M + 2×L ≈ 5 person-days.**
+
+**Career-alignment tuning task (T10): 1×M ≈ 0.5 person-day.** Added from the
+[[../../../reviews/career-alignment-tuning-backlog|career-alignment tuning backlog]] (TUNE-08); it
+extends the closed `Dimension` enum with `AiUsage` and `RoleFamily` so the loop can reinforce the
+Owner's target trajectory under the existing evidence and weight guards.
 
 **[?] Blocked by open decision O5** (evidence floor / weight floor). T07 sets the suppression floor and
 the minimum-evidence threshold, which O5 must settle before it can be certified ready
@@ -50,6 +58,7 @@ graph LR
   T02 --> T05
   T04 --> T09
   T07 --> T09
+  T01 --> T10
 ```
 
 ## DoR / DoD

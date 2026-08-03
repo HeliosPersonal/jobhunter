@@ -103,6 +103,11 @@ The Profile holds **explicit** preferences the Owner stated. `preference_weights
 **learned** ones. Keeping them in different tables means a learned weight can never silently
 overwrite something the Owner said outright.
 
+> **Planned change (TUNE-05, F4 T16):** add `target_role_families jsonb`, `desired_ai_usage_floor text`
+> and optional `target_titles jsonb` so the Owner's career *goal* (not just present facts) is encoded and
+> fed to the match prompt. These are Profile facts, not CV text, so no new leakage surface. See the
+> [[../../../reviews/career-alignment-tuning-backlog|tuning backlog]].
+
 ### `cv_versions`
 
 Immutable. A new upload is a new row ([[adr/0002-cv-versioning-and-restaling|ADR-F4-0002]]).

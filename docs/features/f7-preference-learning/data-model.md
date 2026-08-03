@@ -106,7 +106,7 @@ rollback rather than an incident (SAD §4 S6).
 |---|---|---|
 | `id` | uuid | PK |
 | `model_id` | uuid | FK |
-| `dimension` | text | `SalaryBand`, `Country`, `CompanySize`, `Technology`, `TimezoneBand`, `RemotePolicy`, `EmploymentType` |
+| `dimension` | text | `SalaryBand`, `Country`, `CompanySize`, `Technology`, `TimezoneBand`, `RemotePolicy`, `EmploymentType` (planned: `AiUsage`, `RoleFamily` — TUNE-08 / F7 T10) |
 | `value` | text | e.g. `DE`, `150-180k`, `SeriesB`, `Kafka` |
 | `weight` | numeric(5,4) | −1.00 to +1.00 |
 | `supporting_signal_count` | integer | **≥ 3 required** (AC-03) |

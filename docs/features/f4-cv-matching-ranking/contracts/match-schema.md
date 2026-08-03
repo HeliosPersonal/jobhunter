@@ -146,6 +146,11 @@ Non-negotiable, and the subject of the QG-2 leakage suite:
 
 Computed by `ScoreCalculator`, never by the model ([[../adr/0001-explainable-linear-scoring|ADR-F4-0001]]).
 
+> **Planned change (TUNE-01/02, F4 T14/T15):** add an explainable `alignment` component and re-weight to
+> `100 × (0.45·match + 0.20·alignment + 0.20·preference + 0.15·freshness) × confidence`, where
+> `alignment ∈ [0,1]` blends `AiUsage` with the F3 `RoleFamily` tier; anti-goal roles are down-weighted
+> or opt-in suppressed. See the [[../../../reviews/career-alignment-tuning-backlog|tuning backlog]].
+
 ```
 match_component      = matchScore / 100
 preference_component = Σ over dimensions: weight(dimension, jobValue), clamped to [0, 1]
@@ -172,6 +177,12 @@ A fortnight-old posting is still visible if the fit is excellent, which is the i
 | `final_score < 40` | `Below presentation threshold` |
 | Salary estimate below floor, high confidence, opt-in enabled | `Below salary floor ({amount})` |
 | Learned preference hard rule (F7) | `Learned preference: {dimension} = {value}` |
+
+> **Planned change (TUNE-02/06, F4 T15/T17):** add reason-logged down-weight (default) or opt-in
+> suppression rows for anti-goal roles (`Anti-goal role family: {family}`) and non-target families
+> (`Not a target role family: {family}`, for `roleFamily ∈ {MlResearch, DataScience, PromptEng,
+> EnterpriseCrud}`), retrievable via `/hidden` and counted in the footer (invariant 11). See the
+> [[../../../reviews/career-alignment-tuning-backlog|tuning backlog]].
 
 Suppressed jobs are **counted and reported** in the digest footer, never silently dropped.
 

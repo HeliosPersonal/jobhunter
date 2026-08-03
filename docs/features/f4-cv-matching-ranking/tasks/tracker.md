@@ -13,6 +13,8 @@ tags: [sdlc/stage-13, feature/f4-cv-matching-ranking, mvp, jobhunter]
 
 Epic: [[_epic|_epic]]. The only feature that handles personal data. A security review is required before it ships.
 
+> Tasks T14–T19 added from the [[../../../reviews/career-alignment-tuning-backlog|career-alignment tuning backlog]] (career-goal alignment).
+
 Each task is one reviewable PR (≤500 LOC), ≤1 day. Owner: Viacheslav (solo).
 Estimate legend: **S** ≈ 2 h · **M** ≈ half a day · **L** ≈ a full day.
 Status: `pending` → `in_progress` → `in_review` → `done`.
@@ -32,8 +34,20 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T11 | [[T11-golden-ranking\|Golden ranking set and precision tracking]] | tests | T08 | L | pending |
 | T12 | [[T12-pre-match-filter\|Pre-match filter]] | app | T05 | M | pending |
 | T13 | [[T13-cv-prompt-caching\|CV prompt caching and regret sampler]] | claude/app | T04, T12 | M | pending |
+| T14 | [[T14-alignment-score-component\|Add an alignment score component]] | app | T07 | M | pending |
+| T15 | [[T15-anti-goal-downweight\|Down-weight anti-goal roles in the score]] | app | T14 | S | pending |
+| T16 | [[T16-owner-career-goal\|Encode the Owner's career goal in the Profile + match prompt]] | app | T01, T04 | M | pending |
+| T17 | [[T17-negative-role-family-filter\|Negative role-family filter (ML-Researcher / Data-Scientist / Prompt-Engineer / CRUD)]] | app | T08, T14 | S | pending |
+| T18 | [[T18-founding-role-seniority-floor\|Soften the seniority-floor pre-match rule for early-stage/founding roles]] | app | T12 | S | pending |
+| T19 | [[T19-golden-target-family-slice\|Add a target-role-family slice to the golden ranking set]] | tests | T11, T14, T15 | M | pending |
 
 **13 tasks · 10×M + 3×L ≈ 8 person-days.**
+
+**Career-alignment tuning tasks (T14–T19): 3×M + 3×S ≈ 2.25 person-days.** Added from the
+[[../../../reviews/career-alignment-tuning-backlog|career-alignment tuning backlog]] (TUNE-01, TUNE-02,
+TUNE-05, TUNE-06, TUNE-13, TUNE-14); they add the `alignment` component, anti-goal / negative-family
+handling, the Owner career-goal Profile fields, a softened seniority floor, and a golden slice that
+gates the change.
 
 ## Dependency graph
 
@@ -51,6 +65,15 @@ graph LR
   T06 --> T10
   T08 --> T10
   T08 --> T11
+  T07 --> T14 --> T15
+  T14 --> T17
+  T08 --> T17
+  T01 --> T16
+  T04 --> T16
+  T12 --> T18
+  T11 --> T19
+  T14 --> T19
+  T15 --> T19
 ```
 
 ## DoR / DoD

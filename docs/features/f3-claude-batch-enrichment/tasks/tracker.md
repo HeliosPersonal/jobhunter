@@ -13,6 +13,8 @@ tags: [sdlc/stage-13, feature/f3-claude-batch-enrichment, mvp, jobhunter]
 
 Epic: [[_epic|_epic]]. The Run and Batch machinery built here is reused unchanged by F4, F5 and F8.
 
+> Tasks T15–T17 added from the [[../../../reviews/career-alignment-tuning-backlog|career-alignment tuning backlog]] (career-goal alignment).
+
 Each task is one reviewable PR (≤500 LOC), ≤1 day. Owner: Viacheslav (solo).
 Estimate legend: **S** ≈ 2 h · **M** ≈ half a day · **L** ≈ a full day.
 Status: `pending` → `in_progress` → `in_review` → `done`.
@@ -33,10 +35,18 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T12 | [[T12-result-processing\|Result processing, per-item isolation and retry]] | app | T11, T05 | L | pending |
 | T13 | [[T13-crash-matrix-golden\|Crash matrix, golden set and cost dashboards]] | tests | T12 | L | pending |
 | T14 | [[T14-ollama-fallback-adapter\|Ollama cheap-tier fallback adapter]] | claude | T07 | S | pending |
+| T15 | [[T15-role-family-classification\|Emit a RoleFamily / title-tier classification]] | claude | T02, T08 | M | pending |
+| T16 | [[T16-aiusage-subsignals\|Refine AiUsage resolution with sub-signals]] | claude | T08 | M | pending |
+| T17 | [[T17-ai-company-crud-guard\|Sharpen the "AI company, CRUD work" guard into an acted-on signal]] | claude | T15 | S | pending |
 
 **14 tasks ≈ 7.75 person-days.** The 13 core tasks are 3×S + 6×M + 4×L ≈ 7.75; **T14** is a thin
 fallback adapter that reuses T07's request-building and parsing machinery, so it adds negligible
 marginal effort and the roll-up is unchanged.
+
+**Career-alignment tuning tasks (T15–T17): 2×M + 1×S ≈ 1.25 person-days.** Added from the
+[[../../../reviews/career-alignment-tuning-backlog|career-alignment tuning backlog]] (TUNE-03, TUNE-04,
+TUNE-11); they enrich the output with the `RoleFamily` and AiUsage sub-signals the F4 `alignment`
+component and F7 preference dimensions act on.
 
 ## Dependency graph
 
@@ -53,6 +63,10 @@ graph LR
   T08 --> T10 --> T11 --> T12 --> T13
   T05 --> T12
   T07 --> T14
+  T02 --> T15
+  T08 --> T15
+  T08 --> T16
+  T15 --> T17
 ```
 
 ## DoR / DoD

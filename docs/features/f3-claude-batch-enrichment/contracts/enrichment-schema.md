@@ -18,6 +18,15 @@ tags: [sdlc/stage-06, feature/f3-claude-batch-enrichment, mvp, jobhunter]
 
 The C# record is the source of truth; the JSON Schema is generated from it, so the two cannot drift.
 
+> **Planned change (TUNE-03, F3 T15):** add a `RoleFamily` enum
+> (`AiPlatform | Platform | AiApplications | ForwardDeployed | FoundingEng | BackendGeneric | Frontend |
+> Fullstack | DevOpsSRE | MlResearch | DataScience | PromptEng | EnterpriseCrud | Other`), classified by
+> the *work described* rather than the title, with a reason. See the
+> [[../../../reviews/career-alignment-tuning-backlog|tuning backlog]].
+>
+> **Planned change (TUNE-04, F3 T16):** add AiUsage sub-signals (e.g. `buildsAiProduct`, `buildsAiInfra`,
+> `usesAiTooling`, `isResearch`) alongside the existing scalar to sharpen the target/trap boundary.
+
 ```csharp
 public sealed record EnrichmentOutput(
     SalaryEstimateDto? Salary,              // null when the model genuinely cannot tell
