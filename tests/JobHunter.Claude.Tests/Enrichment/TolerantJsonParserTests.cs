@@ -29,6 +29,7 @@ public sealed class TolerantJsonParserTests
         o.TimezoneBand.ShouldBe(TimezoneBand.EMEA);
         o.AiUsage.ShouldBe(AiUsageLevel.High);
         o.CompanyStage.ShouldBe(CompanyStage.SeriesB);
+        o.RoleFamily.ShouldBe(RoleFamily.AiPlatform);
         o.Technologies.ShouldBe(["Go", "Kubernetes", "PostgreSQL"]);
         o.Reasons.Count.ShouldBe(2);
         o.Salary!.Currency.ShouldBe("USD");

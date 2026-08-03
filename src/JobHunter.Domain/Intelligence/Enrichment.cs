@@ -29,6 +29,7 @@ public sealed class Enrichment : Entity
         TimezoneBand timezoneBand,
         AiUsageLevel aiUsage,
         CompanyStage companyStage,
+        RoleFamily roleFamily,
         IReadOnlyList<string> technologies,
         IReadOnlyList<string> reasons,
         string promptVersion,
@@ -77,6 +78,7 @@ public sealed class Enrichment : Entity
         TimezoneBand = timezoneBand;
         AiUsage = aiUsage;
         CompanyStage = companyStage;
+        RoleFamily = roleFamily;
         PromptVersion = promptVersion;
         CreatedAt = createdAt;
     }
@@ -104,6 +106,9 @@ public sealed class Enrichment : Entity
     public AiUsageLevel AiUsage { get; private set; }
 
     public CompanyStage CompanyStage { get; private set; }
+
+    /// <summary>What the role is, classified from the described work — the F4 alignment signal (TUNE-03).</summary>
+    public RoleFamily RoleFamily { get; private set; }
 
     public string PromptVersion { get; private set; } = null!;
 

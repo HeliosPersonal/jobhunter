@@ -28,6 +28,7 @@ public sealed class EnrichmentTests
             TimezoneBand.EMEA,
             AiUsageLevel.Low,
             CompanyStage.SeriesB,
+            RoleFamily.Platform,
             technologies ?? ["Go", "Kubernetes"],
             reasons ?? ["Posting explicitly states fully remote within EMEA."],
             "enrich-v1",
@@ -48,6 +49,7 @@ public sealed class EnrichmentTests
         enrichment.TimezoneBand.ShouldBe(TimezoneBand.EMEA);
         enrichment.AiUsage.ShouldBe(AiUsageLevel.Low);
         enrichment.CompanyStage.ShouldBe(CompanyStage.SeriesB);
+        enrichment.RoleFamily.ShouldBe(RoleFamily.Platform);
         enrichment.Salary.ShouldBe(salary);
         enrichment.PromptVersion.ShouldBe("enrich-v1");
         enrichment.Technologies.ShouldBe(["Go", "Kubernetes"]);
@@ -100,11 +102,11 @@ public sealed class EnrichmentTests
 
         Should.Throw<ArgumentException>(() => new Enrichment(
             EnrichmentId, Guid.Empty, RunId, null, false, false,
-            TimezoneBand.Unknown, AiUsageLevel.None, CompanyStage.Unknown,
+            TimezoneBand.Unknown, AiUsageLevel.None, CompanyStage.Unknown, RoleFamily.Other,
             [], ["r"], "enrich-v1", clock.UtcNow));
         Should.Throw<ArgumentException>(() => new Enrichment(
             EnrichmentId, JobId, Guid.Empty, null, false, false,
-            TimezoneBand.Unknown, AiUsageLevel.None, CompanyStage.Unknown,
+            TimezoneBand.Unknown, AiUsageLevel.None, CompanyStage.Unknown, RoleFamily.Other,
             [], ["r"], "enrich-v1", clock.UtcNow));
     }
 
@@ -115,7 +117,7 @@ public sealed class EnrichmentTests
 
         Should.Throw<ArgumentException>(() => new Enrichment(
             EnrichmentId, JobId, RunId, null, false, false,
-            TimezoneBand.Unknown, AiUsageLevel.None, CompanyStage.Unknown,
+            TimezoneBand.Unknown, AiUsageLevel.None, CompanyStage.Unknown, RoleFamily.Other,
             [], ["r"], " ", clock.UtcNow));
     }
 

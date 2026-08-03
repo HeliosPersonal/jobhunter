@@ -34,7 +34,7 @@ public static class EnrichmentSchema
             foreach (var name in new[]
                      {
                          "isRemote", "isContractorFriendly", "timezoneBand", "aiUsage", "companyStage",
-                         "technologies", "reasons",
+                         "roleFamily", "technologies", "reasons",
                      })
             {
                 w.WriteStringValue(name);
@@ -50,6 +50,10 @@ public static class EnrichmentSchema
             WriteEnum(w, "timezoneBand", EnumValuesExceptUnknown<TimezoneBand>());
             WriteEnum(w, "aiUsage", EnumValuesExceptUnknown<AiUsageLevel>());
             WriteEnum(w, "companyStage", EnumValuesExceptUnknown<CompanyStage>());
+
+            // roleFamily is a closed enum whose 'Other' member is a legitimate classification, not a
+            // parse sentinel like the Unknown members above — so the model is bound to every value.
+            WriteEnum(w, "roleFamily", Enum.GetNames<RoleFamily>());
             WriteStringArray(w, "technologies", minItems: null, maxItems: 25);
             WriteStringArray(w, "reasons", minItems: 1, maxItems: 6);
 

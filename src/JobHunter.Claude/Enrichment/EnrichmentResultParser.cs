@@ -45,6 +45,7 @@ public sealed class EnrichmentResultParser : IEnrichmentResultParser
             output.TimezoneBand,
             output.AiUsage,
             output.CompanyStage,
+            output.RoleFamily,
             output.Technologies,
             output.Reasons,
             request.PromptVersion,

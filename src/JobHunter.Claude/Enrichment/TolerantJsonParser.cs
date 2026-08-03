@@ -63,6 +63,10 @@ public static class TolerantJsonParser
             var aiUsage = ReadEnum(root, "aiUsage", AiUsageLevel.Unknown, anomalies);
             var companyStage = ReadEnum(root, "companyStage", CompanyStage.Unknown, anomalies);
 
+            // RoleFamily's fallback is Other — a real "none of the above" classification, not a sentinel —
+            // so an unrecognised or absent value still yields a legitimate family (parsing step 8).
+            var roleFamily = ReadEnum(root, "roleFamily", RoleFamily.Other, anomalies);
+
             // Step 7: technologies — unknown names retained verbatim, capped at 25.
             var technologies = ReadStringArray(root, "technologies", cap: 25);
 
@@ -88,6 +92,7 @@ public static class TolerantJsonParser
                 timezoneBand,
                 aiUsage,
                 companyStage,
+                roleFamily,
                 technologies,
                 reasons);
 

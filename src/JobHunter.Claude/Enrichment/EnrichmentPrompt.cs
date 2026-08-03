@@ -13,7 +13,7 @@ namespace JobHunter.Claude.Enrichment;
 public static class EnrichmentPrompt
 {
     /// <summary>Bump whenever the system prompt, the user template, the schema or a parsing rule changes.</summary>
-    public const string PromptVersion = "enrich-v1";
+    public const string PromptVersion = "enrich-v2";
 
     /// <summary>The posting text is truncated to this many characters at a paragraph boundary.</summary>
     public const int MaxDescriptionChars = 12_000;
@@ -34,6 +34,15 @@ public static class EnrichmentPrompt
           sells an AI product but whose posting describes CRUD work is Low.
         - Company stage: only from evidence in the posting (funding mentions, size statements, "public
           company", "early stage"). Otherwise Unknown.
+        - Role family: classify by the WORK the posting describes, never by the title string. A posting
+          titled "AI Engineer" whose responsibilities are ordinary line-of-business CRUD is EnterpriseCrud,
+          not AiPlatform. A "Senior Software Engineer" building inference/serving infrastructure is
+          AiPlatform. AiPlatform is building the platform AI runs on; AiApplications is building product
+          features on top of AI; Platform is general infrastructure not centred on AI; ForwardDeployed is
+          customer-embedded solutions work; FoundingEng is broad early-stage ownership; BackendGeneric,
+          Frontend, Fullstack, DevOpsSRE, MlResearch, DataScience and PromptEng are as named. Use Other only
+          when the described work genuinely fits none of these. The reason for the family must quote or
+          paraphrase the responsibilities, not the title.
         - Every reason must be specific and quote or paraphrase the posting. "Good role" is not a reason.
         - If you cannot tell, say Unknown or null. A confident wrong answer is worse than an honest gap.
         """;

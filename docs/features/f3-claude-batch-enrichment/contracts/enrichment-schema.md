@@ -18,10 +18,12 @@ tags: [sdlc/stage-06, feature/f3-claude-batch-enrichment, mvp, jobhunter]
 
 The C# record is the source of truth; the JSON Schema is generated from it, so the two cannot drift.
 
-> **Planned change (TUNE-03, F3 T15):** add a `RoleFamily` enum
+> **Shipped (TUNE-03, F3 T15):** a `RoleFamily` enum
 > (`AiPlatform | Platform | AiApplications | ForwardDeployed | FoundingEng | BackendGeneric | Frontend |
 > Fullstack | DevOpsSRE | MlResearch | DataScience | PromptEng | EnterpriseCrud | Other`), classified by
-> the *work described* rather than the title, with a reason. See the
+> the *work described* rather than the title, each carrying a reason. Unlike the other enrichment enums,
+> `Other` is a real "none of the above" classification — it is part of the wire schema, and the tolerant
+> parser lands an unrecognised or absent value on it. This bumped `PromptVersion` to `enrich-v2`. See the
 > [[../../../reviews/career-alignment-tuning-backlog|tuning backlog]].
 >
 > **Planned change (TUNE-04, F3 T16):** add AiUsage sub-signals (e.g. `buildsAiProduct`, `buildsAiInfra`,
@@ -35,6 +37,7 @@ public sealed record EnrichmentOutput(
     TimezoneBand TimezoneBand,              // EMEA | AMER | APAC | Global | Unknown
     AiUsageLevel AiUsage,                   // None | Low | Medium | High
     CompanyStage CompanyStage,              // Seed | SeriesA..SeriesD | Public | Bootstrapped | Unknown
+    RoleFamily RoleFamily,                  // AiPlatform | Platform | ... | EnterpriseCrud | Other (real fallback)
     IReadOnlyList<string> Technologies,     // canonical names where recognised
     IReadOnlyList<string> Reasons);         // >= 1, else the item is rejected
 
@@ -47,7 +50,7 @@ Generated schema (abridged):
 ```json
 {
   "type": "object",
-  "required": ["isRemote", "isContractorFriendly", "timezoneBand", "aiUsage", "companyStage", "technologies", "reasons"],
+  "required": ["isRemote", "isContractorFriendly", "timezoneBand", "aiUsage", "companyStage", "roleFamily", "technologies", "reasons"],
   "properties": {
     "salary": {
       "type": ["object", "null"],
@@ -64,7 +67,8 @@ Generated schema (abridged):
     "isContractorFriendly":  { "type": "boolean" },
     "timezoneBand":          { "enum": ["EMEA", "AMER", "APAC", "Global", "Unknown"] },
     "aiUsage":               { "enum": ["None", "Low", "Medium", "High"] },
-    "companyStage":          { "enum": ["Seed","SeriesA","SeriesB","SeriesC","SeriesD","Public","Bootstrapped","Unknown"] },
+    "companyStage":          { "enum": ["Seed","SeriesA","SeriesB","SeriesC","SeriesD","Public","Bootstrapped"] },
+    "roleFamily":            { "enum": ["AiPlatform","Platform","AiApplications","ForwardDeployed","FoundingEng","BackendGeneric","Frontend","Fullstack","DevOpsSRE","MlResearch","DataScience","PromptEng","EnterpriseCrud","Other"] },
     "technologies":          { "type": "array", "items": { "type": "string" }, "maxItems": 25 },
     "reasons":               { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 6 }
   }
@@ -77,7 +81,7 @@ braces — but the first line of defence is the schema.
 
 ## Prompt
 
-`JobHunter.Claude/Prompts/EnrichmentPrompt.cs`, `PromptVersion = "enrich-v1"`.
+`JobHunter.Claude/Prompts/EnrichmentPrompt.cs`, `PromptVersion = "enrich-v2"`.
 
 **System**
 
@@ -96,6 +100,10 @@ Rules:
   sells an AI product but whose posting describes CRUD work is Low.
 - Company stage: only from evidence in the posting (funding mentions, size statements, "public
   company", "early stage"). Otherwise Unknown.
+- Role family: classify by the WORK the posting describes, never by the title string. A posting
+  titled "AI Engineer" whose responsibilities are ordinary line-of-business CRUD is EnterpriseCrud,
+  not AiPlatform. Use Other only when the described work genuinely fits none of the families. The
+  reason for the family must quote or paraphrase the responsibilities, not the title.
 - Every reason must be specific and quote or paraphrase the posting. "Good role" is not a reason.
 - If you cannot tell, say Unknown or null. A confident wrong answer is worse than an honest gap.
 ```

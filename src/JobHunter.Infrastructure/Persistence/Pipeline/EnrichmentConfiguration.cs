@@ -45,6 +45,7 @@ internal sealed class EnrichmentConfiguration : IEntityTypeConfiguration<Enrichm
         b.Property(x => x.TimezoneBand).HasColumnName("timezone_band").IsRequired();
         b.Property(x => x.AiUsage).HasColumnName("ai_usage").IsRequired();
         b.Property(x => x.CompanyStage).HasColumnName("company_stage").IsRequired();
+        b.Property(x => x.RoleFamily).HasColumnName("role_family").IsRequired();
         b.Property(x => x.PromptVersion).HasColumnName("prompt_version").IsRequired();
         b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
 

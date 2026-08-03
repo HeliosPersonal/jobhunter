@@ -18,6 +18,7 @@ public sealed record EnrichmentOutput(
     TimezoneBand TimezoneBand,
     AiUsageLevel AiUsage,
     CompanyStage CompanyStage,
+    RoleFamily RoleFamily,
     IReadOnlyList<string> Technologies,
     IReadOnlyList<string> Reasons);
 

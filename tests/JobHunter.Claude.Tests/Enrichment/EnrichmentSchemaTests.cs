@@ -60,6 +60,24 @@ public sealed class EnrichmentSchemaTests
     }
 
     [Fact]
+    public void Role_family_is_a_closed_enum_that_includes_the_other_classification()
+    {
+        var props = Root().GetProperty("properties");
+
+        // roleFamily is required — every enrichment carries a family (T15).
+        var required = Root().GetProperty("required").EnumerateArray().Select(v => v.GetString()).ToList();
+        required.ShouldContain("roleFamily");
+
+        var values = props.GetProperty("roleFamily").GetProperty("enum")
+            .EnumerateArray().Select(v => v.GetString()).ToList();
+
+        // Unlike the Unknown-sentinel enums, Other is a real classification and IS in the wire schema.
+        values.ShouldContain("Other");
+        values.ShouldContain("AiPlatform");
+        values.ShouldContain("EnterpriseCrud");
+    }
+
+    [Fact]
     public void Salary_is_object_or_null_with_a_currency_pattern()
     {
         var salary = Root().GetProperty("properties").GetProperty("salary");

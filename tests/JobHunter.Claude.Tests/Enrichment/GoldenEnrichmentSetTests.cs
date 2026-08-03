@@ -115,6 +115,11 @@ public sealed class GoldenEnrichmentSetTests
             yield return $"companyStage {e.CompanyStage} not in [{string.Join(", ", c.StageIn)}]";
         }
 
+        if (c.RoleFamilyIn.Count > 0 && !c.RoleFamilyIn.Contains(e.RoleFamily.ToString()))
+        {
+            yield return $"roleFamily {e.RoleFamily} not in [{string.Join(", ", c.RoleFamilyIn)}]";
+        }
+
         if (c.Salary is SalaryExpectation.Present)
         {
             if (e.Salary is null)
@@ -180,6 +185,7 @@ public sealed class GoldenEnrichmentSetTests
                 AiUsageIn: Set(m, "aiUsageIn"),
                 TimezoneIn: Set(m, "timezoneIn"),
                 StageIn: Set(m, "stageIn"),
+                RoleFamilyIn: Set(m, "roleFamilyIn"),
                 Salary: ParseSalaryExpectation(Optional(m, "salary")),
                 SalaryFloor: OptionalDecimal(m, "salaryFloor"),
                 SalaryCeil: OptionalDecimal(m, "salaryCeil"),
@@ -242,6 +248,7 @@ public sealed class GoldenEnrichmentSetTests
         IReadOnlyList<string> AiUsageIn,
         IReadOnlyList<string> TimezoneIn,
         IReadOnlyList<string> StageIn,
+        IReadOnlyList<string> RoleFamilyIn,
         SalaryExpectation Salary,
         decimal? SalaryFloor,
         decimal? SalaryCeil,
