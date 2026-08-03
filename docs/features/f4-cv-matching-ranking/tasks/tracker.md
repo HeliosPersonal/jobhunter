@@ -21,7 +21,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 
 | ID | Task | Layer | Deps | Est | Status |
 |---|---|---|---|---|---|
-| T01 | [[T01-domain-profile-match\|Domain: Profile, CvVersion, Match, Score]] | domain | — | M | pending |
+| T01 | [[T01-domain-profile-match\|Domain: Profile, CvVersion, Match, Score]] | domain | — | M | done |
 | T02 | [[T02-matching-persistence\|Migration and repositories for profiles, CVs, matches, scores]] | infra/db | T01 | M | pending |
 | T03 | [[T03-cv-upload-versioning\|CV upload, text extraction and versioning]] | app | T02 | M | pending |
 | T04 | [[T04-match-prompt-schema\|Match prompt, schema and parser]] | claude | T01 | L | pending |
