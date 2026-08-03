@@ -1,4 +1,4 @@
-# F3 golden set — 62 recorded enrichment tool-use payloads driven through the REAL
+# F3 golden set — 63 recorded enrichment tool-use payloads driven through the REAL
 # EnrichmentResultParser (GoldenEnrichmentSetTests). Each case asserts a labelled BAND, not an exact
 # value, so a non-deterministic model does not make the suite flaky: the recorded payload is fixed, but
 # the assertion tolerates the drift a live model would show, and the nightly live-drift job reuses these
@@ -536,3 +536,21 @@
   usesAiTooling: false
   isResearch: false
   salary: absent
+
+# ---------------------------------------------------------------------------------------------------
+# AI-brand company, CRUD work (T17): the guard is emitted as a coherent low-signal, non-target combination
+# with an explicit mismatch reason — never inflated to a high signal by the company's marketing.
+# ---------------------------------------------------------------------------------------------------
+- id: 63
+  why: AI-brand company but CRUD work is low AiUsage and a non-target role, not a prestige-driven signal (T17)
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "Low", "aiSignals": {"buildsAiProduct": false, "buildsAiInfra": false, "usesAiTooling": true, "isResearch": false}, "companyStage": "SeriesC", "roleFamily": "EnterpriseCrud", "technologies": ["C#", "SQL Server", "Angular"], "reasons": ["Company brands itself as an AI leader but the role builds line-of-business CRUD screens", "No model, inference or ML engineering appears in the responsibilities", "Work is forms-over-data with an internal admin portal"], "salary": {"min": 130000, "max": 160000, "currency": "USD", "period": "Year", "confidence": 0.6}}'
+  parses: true
+  aiUsageIn: [Low, None]
+  roleFamilyIn: [EnterpriseCrud]
+  buildsAiProduct: false
+  buildsAiInfra: false
+  usesAiTooling: true
+  isResearch: false
+  salary: present
+  currency: USD
+  minReasons: 3

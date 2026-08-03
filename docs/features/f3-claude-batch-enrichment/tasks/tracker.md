@@ -37,7 +37,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T14 | [[T14-ollama-fallback-adapter\|Ollama cheap-tier fallback adapter]] | claude | T07 | S | done |
 | T15 | [[T15-role-family-classification\|Emit a RoleFamily / title-tier classification]] | claude | T02, T08 | M | done |
 | T16 | [[T16-aiusage-subsignals\|Refine AiUsage resolution with sub-signals]] | claude | T08 | M | done |
-| T17 | [[T17-ai-company-crud-guard\|Sharpen the "AI company, CRUD work" guard into an acted-on signal]] | claude | T15 | S | pending |
+| T17 | [[T17-ai-company-crud-guard\|Sharpen the "AI company, CRUD work" guard into an acted-on signal]] | claude | T15 | S | done |
 
 **14 tasks ≈ 7.75 person-days.** The 13 core tasks are 3×S + 6×M + 4×L ≈ 7.75; **T14** is a thin
 fallback adapter that reuses T07's request-building and parsing machinery, so it adds negligible

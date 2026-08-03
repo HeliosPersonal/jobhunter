@@ -13,7 +13,7 @@ namespace JobHunter.Claude.Enrichment;
 public static class EnrichmentPrompt
 {
     /// <summary>Bump whenever the system prompt, the user template, the schema or a parsing rule changes.</summary>
-    public const string PromptVersion = "enrich-v3";
+    public const string PromptVersion = "enrich-v4";
 
     /// <summary>The posting text is truncated to this many characters at a paragraph boundary.</summary>
     public const int MaxDescriptionChars = 12_000;
@@ -40,6 +40,11 @@ public static class EnrichmentPrompt
             * isResearch      — the role trains or evaluates models as the substance of the work.
           These are independent, so a role can set none of them. A posting that sells an AI product but whose
           responsibilities are ordinary CRUD sets usesAiTooling at most — never buildsAiProduct or buildsAiInfra.
+        - The "AI-brand company, CRUD work" case must be emitted unambiguously and never inflated by the
+          company's marketing: when the posting describes ordinary CRUD or line-of-business work, set
+          aiUsage to None or Low, set roleFamily to the non-target family the work fits (usually
+          EnterpriseCrud), and give a reason that names the mismatch explicitly — that the company brands
+          itself as AI but the engineering work is not. Company prestige is never a reason on its own.
         - Company stage: only from evidence in the posting (funding mentions, size statements, "public
           company", "early stage"). Otherwise Unknown.
         - Role family: classify by the WORK the posting describes, never by the title string. A posting

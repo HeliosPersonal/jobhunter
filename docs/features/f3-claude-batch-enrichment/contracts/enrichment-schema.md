@@ -32,6 +32,12 @@ The C# record is the source of truth; the JSON Schema is generated from it, so t
 > describes CRUD work resolves `usesAiTooling`, never `buildsAiProduct`/`buildsAiInfra`. The object is
 > optional on the wire: an absent object, or an absent/non-boolean field within it, degrades to `false`
 > rather than failing the item (parsing step 8). This bumped `PromptVersion` to `enrich-v3`.
+>
+> **Shipped (TUNE-11, F3 T17):** the "AI-brand company, CRUD work" case is now emitted as a coherent
+> low-signal, non-target combination — `AiUsage` None/Low, `usesAiTooling` at most, a non-target
+> `RoleFamily` (usually `EnterpriseCrud`), each with an explicit mismatch reason and never inflated by the
+> company's marketing — so the F4 `alignment` component can score it by alignment rather than prestige.
+> This bumped `PromptVersion` to `enrich-v4`.
 
 ```csharp
 public sealed record EnrichmentOutput(
@@ -92,7 +98,7 @@ braces — but the first line of defence is the schema.
 
 ## Prompt
 
-`JobHunter.Claude/Prompts/EnrichmentPrompt.cs`, `PromptVersion = "enrich-v3"`.
+`JobHunter.Claude/Prompts/EnrichmentPrompt.cs`, `PromptVersion = "enrich-v4"`.
 
 **System**
 
@@ -113,6 +119,11 @@ Rules:
   buildsAiProduct (features on top of AI/LLMs), buildsAiInfra (the platform AI runs on), usesAiTooling
   (merely uses AI tooling for conventional work), isResearch (trains/evaluates models). They are
   independent; a posting that sells an AI product but describes CRUD work sets usesAiTooling at most.
+- The "AI-brand company, CRUD work" case must be emitted unambiguously and never inflated by the
+  company's marketing: when the posting describes ordinary CRUD or line-of-business work, set aiUsage
+  to None or Low, set roleFamily to the non-target family the work fits (usually EnterpriseCrud), and
+  give a reason that names the mismatch explicitly — that the company brands itself as AI but the
+  engineering work is not. Company prestige is never a reason on its own.
 - Company stage: only from evidence in the posting (funding mentions, size statements, "public
   company", "early stage"). Otherwise Unknown.
 - Role family: classify by the WORK the posting describes, never by the title string. A posting

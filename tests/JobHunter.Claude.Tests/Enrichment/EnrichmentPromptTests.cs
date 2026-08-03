@@ -25,7 +25,7 @@ public sealed class EnrichmentPromptTests
     [Fact]
     public void The_prompt_version_is_stamped()
     {
-        EnrichmentPrompt.PromptVersion.ShouldBe("enrich-v3");
+        EnrichmentPrompt.PromptVersion.ShouldBe("enrich-v4");
     }
 
     [Fact]
