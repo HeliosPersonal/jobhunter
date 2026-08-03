@@ -62,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<ICompanyRepository, CompanyRepository>();
         services.AddScoped<IJobSourceRepository, JobSourceRepository>();
         services.AddScoped<IRawPostingRepository, RawPostingRepository>();
+        services.AddScoped<IDegradedCoverageQuery, DegradedCoverageQuery>();
 
         services.AddSingleton<RecurringJobRegistry>();
 

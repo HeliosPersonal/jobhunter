@@ -1,26 +1,32 @@
+using System.Diagnostics;
 using JobHunter.Application.Common;
 using JobHunter.Contracts.Pipeline;
 using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Companies;
 using JobHunter.Domain.Postings;
+using JobHunter.Domain.Sources;
 using Microsoft.Extensions.Logging;
 using Wolverine;
 
 namespace JobHunter.Application.Discovery;
 
 /// <summary>
-/// Fetches one board (SAD §6.1). The cycle fanned out one <see cref="SourceFetchRequested"/> per source
-/// and RabbitMQ delivers them with the bounded degree (SAD §8), so this handler is deliberately single-
-/// source: it resolves the source's live binding and its provider adapter, fetches the board, and streams
-/// every posting through the ingestion upsert. One board is one failure domain (QG-1) — a provider that
-/// 500s or a source deleted mid-flight ends this message cleanly and never touches another source.
+/// Fetches one board (SAD §6.1, §6.3). The cycle fanned out one <see cref="SourceFetchRequested"/> per
+/// source and RabbitMQ delivers them with the bounded degree (SAD §8), so this handler is deliberately
+/// single-source: it resolves the source's live binding and its provider adapter, fetches the board, and
+/// streams every posting through the ingestion upsert. One board is one failure domain (QG-1) — a provider
+/// that 500s or a source deleted mid-flight ends this message cleanly and never touches another source.
 ///
 /// Ingestion is the T11 insert path: each posting goes through the single-statement dedup-and-refresh
 /// upsert (<see cref="IRawPostingRepository"/>), which distinguishes a genuine insert from an unchanged
 /// re-fetch via the <c>xmax = 0</c> trick. <see cref="RawPostingIngested"/> is published exactly once per
-/// distinct content — an unchanged re-fetch only bumps <c>last_seen_at</c> and emits nothing (AC-02). The
-/// fraction of a board unchanged since the last fetch is exported as
-/// <see cref="Telemetry.RawPostingsUnchangedRatio"/> (expected ≈ 0.90).
+/// distinct content — an unchanged re-fetch only bumps <c>last_seen_at</c> and emits nothing (AC-02).
+///
+/// Health is the T12 failure path (SAD §6.3): every attempt — successful or not — writes one
+/// <c>source_fetch_log</c> row (AC-11); a success resets the failure counter, a failure increments it, and
+/// the second consecutive failure quarantines the source for <see cref="DiscoveryOptions.QuarantineFor"/>
+/// and publishes <see cref="SourceQuarantined"/> exactly once (AC-08). A rate deferral is neutral: it is
+/// logged but neither fails nor resets the source.
 /// </summary>
 public sealed class FetchSourceHandler(
     IJobSourceRepository sources,
@@ -39,10 +45,15 @@ public sealed class FetchSourceHandler(
     private readonly IClock _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     private readonly ILogger<FetchSourceHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-    public async Task Handle(SourceFetchRequested message, IMessageBus bus, CancellationToken cancellationToken)
+    public async Task Handle(
+        SourceFetchRequested message,
+        IMessageBus bus,
+        DiscoveryOptions options,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
         ArgumentNullException.ThrowIfNull(bus);
+        ArgumentNullException.ThrowIfNull(options);
 
         var source = await _sources.FindAsync(message.SourceId, cancellationToken).ConfigureAwait(false);
         if (source is null)
@@ -72,16 +83,21 @@ public sealed class FetchSourceHandler(
             return;
         }
 
-        await FetchBoardAsync(adapter, binding, message, bus, cancellationToken).ConfigureAwait(false);
+        await FetchBoardAsync(source, adapter, binding, message, bus, options, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task FetchBoardAsync(
+        JobSource source,
         IJobSource adapter,
         AtsBinding binding,
         SourceFetchRequested message,
         IMessageBus bus,
+        DiscoveryOptions options,
         CancellationToken cancellationToken)
     {
+        var startedAt = _clock.UtcNow;
+        var elapsed = Stopwatch.GetTimestamp();
+
         var fetch = await adapter.FetchBoardAsync(binding, cancellationToken).ConfigureAwait(false);
 
         var returned = 0;
@@ -105,9 +121,65 @@ public sealed class FetchSourceHandler(
                 new KeyValuePair<string, object?>(TelemetryLabels.AtsKind, binding.AtsKind.ToString()));
         }
 
+        await RecordHealthAsync(source, message, fetch, bus, options, cancellationToken).ConfigureAwait(false);
+
+        var durationMs = (int)Stopwatch.GetElapsedTime(elapsed).TotalMilliseconds;
+        var log = new SourceFetchLog(
+            _ids.NewId(), source.Id, startedAt, durationMs, fetch.HttpStatus, returned, changed, fetch.Outcome, fetch.Detail);
+        await _sources.AddFetchLogAsync(log, cancellationToken).ConfigureAwait(false);
+        await _sources.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
         _logger.LogInformation(
             "Fetched board for binding {BindingId} ({AtsKind}): outcome {Outcome}, {Returned} posting(s), {Changed} changed.",
             binding.Id, binding.AtsKind, fetch.Outcome, returned, changed);
+    }
+
+    /// <summary>
+    /// Applies the fetch outcome to the source's health (SAD §6.3). A success resets the failure counter and
+    /// clears any quarantine; a rate deferral is neutral (logged, but the source is neither failed nor reset);
+    /// any other non-success increments the counter and, at the second consecutive failure, quarantines the
+    /// source and publishes <see cref="SourceQuarantined"/> exactly once (AC-08).
+    /// </summary>
+    private async Task RecordHealthAsync(
+        JobSource source,
+        SourceFetchRequested message,
+        SourceFetch fetch,
+        IMessageBus bus,
+        DiscoveryOptions options,
+        CancellationToken cancellationToken)
+    {
+        if (fetch.IsSuccess)
+        {
+            source.RecordSuccess(_clock);
+            return;
+        }
+
+        if (fetch.Outcome == FetchOutcome.RateLimited)
+        {
+            // A rate deferral is not a health failure — the board answered, it just asked us to wait. It is
+            // logged like any attempt (AC-11) but does not move the source toward quarantine.
+            return;
+        }
+
+        var newlyQuarantined = source.RecordFailure(_clock, options.QuarantineFor);
+        if (!newlyQuarantined)
+        {
+            return;
+        }
+
+        // The transition healthy -> quarantined fired exactly now, so notify once per quarantine event, not
+        // once per cycle (AC-08). Telegram consumes SourceQuarantined; the metrics/digest footer read it too.
+        await bus.PublishAsync(new SourceQuarantined(
+            source.Id,
+            message.CompanyId,
+            source.ConsecutiveFailures,
+            fetch.HttpStatus,
+            source.QuarantinedUntil!.Value,
+            _clock.UtcNow)).ConfigureAwait(false);
+
+        _logger.LogWarning(
+            "Source {SourceId} quarantined until {Until:o} after {Failures} consecutive failure(s).",
+            source.Id, source.QuarantinedUntil, source.ConsecutiveFailures);
     }
 
     /// <summary>
