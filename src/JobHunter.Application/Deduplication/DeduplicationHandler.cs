@@ -150,6 +150,12 @@ public sealed class DeduplicationHandler(
         }
 
         canonical.RegisterAlias(message.RawPostingId, raw.SourceId, raw.FetchedAt, raw.LastSeenAt);
+
+        // A posting reappearing on a board hits the same fingerprint, so the same job is reopened rather than
+        // a second one created (AC-07). Reopen is idempotent — a live job is unchanged, a quarantined one is
+        // deliberately left withheld — so this is safe to call on every conflict, closed or not.
+        canonical.Reopen(raw.LastSeenAt);
+
         await _jobs.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         await bus.PublishAsync(new JobDuplicateDetected(

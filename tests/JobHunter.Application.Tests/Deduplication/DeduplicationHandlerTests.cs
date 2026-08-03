@@ -221,6 +221,29 @@ public sealed class DeduplicationHandlerTests
     }
 
     [Fact]
+    public async Task A_reappearing_posting_reopens_the_same_closed_job_not_a_duplicate()
+    {
+        var (rawPostingId, _, companyId) = SeedGreenhouse(GreenhousePayload);
+        _jobs.InsertAsync(Arg.Any<Job>(), Arg.Any<CancellationToken>())
+            .Returns(JobInsertOutcome.FingerprintConflict);
+
+        // The canonical job had been closed by the liveness check; the posting reappears on its board.
+        var canonical = ExistingCanonicalJob(companyId);
+        canonical.Close(Now.AddDays(-3));
+        canonical.Status.ShouldBe(JobStatus.Closed);
+        _jobs.FindByFingerprintAsync(Arg.Any<Fingerprint>(), Arg.Any<CancellationToken>()).Returns(canonical);
+
+        await Handle(Normalized(rawPostingId, companyId));
+
+        // The same job is reopened (AC-07) — not a second one created — and the alias is recorded on it.
+        canonical.Status.ShouldBe(JobStatus.Live);
+        canonical.ClosedAt.ShouldBeNull();
+        canonical.Aliases.ShouldContain(a => a.RawPostingId == rawPostingId);
+        await _bus.Received(1).PublishAsync(Arg.Any<JobDuplicateDetected>());
+        await _bus.DidNotReceive().PublishAsync(Arg.Any<JobDiscovered>());
+    }
+
+    [Fact]
     public async Task A_conflict_whose_canonical_vanished_exits_cleanly()
     {
         var (rawPostingId, _, companyId) = SeedGreenhouse(GreenhousePayload);
