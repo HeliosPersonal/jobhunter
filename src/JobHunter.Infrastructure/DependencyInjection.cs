@@ -67,6 +67,7 @@ public static class DependencyInjection
         services.AddScoped<IClosureSweepQuery, ClosureSweepQuery>();
         services.AddScoped<IRedetectionQuery, RedetectionQuery>();
         services.AddScoped<ILiveJobsQuery, LiveJobsQuery>();
+        services.AddScoped<IRawPostingReader, RawPostingReaderQuery>();
 
         services.AddSingleton<RecurringJobRegistry>();
 
