@@ -1,0 +1,72 @@
+# Title-tier reference config (F2 T11, review §5, TUNE-12) — the Owner's Tier-1/2/3 target titles mapped
+# onto role-family archetypes. It is a committed, reviewable-in-a-diff reference: NO scoring logic lives
+# here. It is consumed later by the F3 RoleFamily classifier (F3 T15), which classifies by the work
+# described rather than the title string, and by the F4 Profile goal fields (F4 T16).
+#
+# Schema (validated by TitleTierConfigLoader, which fails naming the offending line):
+#   tier:         required, one of Tier1 | Tier2 | Tier3
+#   title:        required, the target title (natural key, unique across the file)
+#   role_family:  required, one of the F3 RoleFamily archetypes:
+#                 AiPlatform | Platform | AiApplications | ForwardDeployed | FoundingEng |
+#                 BackendGeneric | Frontend | Fullstack | DevOpsSRE | MlResearch | DataScience |
+#                 PromptEng | EnterpriseCrud | Other
+#
+# Adding or moving a title is a one-line YAML change here, never a code change. Keep each tier's titles
+# together and in the review's order so the diff reads against §5.
+
+# --- Tier 1: bullseye target titles ---
+- tier: Tier1
+  title: AI Platform Engineer
+  role_family: AiPlatform
+- tier: Tier1
+  title: AI Systems Engineer
+  role_family: AiPlatform
+- tier: Tier1
+  title: AI Solutions Engineer
+  role_family: ForwardDeployed
+- tier: Tier1
+  title: Forward Deployed Engineer
+  role_family: ForwardDeployed
+- tier: Tier1
+  title: Founding Engineer (AI)
+  role_family: FoundingEng
+
+# --- Tier 2: strong adjacent titles ---
+- tier: Tier2
+  title: Platform Engineer
+  role_family: Platform
+- tier: Tier2
+  title: Senior Platform Engineer
+  role_family: Platform
+- tier: Tier2
+  title: AI Infrastructure Engineer
+  role_family: AiPlatform
+- tier: Tier2
+  title: AI Applications Engineer
+  role_family: AiApplications
+- tier: Tier2
+  title: Applied AI Engineer
+  role_family: AiApplications
+- tier: Tier2
+  title: AI Integration/Enablement Engineer
+  role_family: AiApplications
+- tier: Tier2
+  title: Staff Software/Backend Engineer (AI)
+  role_family: AiApplications
+- tier: Tier2
+  title: AI Product Engineer
+  role_family: AiApplications
+
+# --- Tier 3: qualify only once the work described is judged ---
+- tier: Tier3
+  title: Senior Software Engineer
+  role_family: BackendGeneric
+- tier: Tier3
+  title: Backend Engineer
+  role_family: BackendGeneric
+- tier: Tier3
+  title: Technical Lead
+  role_family: BackendGeneric
+- tier: Tier3
+  title: Solutions/Platform/Technical Architect
+  role_family: Platform
