@@ -27,9 +27,16 @@ public static class CandidateJobFactory
     /// <summary>
     /// Builds the candidate job with id <paramref name="jobId"/>. Returns a failure when a required field is
     /// absent (AC-04). The origin posting is registered as the job's first alias, so every job carries at
-    /// least one alias including its creator (AC-08).
+    /// least one alias including its creator (AC-08). When a <paramref name="tagger"/> is supplied, the job
+    /// is also tagged with the deterministic vocabulary technologies found in its title and description
+    /// (T07); passing none leaves the job untagged, which keeps the factory a pure function of its inputs
+    /// for the cases (and tests) that do not need tags.
     /// </summary>
-    public static Result<Job> Create(Guid jobId, ExtractedPosting posting, NormalizationContext context)
+    public static Result<Job> Create(
+        Guid jobId,
+        ExtractedPosting posting,
+        NormalizationContext context,
+        TechnologyTagger? tagger = null)
     {
         ArgumentNullException.ThrowIfNull(posting);
         ArgumentNullException.ThrowIfNull(context);
@@ -79,6 +86,8 @@ public static class CandidateJobFactory
             posting.IsTier2);
 
         job.RegisterAlias(context.RawPostingId, context.SourceId, context.FirstSeenAt, context.LastSeenAt);
+
+        tagger?.Tag(job);
 
         return job;
     }

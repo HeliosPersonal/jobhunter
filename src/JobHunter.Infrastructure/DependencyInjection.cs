@@ -69,6 +69,12 @@ public static class DependencyInjection
         services.AddScoped<ILiveJobsQuery, LiveJobsQuery>();
         services.AddScoped<IRawPostingReader, RawPostingReaderQuery>();
 
+        // F2 technology tagging (T07): the committed vocabulary is loaded once from the embedded YAML — a
+        // malformed file fails the host at startup, not at first tag — and the pure tagger over it is a
+        // singleton the normalisation and deduplication handlers resolve.
+        services.AddSingleton(_ => JobHunter.Infrastructure.Normalization.TechnologyVocabularyLoader.Load());
+        services.AddSingleton<JobHunter.Application.Normalization.TechnologyTagger>();
+
         services.AddSingleton<RecurringJobRegistry>();
 
         AddDiscovery(services, configuration);

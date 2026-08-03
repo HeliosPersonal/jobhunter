@@ -53,9 +53,16 @@ public sealed class NormalizationHandlerTests
         });
     private readonly IMessageBus _bus = Substitute.For<IMessageBus>();
     private readonly FakeClock _clock = new(Now);
+    private static readonly TechnologyEntry[] VocabularyEntries =
+    [
+        new("Go", ["golang"]),
+        new("Kubernetes", ["k8s"]),
+    ];
+
+    private readonly TechnologyTagger _tagger = new(new TechnologyVocabulary(VocabularyEntries));
 
     private NormalizationHandler CreateHandler() =>
-        new(_rawPostings, _sources, _companies, _catalog, _clock, NullLogger<NormalizationHandler>.Instance);
+        new(_rawPostings, _sources, _companies, _catalog, _tagger, _clock, NullLogger<NormalizationHandler>.Instance);
 
     private Task Handle(RawPostingIngested message) =>
         CreateHandler().Handle(message, _bus, CancellationToken.None);

@@ -26,6 +26,7 @@ public sealed class NormalizationHandler(
     IJobSourceRepository sources,
     ICompanyRepository companies,
     IPostingNormalizerCatalog normalizers,
+    TechnologyTagger technologyTagger,
     IClock clock,
     ILogger<NormalizationHandler> logger)
 {
@@ -33,6 +34,7 @@ public sealed class NormalizationHandler(
     private readonly IJobSourceRepository _sources = sources ?? throw new ArgumentNullException(nameof(sources));
     private readonly ICompanyRepository _companies = companies ?? throw new ArgumentNullException(nameof(companies));
     private readonly IPostingNormalizerCatalog _normalizers = normalizers ?? throw new ArgumentNullException(nameof(normalizers));
+    private readonly TechnologyTagger _technologyTagger = technologyTagger ?? throw new ArgumentNullException(nameof(technologyTagger));
     private readonly IClock _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     private readonly ILogger<NormalizationHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -100,7 +102,7 @@ public sealed class NormalizationHandler(
             raw.FetchedAt,
             raw.LastSeenAt);
 
-        var candidate = CandidateJobFactory.Create(jobId, extraction.Value, context);
+        var candidate = CandidateJobFactory.Create(jobId, extraction.Value, context, _technologyTagger);
         if (candidate.IsFailure)
         {
             _logger.LogWarning(
