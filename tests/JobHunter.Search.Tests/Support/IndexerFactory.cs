@@ -23,4 +23,11 @@ internal static class IndexerFactory
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://typesense.test:8108/") };
         return new TypesenseIndexer(http, Microsoft.Extensions.Options.Options.Create(Options()), NullLogger<TypesenseIndexer>.Instance);
     }
+
+    public static TypesenseQueryService CreateQueryService(StubHttpMessageHandler handler)
+    {
+        var http = new HttpClient(handler) { BaseAddress = new Uri("http://typesense.test:8108/") };
+        return new TypesenseQueryService(
+            http, Microsoft.Extensions.Options.Options.Create(Options()), NullLogger<TypesenseQueryService>.Instance);
+    }
 }

@@ -119,4 +119,69 @@ public sealed class TypesenseSerializationTests
         first.RootElement.GetProperty("id").GetString().ShouldBe("0192e8b7-0000-7000-8000-000000000001");
         second.RootElement.GetProperty("id").GetString().ShouldBe("0192e8b7-0000-7000-8000-000000000002");
     }
+
+    [Fact]
+    public void A_full_document_round_trips_through_write_and_read_unchanged()
+    {
+        var original = FullDocument();
+        using var doc = JsonDocument.Parse(TypesenseSerialization.DocumentJson(original));
+
+        var read = TypesenseSerialization.ReadDocument(doc.RootElement);
+
+        AssertEquivalent(read, original);
+    }
+
+    [Fact]
+    public void A_minimal_document_round_trips_with_every_optional_read_back_as_null()
+    {
+        var original = MinimalDocument();
+        using var doc = JsonDocument.Parse(TypesenseSerialization.DocumentJson(original));
+
+        var read = TypesenseSerialization.ReadDocument(doc.RootElement);
+
+        AssertEquivalent(read, original);
+        read.Seniority.ShouldBeNull();
+        read.SalaryMin.ShouldBeNull();
+        read.PostedAt.ShouldBeNull();
+        read.ApplicationStatus.ShouldBeNull();
+    }
+
+    // Record equality compares the list fields by reference; compare the collections by value and the
+    // rest by the record's own equality (with the collections normalised away).
+    private static void AssertEquivalent(JobDocument actual, JobDocument expected)
+    {
+        actual.Technologies.ShouldBe(expected.Technologies);
+        actual.Countries.ShouldBe(expected.Countries);
+        (actual with { Technologies = [], Countries = [] })
+            .ShouldBe(expected with { Technologies = [], Countries = [] });
+    }
+
+    [Fact]
+    public void Reading_an_object_that_omits_every_field_yields_the_absent_values()
+    {
+        // A defensive path: a document Typesense returns with nothing recognisable reads as empty/zero,
+        // never a throw — the query path degrades to a value (QG-3).
+        using var doc = JsonDocument.Parse("{}");
+
+        var read = TypesenseSerialization.ReadDocument(doc.RootElement);
+
+        read.Id.ShouldBe(string.Empty);
+        read.Title.ShouldBe(string.Empty);
+        read.Technologies.ShouldBeEmpty();
+        read.Countries.ShouldBeEmpty();
+        read.Score.ShouldBe(0d);
+        read.FirstSeenAt.ShouldBe(0L);
+        read.Seniority.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Reading_a_string_array_field_that_is_not_an_array_yields_an_empty_list()
+    {
+        // technologies present but the wrong shape (a scalar) — read as empty rather than throwing.
+        using var doc = JsonDocument.Parse("""{ "id": "x", "technologies": "not-an-array" }""");
+
+        var read = TypesenseSerialization.ReadDocument(doc.RootElement);
+
+        read.Technologies.ShouldBeEmpty();
+    }
 }

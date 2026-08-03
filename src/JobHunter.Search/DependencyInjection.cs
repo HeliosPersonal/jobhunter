@@ -44,6 +44,11 @@ public static class DependencyInjection
             sp.GetRequiredService<IOptions<TypesenseOptions>>(),
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<TypesenseIndexer>>()));
 
+        services.AddSingleton<ISearchQuery>(sp => new TypesenseQueryService(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient(TypesenseQueryService.HttpClientName),
+            sp.GetRequiredService<IOptions<TypesenseOptions>>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<TypesenseQueryService>>()));
+
         return services;
     }
 }

@@ -149,4 +149,63 @@ internal static class TypesenseSerialization
 
         return array;
     }
+
+    /// <summary>
+    /// Reads a Typesense document (a search hit's <c>document</c> object) back into a
+    /// <see cref="JobDocument"/> — the inverse of <see cref="DocumentNode"/>, field by field, so a hit can
+    /// carry nothing the allowlist does not name (QG-2). An omitted optional field reads as its absent
+    /// value (null), exactly as it was written.
+    /// </summary>
+    public static JobDocument ReadDocument(JsonElement element) => new(
+        Id: GetString(element, "id"),
+        Title: GetString(element, "title"),
+        CompanyName: GetString(element, "companyName"),
+        CompanyDomain: GetString(element, "companyDomain"),
+        Description: GetString(element, "description"),
+        Technologies: GetStringArray(element, "technologies"),
+        Countries: GetStringArray(element, "countries"),
+        RemotePolicy: GetString(element, "remotePolicy"),
+        Seniority: GetOptionalString(element, "seniority"),
+        EmploymentType: GetString(element, "employmentType"),
+        CompanyStage: GetOptionalString(element, "companyStage"),
+        AiUsage: GetOptionalString(element, "aiUsage"),
+        SalaryMin: GetOptionalInt(element, "salaryMin"),
+        SalaryMax: GetOptionalInt(element, "salaryMax"),
+        SalaryCurrency: GetOptionalString(element, "salaryCurrency"),
+        Score: element.TryGetProperty("score", out var score) ? score.GetDouble() : 0d,
+        PostedAt: GetOptionalLong(element, "postedAt"),
+        FirstSeenAt: element.TryGetProperty("firstSeenAt", out var seen) ? seen.GetInt64() : 0L,
+        Status: GetString(element, "status"),
+        ApplicationStatus: GetOptionalString(element, "applicationStatus"));
+
+    private static string GetString(JsonElement element, string name) =>
+        element.TryGetProperty(name, out var value) ? value.GetString() ?? string.Empty : string.Empty;
+
+    private static string? GetOptionalString(JsonElement element, string name) =>
+        element.TryGetProperty(name, out var value) ? value.GetString() : null;
+
+    private static int? GetOptionalInt(JsonElement element, string name) =>
+        element.TryGetProperty(name, out var value) ? value.GetInt32() : null;
+
+    private static long? GetOptionalLong(JsonElement element, string name) =>
+        element.TryGetProperty(name, out var value) ? value.GetInt64() : null;
+
+    private static List<string> GetStringArray(JsonElement element, string name)
+    {
+        if (!element.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var items = new List<string>(value.GetArrayLength());
+        foreach (var item in value.EnumerateArray())
+        {
+            if (item.GetString() is { } text)
+            {
+                items.Add(text);
+            }
+        }
+
+        return items;
+    }
 }
