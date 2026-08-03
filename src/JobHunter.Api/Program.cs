@@ -1,7 +1,9 @@
 using JobHunter.Api;
+using JobHunter.Api.Endpoints;
 using JobHunter.Application;
 using JobHunter.Infrastructure;
 using JobHunter.Infrastructure.Configuration;
+using JobHunter.Search;
 using JobHunter.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +18,7 @@ builder.AddServiceDefaults();
 // 3. Application + Infrastructure composition — one extension method each (S2).
 builder.Services.AddJobHunterApplication();
 builder.Services.AddJobHunterInfrastructure(builder.Configuration);
+builder.Services.AddJobHunterSearch(builder.Configuration);
 
 // 4. Keycloak OIDC bearer auth for the API surface; the admin scope gates /health and future ops.
 builder.AddApiSecurity();
@@ -35,6 +38,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapDefaultEndpoints();
+
+// F9 read surface (T05): search, job detail, aliases and the recent-jobs list. Each route declares its
+// jobhunter:read scope explicitly (endpoint-convention gate).
+app.MapSearchEndpoints();
+app.MapJobEndpoints();
 
 await app.RunAsync();
 

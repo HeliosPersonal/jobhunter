@@ -32,6 +32,12 @@ public sealed class ApiHostFactory : WebApplicationFactory<Program>
         builder.UseSetting("ConnectionStrings:Messaging", "amqp://guest:guest@127.0.0.1:5672");
         // No Cache connection string: the in-memory rate limiter is used, so nothing dials Redis at boot.
 
+        // Typesense options — present so AddJobHunterSearch's startup validators pass; the base URL is
+        // present-but-unreachable and only dialled lazily on a search, never at boot.
+        builder.UseSetting("Typesense:BaseUrl", "http://127.0.0.1:1");
+        builder.UseSetting("Typesense:ApiKey", "test-key");
+        builder.UseSetting("Typesense:EnvironmentPrefix", "test");
+
         // Enforce the Owner-subject check even in Development (it is otherwise disabled without a
         // configured Owner), so the wrong-subject 403 behaviour can be asserted.
         builder.UseSetting("Keycloak:OwnerSubject", OwnerSubject);
