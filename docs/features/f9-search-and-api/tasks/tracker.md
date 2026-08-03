@@ -19,16 +19,16 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 
 | ID | Task | Layer | Deps | Est | Status |
 |---|---|---|---|---|---|
-| T01 | [[T01-search-port-document\|ISearchIndex port and JobDocument allowlist]] | domain/search | — | S | pending |
-| T02 | [[T02-typesense-indexer\|Typesense schema and indexer]] | search | T01 | M | pending |
-| T03 | [[T03-query-service\|Query service, filters and facets]] | search | T02 | M | pending |
-| T04 | [[T04-api-host-auth\|API host: auth, fallback-deny, OpenAPI]] | api | — | M | pending |
-| T05 | [[T05-search-job-endpoints\|Search, job and CV endpoints]] | api | T03, T04 | M | pending |
-| T06 | [[T06-company-run-preference-endpoints\|Company, run lifecycle and preference endpoints]] | api | T04 | M | pending |
-| T07 | [[T07-admin-endpoints\|Operational endpoints]] | api | T04, T02 | M | pending |
-| T08 | [[T08-reconcile-rebuild\|Reconcile and rebuild]] | search | T02 | M | pending |
-| T09 | [[T09-telegram-search\|Telegram search command]] | telegram | T03 | S | pending |
-| T10 | [[T10-verification-suites\|Index scan, rebuild and convention suites]] | tests | T05, T06, T07, T08 | L | pending |
+| T01 | [[T01-search-port-document\|ISearchIndex port and JobDocument allowlist]] | domain/search | — | S | done |
+| T02 | [[T02-typesense-indexer\|Typesense schema and indexer]] | search | T01 | M | done |
+| T03 | [[T03-query-service\|Query service, filters and facets]] | search | T02 | M | done |
+| T04 | [[T04-api-host-auth\|API host: auth, fallback-deny, OpenAPI]] | api | — | M | done |
+| T05 | [[T05-search-job-endpoints\|Search, job and CV endpoints]] | api | T03, T04 | M | done |
+| T06 | [[T06-company-run-preference-endpoints\|Company, run lifecycle and preference endpoints]] | api | T04 | M | done |
+| T07 | [[T07-admin-endpoints\|Operational endpoints]] | api | T04, T02 | M | done |
+| T08 | [[T08-reconcile-rebuild\|Reconcile and rebuild]] | search | T02 | M | done |
+| T09 | [[T09-telegram-search\|Telegram search command]] | telegram | T03 | S | done |
+| T10 | [[T10-verification-suites\|Index scan, rebuild and convention suites]] | tests | T05, T06, T07, T08 | L | done |
 
 **10 tasks · 2×S + 7×M + 1×L ≈ 5 person-days.**
 

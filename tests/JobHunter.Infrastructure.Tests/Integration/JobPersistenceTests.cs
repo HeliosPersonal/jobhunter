@@ -275,6 +275,142 @@ public sealed class JobPersistenceTests
         ((long)(await index.ExecuteScalarAsync() ?? 0L)).ShouldBe(1);
     }
 
+    [RequiresDockerFact]
+    public async Task CompanyJobsQuery_returns_only_the_companys_live_jobs_and_excludes_the_closed()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+        var repo = NewRepository(seed);
+
+        await repo.InsertAsync(BuildJob(seed, Hex('a'), "First Role"));
+        await repo.InsertAsync(BuildJob(seed, Hex('b'), "Second Role"));
+        var closed = BuildJob(seed, Hex('c'), "Closed Role");
+        await repo.InsertAsync(closed);
+
+        var toClose = await repo.FindAsync(closed.Id);
+        toClose!.Close(Now.AddHours(1));
+        await repo.SaveChangesAsync();
+
+        var query = new CompanyJobsQuery(new NpgsqlConnectionFactory(seed.Database.ConnectionString));
+        var rows = await query.LiveForCompanyAsync(seed.CompanyId);
+
+        rows.Select(r => r.Title).ShouldBe(["First Role", "Second Role"], ignoreOrder: true);
+        rows.ShouldNotContain(r => r.Title == "Closed Role");
+    }
+
+    [RequiresDockerFact]
+    public async Task CompanyJobsQuery_returns_nothing_for_a_company_with_no_live_jobs()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+
+        var query = new CompanyJobsQuery(new NpgsqlConnectionFactory(seed.Database.ConnectionString));
+        var rows = await query.LiveForCompanyAsync(Guid.NewGuid());
+
+        rows.ShouldBeEmpty();
+    }
+
+    [RequiresDockerFact]
+    public async Task LiveJobCountQuery_counts_only_live_jobs()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+        var repo = NewRepository(seed);
+
+        await repo.InsertAsync(BuildJob(seed, Hex('a'), "Live One"));
+        await repo.InsertAsync(BuildJob(seed, Hex('b'), "Live Two"));
+        var closed = BuildJob(seed, Hex('c'), "Closed Role");
+        await repo.InsertAsync(closed);
+        var toClose = await repo.FindAsync(closed.Id);
+        toClose!.Close(Now.AddHours(1));
+        await repo.SaveChangesAsync();
+
+        var query = new LiveJobCountQuery(new NpgsqlConnectionFactory(seed.Database.ConnectionString));
+
+        (await query.CountLiveAsync()).ShouldBe(2);
+    }
+
+    [RequiresDockerFact]
+    public async Task JobProjectionQuery_projects_a_live_job_with_its_company_technologies_and_countries()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+        var repo = NewRepository(seed);
+
+        var job = BuildJob(seed, Hex('a'), "Staff SRE");
+        await repo.InsertAsync(job);
+
+        var query = new JobProjectionQuery(new NpgsqlConnectionFactory(seed.Database.ConnectionString));
+        var source = await query.ProjectAsync(job.Id);
+
+        source.ShouldNotBeNull();
+        source!.Id.ShouldBe(job.Id);
+        source.Title.ShouldBe("Staff SRE");
+        source.Status.ShouldBe("Live");
+        source.CompanyName.ShouldBe("Acme");
+        source.CompanyDomain.ShouldBe("acme.com");
+        source.Technologies.ShouldContain("C#");
+        source.Countries.ShouldBe(["Germany"]);
+        source.RemotePolicy.ShouldBe("Hybrid");
+        source.EmploymentType.ShouldBe("FullTime");
+        source.Seniority.ShouldBe("Staff");
+        source.SalaryMin.ShouldBe(120_000);
+        source.SalaryMax.ShouldBe(160_000);
+        source.SalaryCurrency.ShouldBe("USD");
+        // F3/F4/F6 columns are not present until those features merge — the projection carries null.
+        source.CompanyStage.ShouldBeNull();
+        source.AiUsage.ShouldBeNull();
+        source.Score.ShouldBeNull();
+        source.ApplicationStatus.ShouldBeNull();
+    }
+
+    [RequiresDockerFact]
+    public async Task JobProjectionQuery_returns_null_for_a_closed_job_so_the_indexer_deletes_it()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+        var repo = NewRepository(seed);
+
+        var job = BuildJob(seed, Hex('a'));
+        await repo.InsertAsync(job);
+        var toClose = await repo.FindAsync(job.Id);
+        toClose!.Close(Now.AddHours(1));
+        await repo.SaveChangesAsync();
+
+        var query = new JobProjectionQuery(new NpgsqlConnectionFactory(seed.Database.ConnectionString));
+
+        (await query.ProjectAsync(job.Id)).ShouldBeNull();
+        (await query.ProjectAsync(Guid.NewGuid())).ShouldBeNull();
+    }
+
+    [RequiresDockerFact]
+    public async Task JobProjectionQuery_streams_every_live_job_ordered_by_id_for_a_rebuild()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+        var repo = NewRepository(seed);
+
+        await repo.InsertAsync(BuildJob(seed, Hex('a'), "First"));
+        await repo.InsertAsync(BuildJob(seed, Hex('b'), "Second"));
+        var closed = BuildJob(seed, Hex('c'), "Closed");
+        await repo.InsertAsync(closed);
+        var toClose = await repo.FindAsync(closed.Id);
+        toClose!.Close(Now.AddHours(1));
+        await repo.SaveChangesAsync();
+
+        var query = new JobProjectionQuery(new NpgsqlConnectionFactory(seed.Database.ConnectionString));
+
+        var streamed = new List<Guid>();
+        await foreach (var source in query.ProjectLiveAsync())
+        {
+            source.Status.ShouldBe("Live");
+            streamed.Add(source.Id);
+        }
+
+        streamed.Count.ShouldBe(2);
+        streamed.ShouldBe(streamed.OrderBy(id => id).ToList());
+    }
+
     private static JobRepository NewRepository(Seed seed) =>
         new(seed.Database.CreateContext(), new NpgsqlConnectionFactory(seed.Database.ConnectionString));
 

@@ -16,7 +16,7 @@ public sealed class TelemetryTests
     }
 
     [Fact]
-    public void All_nine_domain_instruments_are_declared_on_the_one_meter()
+    public void All_domain_instruments_are_declared_on_the_one_meter()
     {
         var instruments = new Instrument[]
         {
@@ -29,11 +29,12 @@ public sealed class TelemetryTests
             Telemetry.SourceFailures,
             Telemetry.ParseFailures,
             Telemetry.RawPostingsUnchangedRatio,
+            Telemetry.IndexDrift,
         };
 
-        instruments.Length.ShouldBe(9);
+        instruments.Length.ShouldBe(10);
         instruments.ShouldAllBe(i => i.Meter.Name == Telemetry.MeterName);
-        instruments.Select(i => i.Name).Distinct().Count().ShouldBe(9);
+        instruments.Select(i => i.Name).Distinct().Count().ShouldBe(10);
     }
 
     [Fact]
@@ -50,6 +51,7 @@ public sealed class TelemetryTests
             Telemetry.SourceFailures.Name,
             Telemetry.ParseFailures.Name,
             Telemetry.RawPostingsUnchangedRatio.Name,
+            Telemetry.IndexDrift.Name,
         };
 
         names.ShouldAllBe(n => n.StartsWith("jobhunter.", StringComparison.Ordinal));

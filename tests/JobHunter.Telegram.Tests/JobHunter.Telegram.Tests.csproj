@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Telegram bot suites (F9). The /search command's parse, render and index-failure behaviours are pure
+    and driven with a zero-network ISearchQuery substitute: the command shares the API's query service and
+    only the renderer is exercised here (the O12 decision).
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JobHunter.Telegram\JobHunter.Telegram.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Domain\JobHunter.Domain.csproj" />
+    <ProjectReference Include="..\JobHunter.TestKit\JobHunter.TestKit.csproj" />
+  </ItemGroup>
+
+</Project>

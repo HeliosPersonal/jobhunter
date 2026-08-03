@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Search adapter suites (F9). Unit tests drive the schema, serialisation and the ISearchIndex outcome
+    mapping against a zero-network stub HttpMessageHandler; the Testcontainers-backed round-trip against a
+    real Typesense runs under [RequiresDockerFact] and skips cleanly where Docker is absent.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JobHunter.Search\JobHunter.Search.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Application\JobHunter.Application.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Domain\JobHunter.Domain.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Contracts\JobHunter.Contracts.csproj" />
+    <ProjectReference Include="..\JobHunter.TestKit\JobHunter.TestKit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Testcontainers.Typesense" />
+  </ItemGroup>
+
+</Project>

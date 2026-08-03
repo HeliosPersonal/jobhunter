@@ -103,15 +103,19 @@ public static class Extensions
     /// </summary>
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
+        // The liveness and readiness probes are the only anonymous endpoints (F9 T04 AC): a k8s probe
+        // carries no token, and a fallback-deny authorization policy would otherwise capture them.
+        // AllowAnonymous is metadata only — inert in the bus-less hosts that never add the authorization
+        // middleware, correct in the API host that does.
         app.MapHealthChecks(AlivePath, new HealthCheckOptions
         {
             Predicate = r => r.Tags.Contains("live"),
-        });
+        }).AllowAnonymous();
 
         app.MapHealthChecks(ReadyPath, new HealthCheckOptions
         {
             Predicate = r => r.Tags.Contains(ReadyTag),
-        });
+        }).AllowAnonymous();
 
         app.MapHealthChecks(HealthPath, new HealthCheckOptions
         {

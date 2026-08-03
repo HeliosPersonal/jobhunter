@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
@@ -62,6 +61,11 @@ public static class ApiSecurityExtensions
         }
 
         builder.Services.AddAuthorizationBuilder()
+            // Fallback-deny (AC-06, security §2): an endpoint registered without an explicit policy is
+            // still refused for an unauthenticated caller — a new endpoint is protected by default and
+            // must opt out deliberately. The endpoint-convention suite (T10) asserts every endpoint
+            // additionally declares its own scope.
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
             .AddPolicy(ReadPolicy, policy => BuildScopePolicy(policy, keycloak, ReadPolicy))
             .AddPolicy(AdminPolicy, policy => BuildScopePolicy(policy, keycloak, AdminPolicy));
 
@@ -71,26 +75,7 @@ public static class ApiSecurityExtensions
     private static void BuildScopePolicy(AuthorizationPolicyBuilder policy, KeycloakOptions keycloak, string scope)
     {
         policy.RequireAuthenticatedUser();
-        policy.RequireAssertion(context => HasScope(context.User, scope) && IsOwner(context.User, keycloak));
-    }
-
-    private static bool HasScope(ClaimsPrincipal user, string requiredScope)
-    {
-        // Keycloak emits scopes in a space-delimited `scope` claim.
-        var scopeClaim = user.FindFirst("scope")?.Value;
-        return scopeClaim is not null
-               && scopeClaim.Split(' ', StringSplitOptions.RemoveEmptyEntries).Contains(requiredScope);
-    }
-
-    private static bool IsOwner(ClaimsPrincipal user, KeycloakOptions keycloak)
-    {
-        // No configured Owner subject (local dev) means the subject check is not enforced.
-        if (string.IsNullOrWhiteSpace(keycloak.OwnerSubject))
-        {
-            return true;
-        }
-
-        var subject = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? user.FindFirst("sub")?.Value;
-        return string.Equals(subject, keycloak.OwnerSubject, StringComparison.Ordinal);
+        policy.RequireAssertion(context =>
+            ScopeAuthorization.Satisfies(context.User, scope, keycloak.OwnerSubject));
     }
 }

@@ -15,4 +15,5 @@ namespace JobHunter.Contracts.Pipeline;
 [JsonSerializable(typeof(JobNormalized))]
 [JsonSerializable(typeof(JobDiscovered))]
 [JsonSerializable(typeof(JobDuplicateDetected))]
+[JsonSerializable(typeof(JobIndexRequested))]
 public sealed partial class PipelineEventContext : JsonSerializerContext;

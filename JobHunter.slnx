@@ -21,6 +21,9 @@
     <Project Path="tests/JobHunter.Application.Tests/JobHunter.Application.Tests.csproj" />
     <Project Path="tests/JobHunter.Infrastructure.Tests/JobHunter.Infrastructure.Tests.csproj" />
     <Project Path="tests/JobHunter.Scrapers.Tests/JobHunter.Scrapers.Tests.csproj" />
+    <Project Path="tests/JobHunter.Search.Tests/JobHunter.Search.Tests.csproj" />
+    <Project Path="tests/JobHunter.Api.Tests/JobHunter.Api.Tests.csproj" />
+    <Project Path="tests/JobHunter.Telegram.Tests/JobHunter.Telegram.Tests.csproj" />
     <Project Path="tests/JobHunter.ArchitectureTests/JobHunter.ArchitectureTests.csproj" />
   </Folder>
 </Solution>

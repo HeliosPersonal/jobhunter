@@ -54,4 +54,10 @@ public static class Telemetry
     public static readonly Histogram<double> RawPostingsUnchangedRatio =
         Meter.CreateHistogram<double>(
             "jobhunter.raw_postings.unchanged_ratio", "ratio", "Fraction of a board's postings unchanged since last fetch");
+
+    // 10 — the fractional divergence between the live-job count in PostgreSQL and the document count in the
+    // search index, recorded by the nightly reconcile (F9-T08, SAD §6.3). A gauge, not a counter: the last
+    // value is what matters, and drift that does not self-heal after a re-index is what an alert watches for.
+    public static readonly Gauge<double> IndexDrift =
+        Meter.CreateGauge<double>("jobhunter.index.drift", "ratio", "|live jobs - indexed documents| / live jobs");
 }

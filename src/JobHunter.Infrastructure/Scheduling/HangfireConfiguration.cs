@@ -18,7 +18,8 @@ public static class HangfireConfiguration
     public static IServiceCollection AddJobHunterHangfire(
         this IServiceCollection services,
         HangfireOptions options,
-        string databaseConnectionString)
+        string databaseConnectionString,
+        bool prepareSchema = true)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(options);
@@ -33,7 +34,10 @@ public static class HangfireConfiguration
                 new PostgreSqlStorageOptions
                 {
                     SchemaName = options.SchemaName,
-                    PrepareSchemaIfNecessary = true,
+                    // The Worker (which runs the server) prepares the schema; a client-only host such as the
+                    // Api passes false so its storage constructor opens no connection at boot, keeping host
+                    // start zero-network. The schema is a hard prerequisite either way (the migrator Job).
+                    PrepareSchemaIfNecessary = prepareSchema,
                     UseSlidingInvisibilityTimeout = true,
                 }));
 

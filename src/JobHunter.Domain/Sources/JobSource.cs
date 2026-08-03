@@ -79,6 +79,25 @@ public sealed class JobSource : Entity
     }
 
     /// <summary>
+    /// Releases the source from quarantine by operator action (F9 operational endpoints, runbook R4): clears
+    /// the quarantine window and resets the consecutive-failure counter so the next discovery cycle fetches
+    /// it again. Returns <c>true</c> when the source was actually quarantined, <c>false</c> when it was
+    /// already healthy (so the endpoint reports "nothing to do" rather than a spurious change). It does not
+    /// stamp <see cref="LastFetchedAt"/> — no fetch has happened; the operator has only lifted the hold.
+    /// </summary>
+    public bool ReleaseQuarantine()
+    {
+        if (QuarantinedUntil is null)
+        {
+            return false;
+        }
+
+        QuarantinedUntil = null;
+        ConsecutiveFailures = 0;
+        return true;
+    }
+
+    /// <summary>
     /// Re-points the operational source at a new binding after an ATS migration (AC-05): the company's
     /// jobs now live on a different provider, so the endpoint changes and the health state resets — the new
     /// board has not failed. The <see cref="CompanyId"/> is unchanged, which is exactly what keeps every
