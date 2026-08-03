@@ -1,3 +1,4 @@
+using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Companies;
 using JobHunter.Domain.Postings;
 using JobHunter.Domain.Sources;

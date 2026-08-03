@@ -15,6 +15,9 @@ public static class DependencyInjection
     {
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IIdGenerator, UuidV7Generator>();
+
+        // Discovery application services — resolved by the CLI seed command and the recurring jobs.
+        services.AddScoped<Discovery.CompanyRegistryService>();
         return services;
     }
 }

@@ -1,30 +1,15 @@
+using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Companies;
 using Microsoft.EntityFrameworkCore;
 
 namespace JobHunter.Infrastructure.Persistence.Repositories;
 
 /// <summary>
-/// The write repository for the company registry aggregate (data-model §companies, §ats_bindings). EF
-/// Core, aggregate-scoped: companies and their bindings are saved through here, never through Dapper
-/// (ADR-0003). Discovery binds an existing company — it never creates one — so lookup by canonical
-/// domain is the central read on the write side.
+/// The EF Core write repository for the company registry aggregate (data-model §companies,
+/// §ats_bindings). Aggregate-scoped: companies and their bindings are saved through here, never through
+/// Dapper (ADR-0003). Implements the <see cref="ICompanyRepository"/> port defined in Domain so the
+/// discovery handlers depend on the port, not this type.
 /// </summary>
-public interface ICompanyRepository
-{
-    Task AddAsync(Company company, CancellationToken cancellationToken = default);
-
-    Task AddBindingAsync(AtsBinding binding, CancellationToken cancellationToken = default);
-
-    Task<Company?> FindByDomainAsync(CanonicalDomain domain, CancellationToken cancellationToken = default);
-
-    Task<Company?> FindAsync(Guid id, CancellationToken cancellationToken = default);
-
-    Task<IReadOnlyList<AtsBinding>> LiveBindingsAsync(Guid companyId, CancellationToken cancellationToken = default);
-
-    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
-}
-
-/// <inheritdoc />
 public sealed class CompanyRepository(JobHunterDbContext context) : ICompanyRepository
 {
     public async Task AddAsync(Company company, CancellationToken cancellationToken = default)

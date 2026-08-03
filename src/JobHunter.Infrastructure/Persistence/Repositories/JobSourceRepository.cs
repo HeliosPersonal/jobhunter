@@ -1,27 +1,15 @@
+using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Sources;
 using Microsoft.EntityFrameworkCore;
 
 namespace JobHunter.Infrastructure.Persistence.Repositories;
 
 /// <summary>
-/// The write repository for operational sources and their fetch logs (data-model §job_sources,
+/// The EF Core write repository for operational sources and their fetch logs (data-model §job_sources,
 /// §source_fetch_log). Health-state transitions (success/failure/quarantine) mutate the tracked
-/// <see cref="JobSource"/> and are persisted through <see cref="SaveChangesAsync"/>.
+/// <see cref="JobSource"/> and are persisted through <see cref="SaveChangesAsync"/>. Implements the
+/// <see cref="IJobSourceRepository"/> port defined in Domain.
 /// </summary>
-public interface IJobSourceRepository
-{
-    Task AddAsync(JobSource source, CancellationToken cancellationToken = default);
-
-    Task<JobSource?> FindAsync(Guid id, CancellationToken cancellationToken = default);
-
-    Task<JobSource?> FindByBindingAsync(Guid bindingId, CancellationToken cancellationToken = default);
-
-    Task AddFetchLogAsync(SourceFetchLog log, CancellationToken cancellationToken = default);
-
-    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
-}
-
-/// <inheritdoc />
 public sealed class JobSourceRepository(JobHunterDbContext context) : IJobSourceRepository
 {
     public async Task AddAsync(JobSource source, CancellationToken cancellationToken = default)

@@ -1,23 +1,15 @@
+using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Postings;
 using Npgsql;
 using NpgsqlTypes;
 
 namespace JobHunter.Infrastructure.Persistence.Repositories;
 
-/// <summary>The outcome of an idempotent ingest: whether a genuinely new row was inserted.</summary>
-public enum IngestOutcome
-{
-    /// <summary>A new posting row was created; the caller publishes <c>RawPostingIngested</c>.</summary>
-    Inserted,
-
-    /// <summary>The exact content was already present; only <c>last_seen_at</c> moved (AC-02) — no event.</summary>
-    Unchanged,
-}
-
 /// <summary>
 /// Ingests raw postings with the single-statement dedup-and-refresh upsert (data-model §raw_postings,
 /// AC-02). This is a write, so it uses Npgsql directly rather than Dapper — "Dapper never writes"
-/// (ADR-0003) is about the read-side Queries namespace, not the write repositories.
+/// (ADR-0003) is about the read-side Queries namespace, not the write repositories. Implements the
+/// <see cref="IRawPostingRepository"/> port defined in Domain.
 ///
 /// The statement is <c>INSERT … ON CONFLICT (source_id, external_id, content_hash) DO UPDATE SET
 /// last_seen_at = EXCLUDED.last_seen_at</c>, and it returns <c>xmax = 0</c> to tell a genuine insert
@@ -25,12 +17,6 @@ public enum IngestOutcome
 /// is what makes <c>RawPostingIngested</c> fire exactly once per distinct content, with no read-then-write
 /// race (invariant 8, AC-02).
 /// </summary>
-public interface IRawPostingRepository
-{
-    Task<IngestOutcome> IngestAsync(RawPosting posting, CancellationToken cancellationToken = default);
-}
-
-/// <inheritdoc />
 public sealed class RawPostingRepository(INpgsqlConnectionFactory connectionFactory) : IRawPostingRepository
 {
     private const string UpsertSql =

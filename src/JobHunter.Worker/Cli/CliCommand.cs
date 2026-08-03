@@ -8,4 +8,7 @@ public enum CliCommand
 
     /// <summary>List or re-enqueue dead-lettered messages (T16, runbook R6).</summary>
     ReplayDlq,
+
+    /// <summary>Upsert the curated company registry from the seed file, then exit (F1 T03).</summary>
+    Seed,
 }
