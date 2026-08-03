@@ -41,6 +41,18 @@ public static class DependencyInjection
         services.AddSingleton<IPostingNormalizer, CareersPagePostingNormalizer>();
         services.AddSingleton<IPostingNormalizerCatalog, PostingNormalizerCatalog>();
 
+        // F3 Run machinery — the orchestrator (start, scope, resume; T09) is resolved by the daily
+        // Hangfire trigger and the startup resume sweep. RunOptions is passed to the orchestrator by
+        // Wolverine as a handler dependency; register it as a resolvable singleton so the handler and any
+        // consumer see one validated instance, and snapshot the ceiling onto each Run at creation.
+        services.AddScoped<Enrichment.RunOrchestrator>();
+        services.AddOptions<Enrichment.RunOptions>()
+            .Validate(o => o.CeilingUsd > 0m, "Run:CeilingUsd must be positive.")
+            .Validate(o => o.InitialLookBack > TimeSpan.Zero, "Run:InitialLookBack must be positive.")
+            .ValidateOnStart();
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Enrichment.RunOptions>>().Value);
+
         return services;
     }
 }

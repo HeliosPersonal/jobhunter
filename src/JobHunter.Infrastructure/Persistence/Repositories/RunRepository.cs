@@ -48,6 +48,21 @@ public sealed class RunRepository(JobHunterDbContext context) : IRunRepository
     public Task<Run?> FindAsync(Guid id, CancellationToken cancellationToken = default) =>
         context.Set<Run>().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
+    public async Task<DateTimeOffset?> FindMostRecentCutoffAsync(CancellationToken cancellationToken = default)
+    {
+        // The next Run's cutoff_from is the latest cutoff_to across all Runs, so a skipped day is caught
+        // up rather than lost (data-model §runs). Max over an empty table is null — the first Run's window
+        // is bootstrapped from a configured look-back instead.
+        var cutoffs = await context.Set<Run>()
+            .OrderByDescending(r => r.CutoffTo)
+            .Select(r => (DateTimeOffset?)r.CutoffTo)
+            .Take(1)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return cutoffs.Count > 0 ? cutoffs[0] : null;
+    }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
         context.SaveChangesAsync(cancellationToken);
 

@@ -32,6 +32,13 @@ public interface IRunRepository
     /// <summary>Every non-terminal Run, for the startup resume sweep (QG-1). Served by <c>idx_runs_resumable</c>.</summary>
     Task<IReadOnlyList<Run>> FindResumableRunsAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The latest <c>cutoff_to</c> across every Run, or null when none exists yet. The next Run's
+    /// <c>cutoff_from</c> is this value, so a skipped day is caught up rather than lost (data-model §runs);
+    /// null bootstraps the very first Run's window from a configured look-back.
+    /// </summary>
+    Task<DateTimeOffset?> FindMostRecentCutoffAsync(CancellationToken cancellationToken = default);
+
     /// <summary>Finds a Run by id, or null.</summary>
     Task<Run?> FindAsync(Guid id, CancellationToken cancellationToken = default);
 
