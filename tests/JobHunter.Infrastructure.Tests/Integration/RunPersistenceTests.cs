@@ -57,6 +57,31 @@ public sealed class RunPersistenceTests
     }
 
     [RequiresDockerFact]
+    public async Task An_estimate_ledger_entry_persists_with_a_null_batch_id_before_any_batch_exists()
+    {
+        // ADR-F3-0002: the Estimated entry is committed BEFORE submission, when no batch — and so no
+        // provider id — exists yet. Its batch_id is null by design, which is what makes the cost ceiling a
+        // precondition rather than an after-the-fact reconciliation.
+        var database = await TestDatabase.CreateAsync();
+        await using var _ = database;
+
+        var run = NewRun();
+        var estimate = new CostLedgerEntry(
+            Guid.CreateVersion7(), run.Id, batchId: null, BatchStage.Enrichment, ModelTier.Cheap,
+            LedgerEntryKind.Estimated, costUsd: 0.15m, inputTokens: 1200, outputTokens: 400, Now);
+
+        var repo = new RunRepository(database.CreateContext());
+        repo.Add(run);
+        repo.AddLedgerEntry(estimate);
+        await repo.SaveChangesAsync();
+
+        await using var read = database.CreateContext();
+        var stored = await read.Set<CostLedgerEntry>().SingleAsync();
+        stored.BatchId.ShouldBeNull();
+        stored.Kind.ShouldBe(LedgerEntryKind.Estimated);
+    }
+
+    [RequiresDockerFact]
     public async Task A_second_non_terminal_run_is_rejected_by_the_partial_unique_index()
     {
         var database = await TestDatabase.CreateAsync();

@@ -18,7 +18,11 @@ internal sealed class CostLedgerEntryConfiguration : IEntityTypeConfiguration<Co
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
         b.Property(x => x.RunId).HasColumnName("run_id").IsRequired();
-        b.Property(x => x.BatchId).HasColumnName("batch_id").IsRequired();
+
+        // Nullable by design: the Estimated entry is committed before the batch is submitted and its
+        // provider id known (AC-04, ADR-F3-0002), so it has no batch to point at yet. The Actual entry,
+        // written on retrieval, carries the batch id.
+        b.Property(x => x.BatchId).HasColumnName("batch_id");
         b.Property(x => x.Stage).HasColumnName("stage").IsRequired();
         b.Property(x => x.Tier).HasColumnName("tier").IsRequired();
         b.Property(x => x.Kind).HasColumnName("kind").IsRequired();
@@ -32,10 +36,13 @@ internal sealed class CostLedgerEntryConfiguration : IEntityTypeConfiguration<Co
             .HasForeignKey(x => x.RunId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Optional relationship — the estimate has no batch. Restrict rather than cascade: a batch row is
+        // never deleted in normal operation, and an estimate must survive independently of one anyway.
         b.HasOne<Batch>()
             .WithMany()
             .HasForeignKey(x => x.BatchId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
         b.HasIndex(x => new { x.RunId, x.Stage, x.Tier })
             .HasDatabaseName("idx_cost_ledger_run");

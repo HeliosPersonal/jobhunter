@@ -48,6 +48,37 @@ public sealed class RunRepository(JobHunterDbContext context) : IRunRepository
     public Task<Run?> FindAsync(Guid id, CancellationToken cancellationToken = default) =>
         context.Set<Run>().FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
+    public Task<Batch?> FindBatchAsync(
+        Guid runId,
+        BatchStage stage,
+        ModelTier tier,
+        CancellationToken cancellationToken = default) =>
+        context.Set<Batch>()
+            .FirstOrDefaultAsync(
+                b => b.RunId == runId && b.Stage == stage && b.Tier == tier,
+                cancellationToken);
+
+    public Task<bool> HasLedgerEntryAsync(
+        Guid runId,
+        BatchStage stage,
+        ModelTier tier,
+        LedgerEntryKind kind,
+        CancellationToken cancellationToken = default) =>
+        context.Set<CostLedgerEntry>()
+            .AnyAsync(
+                e => e.RunId == runId && e.Stage == stage && e.Tier == tier && e.Kind == kind,
+                cancellationToken);
+
+    public async Task<IReadOnlyList<Guid>> FindRetriableJobIdsAsync(CancellationToken cancellationToken = default) =>
+        await context.Set<BatchItem>()
+            .Where(i =>
+                (i.State == BatchItemState.ParseFailed || i.State == BatchItemState.ProviderError) &&
+                i.RetryCount < BatchItem.MaxRetries)
+            .Select(i => i.JobId)
+            .Distinct()
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
     public async Task<DateTimeOffset?> FindMostRecentCutoffAsync(CancellationToken cancellationToken = default)
     {
         // The next Run's cutoff_from is the latest cutoff_to across all Runs, so a skipped day is caught

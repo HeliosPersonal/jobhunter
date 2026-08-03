@@ -29,6 +29,11 @@ public static class DependencyInjection
         services.AddSingleton<ITokenCounter, HeuristicTokenCounter>();
         services.AddSingleton<ICostAccountant, CostAccountant>();
 
+        // The enrichment request builder is the one place the versioned prompt and the generated schema
+        // are turned into provider-agnostic items. It lives here (not in Application) so the CV never
+        // enters and the Application submit handler depends on the Domain port, not on Anthropic (T10).
+        services.AddSingleton<IEnrichmentRequestBuilder, Enrichment.EnrichmentRequestBuilder>();
+
         services.AddOptions<AnthropicOptions>()
             .Bind(configuration.GetSection(AnthropicOptions.SectionName))
             .Validate(o => !string.IsNullOrWhiteSpace(o.ApiKey), "Anthropic:ApiKey is required.")

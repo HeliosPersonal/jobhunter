@@ -46,6 +46,12 @@ public static class DependencyInjection
         // Wolverine as a handler dependency; register it as a resolvable singleton so the handler and any
         // consumer see one validated instance, and snapshot the ceiling onto each Run at creation.
         services.AddScoped<Enrichment.RunOrchestrator>();
+
+        // The one spend-committing step (T10): builds the batch, prices it, ledgers the estimate before
+        // the client call and enforces the cost ceiling as a precondition (QG-2). Resolved by Wolverine
+        // for EnrichmentSubmissionDue; its collaborators (scope query, request builder, cost accountant,
+        // batch client) are registered by Infrastructure and Claude.
+        services.AddScoped<Enrichment.EnrichmentSubmitHandler>();
         services.AddOptions<Enrichment.RunOptions>()
             .Validate(o => o.CeilingUsd > 0m, "Run:CeilingUsd must be positive.")
             .Validate(o => o.InitialLookBack > TimeSpan.Zero, "Run:InitialLookBack must be positive.")

@@ -9,13 +9,21 @@ namespace JobHunter.Domain.Pipeline;
 /// alarm (QG-2) — and the <see cref="LedgerEntryKind.Actual"/> figure on retrieval from the provider's
 /// reported usage. The table has no update or delete path; a correction is a compensating entry, so the
 /// history of what a Run was believed to cost is never rewritten.
+///
+/// <para><see cref="BatchId"/> is nullable by design: the <see cref="LedgerEntryKind.Estimated"/> entry is
+/// committed <em>before</em> the batch is submitted and its provider id known (AC-04, ADR-F3-0002), so at
+/// the instant the ceiling is checked there is no batch row to point at yet. The batch row — carrying the
+/// provider id — is recorded only after <see cref="Abstractions.ILlmBatchClient.SubmitAsync"/> returns.
+/// The estimate is attributed by <see cref="RunId"/>, <see cref="Stage"/> and <see cref="Tier"/>, which is
+/// exactly the ceiling-check key (data-model §cost_ledger_entries), so the missing batch link costs the
+/// attribution nothing.</para>
 /// </summary>
 public sealed class CostLedgerEntry : Entity
 {
     public CostLedgerEntry(
         Guid id,
         Guid runId,
-        Guid batchId,
+        Guid? batchId,
         BatchStage stage,
         ModelTier tier,
         LedgerEntryKind kind,
@@ -32,7 +40,7 @@ public sealed class CostLedgerEntry : Entity
 
         if (batchId == Guid.Empty)
         {
-            throw new ArgumentException("A ledger entry must reference a Batch.", nameof(batchId));
+            throw new ArgumentException("A ledger entry's batch id must be null or a real batch, never empty.", nameof(batchId));
         }
 
         ArgumentOutOfRangeException.ThrowIfNegative(costUsd);
@@ -56,7 +64,8 @@ public sealed class CostLedgerEntry : Entity
 
     public Guid RunId { get; private init; }
 
-    public Guid BatchId { get; private init; }
+    /// <summary>Null for the pre-submission estimate; the batch id once the batch is recorded (ADR-F3-0002).</summary>
+    public Guid? BatchId { get; private init; }
 
     public BatchStage Stage { get; private init; }
 

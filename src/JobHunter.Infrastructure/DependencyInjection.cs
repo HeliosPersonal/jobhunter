@@ -69,6 +69,7 @@ public static class DependencyInjection
         services.AddScoped<IClosureSweepQuery, ClosureSweepQuery>();
         services.AddScoped<IRedetectionQuery, RedetectionQuery>();
         services.AddScoped<ILiveJobsQuery, LiveJobsQuery>();
+        services.AddScoped<IEnrichmentScopeQuery, EnrichmentScopeQuery>();
         services.AddScoped<IStaleJobsQuery, StaleJobsQuery>();
         services.AddScoped<IRawPostingReader, RawPostingReaderQuery>();
         services.AddScoped<IReprocessableJobsQuery, ReprocessableJobsQuery>();

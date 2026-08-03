@@ -42,6 +42,39 @@ public interface IRunRepository
     /// <summary>Finds a Run by id, or null.</summary>
     Task<Run?> FindAsync(Guid id, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The Run's batch for a given <paramref name="stage"/> and <paramref name="tier"/>, or null. The
+    /// unique <c>(run_id, stage, tier)</c> index means there is at most one, so a submit handler can tell
+    /// "already submitted" from "not yet" and resume without resubmitting (AC-05, QG-1).
+    /// </summary>
+    Task<Batch?> FindBatchAsync(
+        Guid runId,
+        BatchStage stage,
+        ModelTier tier,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// True when a ledger entry of <paramref name="kind"/> already exists for this <paramref name="runId"/>,
+    /// <paramref name="stage"/> and <paramref name="tier"/>. The submit handler uses it so a resume after
+    /// the estimate was committed but before submission does not write a second estimate — the orphan is
+    /// counted once, never doubled (crash-matrix checkpoint 3, ADR-F3-0002).
+    /// </summary>
+    Task<bool> HasLedgerEntryAsync(
+        Guid runId,
+        BatchStage stage,
+        ModelTier tier,
+        LedgerEntryKind kind,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The job ids of items that failed their first attempt and are eligible for their single retry on the
+    /// next Run (AC-08): items in <see cref="BatchItemState.ParseFailed"/> or
+    /// <see cref="BatchItemState.ProviderError"/> whose retry count is below the ceiling. The next Run's
+    /// enrichment scope includes these regardless of their discovery window, so a transient failure is not
+    /// a permanent loss.
+    /// </summary>
+    Task<IReadOnlyList<Guid>> FindRetriableJobIdsAsync(CancellationToken cancellationToken = default);
+
     /// <summary>Commits the staged changes in one transaction.</summary>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
