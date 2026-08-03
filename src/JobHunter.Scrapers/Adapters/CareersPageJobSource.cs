@@ -45,6 +45,26 @@ public sealed class CareersPageJobSource(GatedHttpClient http, ILogger<CareersPa
 
         // The Tier-2 binding stores the full careers URL as its token — there is no provider API to build.
         var response = await _http.GetAsync(binding.BoardToken, cancellationToken).ConfigureAwait(false);
+        await foreach (var posting in StreamBodyAsync(binding, response, cancellationToken).ConfigureAwait(false))
+        {
+            yield return posting;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<SourceFetch> FetchBoardAsync(AtsBinding binding, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(binding);
+
+        var response = await _http.GetAsync(binding.BoardToken, cancellationToken).ConfigureAwait(false);
+        return AdapterFetch.From(response, StreamBodyAsync(binding, response, cancellationToken));
+    }
+
+    private async IAsyncEnumerable<FetchedPosting> StreamBodyAsync(
+        AtsBinding binding,
+        GatedResponse response,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
         if (response.Outcome != GatedOutcome.Ok || response.Body is null)
         {
             _logger.LogInformation(

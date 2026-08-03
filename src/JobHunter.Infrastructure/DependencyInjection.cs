@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using Hangfire;
+using JobHunter.Contracts.Pipeline;
 using JobHunter.Domain.Abstractions;
 using JobHunter.Infrastructure.Configuration;
 using JobHunter.Infrastructure.Http;
@@ -12,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
+using Wolverine;
 
 namespace JobHunter.Infrastructure;
 
@@ -62,10 +65,57 @@ public static class DependencyInjection
 
         services.AddSingleton<RecurringJobRegistry>();
 
+        AddDiscovery(services, configuration);
         AddPoliteHttp(services, configuration);
 
         return services;
     }
+
+    /// <summary>
+    /// Wires the six-hourly discovery cycle (SAD §6.1, T10): the due-source read model, the Hangfire job
+    /// body, and the fan-out concurrency cap. The <see cref="SourceFetchRequested"/> listener is bounded to
+    /// <c>Discovery:FetchConcurrency</c> by a Wolverine extension applied at bootstrap <em>after</em> F0's
+    /// <c>WolverineConfiguration</c> — so the cap is added with no F0 messaging file modified.
+    ///
+    /// The schedule itself is registered through F0's <see cref="RecurringJobRegistry"/> seam by the
+    /// <see cref="RecurringJobApplier"/>, gated on <see cref="HangfireOptions.EnableServer"/> so only the
+    /// Worker (the single Hangfire-server host) declares and installs it — again with no F0 file modified.
+    /// </summary>
+    private static void AddDiscovery(IServiceCollection services, IConfiguration configuration)
+    {
+        // The due-source read model (Dapper) and the thin Hangfire trigger. Registered in every host: the
+        // query is harmless anywhere, and the trigger is only resolved by the Worker's Hangfire server.
+        services.AddScoped<IDiscoveryCycleQuery, DiscoveryCycleQuery>();
+        services.AddScoped<DiscoveryCycleTrigger>();
+
+        // Bound the fetch fan-out to the configured degree (SAD §8). Harmless where Wolverine is not run
+        // (Api/Telegram): the extension is only resolved and applied when a bus is bootstrapped.
+        services.AddWolverineExtension<FetchConcurrencyExtension>();
+
+        var hangfire = configuration.GetSection(HangfireOptions.SectionName).Get<HangfireOptions>()
+                       ?? new HangfireOptions();
+        if (!hangfire.EnableServer)
+        {
+            // Only the Hangfire-server host installs the recurring schedule; other hosts have no Hangfire
+            // storage, so declaring the job there would fault at start.
+            return;
+        }
+
+        services.AddSingleton(new RecurringJobBinding(
+            DiscoveryCycleJobId,
+            DiscoveryCycleCron,
+            (cron, timeZone) => RecurringJob.AddOrUpdate<DiscoveryCycleTrigger>(
+                DiscoveryCycleJobId,
+                trigger => trigger.PublishAsync(),
+                cron,
+                new RecurringJobOptions { TimeZone = timeZone })));
+
+        services.AddHostedService<RecurringJobApplier>();
+    }
+
+    /// <summary>The recurring-job id and cron (every six hours) for the discovery cycle (SAD §6.1).</summary>
+    private const string DiscoveryCycleJobId = "discovery-cycle";
+    private const string DiscoveryCycleCron = "0 */6 * * *";
 
     /// <summary>
     /// Wires the shared outbound HTTP pipeline (SAD §8, QG-2): the politeness options, the SSRF guard,

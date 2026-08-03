@@ -19,6 +19,8 @@ public interface ICompanyRepository
 
     Task<Company?> FindAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<AtsBinding?> FindBindingAsync(Guid bindingId, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<AtsBinding>> LiveBindingsAsync(Guid companyId, CancellationToken cancellationToken = default);
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

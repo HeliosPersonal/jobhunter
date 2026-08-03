@@ -33,6 +33,9 @@ public sealed class CompanyRepository(JobHunterDbContext context) : ICompanyRepo
     public Task<Company?> FindAsync(Guid id, CancellationToken cancellationToken = default) =>
         context.Set<Company>().FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
+    public Task<AtsBinding?> FindBindingAsync(Guid bindingId, CancellationToken cancellationToken = default) =>
+        context.Set<AtsBinding>().FirstOrDefaultAsync(b => b.Id == bindingId, cancellationToken);
+
     public async Task<IReadOnlyList<AtsBinding>> LiveBindingsAsync(
         Guid companyId,
         CancellationToken cancellationToken = default)

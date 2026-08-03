@@ -50,6 +50,27 @@ public abstract class JsonBoardJobSource(GatedHttpClient http, ILogger logger) :
 
         var url = BuildUrl(binding);
         var response = await _http.GetAsync(url, cancellationToken).ConfigureAwait(false);
+        await foreach (var posting in StreamBodyAsync(binding, response, cancellationToken).ConfigureAwait(false))
+        {
+            yield return posting;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<SourceFetch> FetchBoardAsync(AtsBinding binding, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(binding);
+
+        var url = BuildUrl(binding);
+        var response = await _http.GetAsync(url, cancellationToken).ConfigureAwait(false);
+        return AdapterFetch.From(response, StreamBodyAsync(binding, response, cancellationToken));
+    }
+
+    private async IAsyncEnumerable<FetchedPosting> StreamBodyAsync(
+        AtsBinding binding,
+        GatedResponse response,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
         if (response.Outcome != GatedOutcome.Ok || response.Body is null)
         {
             // Not our failure domain here: the caller reads the outcome to log/requeue. Streaming just ends.

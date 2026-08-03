@@ -4,6 +4,7 @@ using JobHunter.Infrastructure;
 using JobHunter.Infrastructure.Configuration;
 using JobHunter.Infrastructure.Messaging;
 using JobHunter.Infrastructure.Scheduling;
+using JobHunter.Scrapers;
 using JobHunter.ServiceDefaults;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,6 +30,11 @@ public static class WorkerHost
 
         builder.Services.AddJobHunterApplication();
         builder.Services.AddJobHunterInfrastructure(builder.Configuration);
+
+        // The Worker is the only host that fetches boards, so it composes the ATS adapter layer: the five
+        // IJobSource adapters and the catalog the fetch handler dispatches through (dependency rule:
+        // hosts -> Scrapers). Api and Telegram never fetch, so they never reference Scrapers.
+        builder.Services.AddJobHunterScrapers();
 
         var messaging = builder.Configuration.GetSection(MessagingOptions.SectionName).Get<MessagingOptions>()
                         ?? new MessagingOptions();
