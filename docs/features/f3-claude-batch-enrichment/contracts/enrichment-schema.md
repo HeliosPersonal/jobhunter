@@ -18,14 +18,26 @@ tags: [sdlc/stage-06, feature/f3-claude-batch-enrichment, mvp, jobhunter]
 
 The C# record is the source of truth; the JSON Schema is generated from it, so the two cannot drift.
 
-> **Planned change (TUNE-03, F3 T15):** add a `RoleFamily` enum
+> **Shipped (TUNE-03, F3 T15):** a `RoleFamily` enum
 > (`AiPlatform | Platform | AiApplications | ForwardDeployed | FoundingEng | BackendGeneric | Frontend |
 > Fullstack | DevOpsSRE | MlResearch | DataScience | PromptEng | EnterpriseCrud | Other`), classified by
-> the *work described* rather than the title, with a reason. See the
+> the *work described* rather than the title, each carrying a reason. Unlike the other enrichment enums,
+> `Other` is a real "none of the above" classification — it is part of the wire schema, and the tolerant
+> parser lands an unrecognised or absent value on it. This bumped `PromptVersion` to `enrich-v2`. See the
 > [[../../../reviews/career-alignment-tuning-backlog|tuning backlog]].
 >
-> **Planned change (TUNE-04, F3 T16):** add AiUsage sub-signals (e.g. `buildsAiProduct`, `buildsAiInfra`,
-> `usesAiTooling`, `isResearch`) alongside the existing scalar to sharpen the target/trap boundary.
+> **Shipped (TUNE-04, F3 T16):** an `AiSignals` object of four booleans — `buildsAiProduct`,
+> `buildsAiInfra`, `usesAiTooling`, `isResearch` — sits alongside the existing `AiUsage` scalar (which is
+> kept). Each is derived from the described engineering work, so a posting that sells an AI product but
+> describes CRUD work resolves `usesAiTooling`, never `buildsAiProduct`/`buildsAiInfra`. The object is
+> optional on the wire: an absent object, or an absent/non-boolean field within it, degrades to `false`
+> rather than failing the item (parsing step 8). This bumped `PromptVersion` to `enrich-v3`.
+>
+> **Shipped (TUNE-11, F3 T17):** the "AI-brand company, CRUD work" case is now emitted as a coherent
+> low-signal, non-target combination — `AiUsage` None/Low, `usesAiTooling` at most, a non-target
+> `RoleFamily` (usually `EnterpriseCrud`), each with an explicit mismatch reason and never inflated by the
+> company's marketing — so the F4 `alignment` component can score it by alignment rather than prestige.
+> This bumped `PromptVersion` to `enrich-v4`.
 
 ```csharp
 public sealed record EnrichmentOutput(
@@ -34,9 +46,14 @@ public sealed record EnrichmentOutput(
     bool IsContractorFriendly,
     TimezoneBand TimezoneBand,              // EMEA | AMER | APAC | Global | Unknown
     AiUsageLevel AiUsage,                   // None | Low | Medium | High
+    AiSignalsDto AiSignals,                 // resolving sub-signals; absent object → all-false
     CompanyStage CompanyStage,              // Seed | SeriesA..SeriesD | Public | Bootstrapped | Unknown
+    RoleFamily RoleFamily,                  // AiPlatform | Platform | ... | EnterpriseCrud | Other (real fallback)
     IReadOnlyList<string> Technologies,     // canonical names where recognised
     IReadOnlyList<string> Reasons);         // >= 1, else the item is rejected
+
+public sealed record AiSignalsDto(
+    bool BuildsAiProduct, bool BuildsAiInfra, bool UsesAiTooling, bool IsResearch);
 
 public sealed record SalaryEstimateDto(
     decimal Min, decimal Max, string Currency, SalaryPeriod Period, decimal Confidence);
@@ -47,7 +64,7 @@ Generated schema (abridged):
 ```json
 {
   "type": "object",
-  "required": ["isRemote", "isContractorFriendly", "timezoneBand", "aiUsage", "companyStage", "technologies", "reasons"],
+  "required": ["isRemote", "isContractorFriendly", "timezoneBand", "aiUsage", "companyStage", "roleFamily", "technologies", "reasons"],
   "properties": {
     "salary": {
       "type": ["object", "null"],
@@ -64,7 +81,11 @@ Generated schema (abridged):
     "isContractorFriendly":  { "type": "boolean" },
     "timezoneBand":          { "enum": ["EMEA", "AMER", "APAC", "Global", "Unknown"] },
     "aiUsage":               { "enum": ["None", "Low", "Medium", "High"] },
-    "companyStage":          { "enum": ["Seed","SeriesA","SeriesB","SeriesC","SeriesD","Public","Bootstrapped","Unknown"] },
+    "aiSignals":             { "type": "object", "properties": {
+        "buildsAiProduct": { "type": "boolean" }, "buildsAiInfra": { "type": "boolean" },
+        "usesAiTooling":   { "type": "boolean" }, "isResearch":    { "type": "boolean" } } },
+    "companyStage":          { "enum": ["Seed","SeriesA","SeriesB","SeriesC","SeriesD","Public","Bootstrapped"] },
+    "roleFamily":            { "enum": ["AiPlatform","Platform","AiApplications","ForwardDeployed","FoundingEng","BackendGeneric","Frontend","Fullstack","DevOpsSRE","MlResearch","DataScience","PromptEng","EnterpriseCrud","Other"] },
     "technologies":          { "type": "array", "items": { "type": "string" }, "maxItems": 25 },
     "reasons":               { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 6 }
   }
@@ -77,7 +98,7 @@ braces — but the first line of defence is the schema.
 
 ## Prompt
 
-`JobHunter.Claude/Prompts/EnrichmentPrompt.cs`, `PromptVersion = "enrich-v1"`.
+`JobHunter.Claude/Prompts/EnrichmentPrompt.cs`, `PromptVersion = "enrich-v4"`.
 
 **System**
 
@@ -94,8 +115,21 @@ Rules:
 - Timezone band is where the role expects overlap, which is often not where the company is.
 - AI usage is how much the ENGINEERING work involves building with or on AI systems. A company that
   sells an AI product but whose posting describes CRUD work is Low.
+- AI sub-signals refine that scalar. Set each only from the described engineering work, with a reason:
+  buildsAiProduct (features on top of AI/LLMs), buildsAiInfra (the platform AI runs on), usesAiTooling
+  (merely uses AI tooling for conventional work), isResearch (trains/evaluates models). They are
+  independent; a posting that sells an AI product but describes CRUD work sets usesAiTooling at most.
+- The "AI-brand company, CRUD work" case must be emitted unambiguously and never inflated by the
+  company's marketing: when the posting describes ordinary CRUD or line-of-business work, set aiUsage
+  to None or Low, set roleFamily to the non-target family the work fits (usually EnterpriseCrud), and
+  give a reason that names the mismatch explicitly — that the company brands itself as AI but the
+  engineering work is not. Company prestige is never a reason on its own.
 - Company stage: only from evidence in the posting (funding mentions, size statements, "public
   company", "early stage"). Otherwise Unknown.
+- Role family: classify by the WORK the posting describes, never by the title string. A posting
+  titled "AI Engineer" whose responsibilities are ordinary line-of-business CRUD is EnterpriseCrud,
+  not AiPlatform. Use Other only when the described work genuinely fits none of the families. The
+  reason for the family must quote or paraphrase the responsibilities, not the title.
 - Every reason must be specific and quote or paraphrase the posting. "Good role" is not a reason.
 - If you cannot tell, say Unknown or null. A confident wrong answer is worse than an honest gap.
 ```

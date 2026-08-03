@@ -63,6 +63,8 @@ public static class DependencyInjection
         services.AddScoped<IJobSourceRepository, JobSourceRepository>();
         services.AddScoped<IRawPostingRepository, RawPostingRepository>();
         services.AddScoped<IJobRepository, JobRepository>();
+        services.AddScoped<IRunRepository, RunRepository>();
+        services.AddScoped<IEnrichmentRepository, EnrichmentRepository>();
         services.AddScoped<IDegradedCoverageQuery, DegradedCoverageQuery>();
         services.AddScoped<IClosureSweepQuery, ClosureSweepQuery>();
         services.AddScoped<IRedetectionQuery, RedetectionQuery>();
@@ -70,6 +72,7 @@ public static class DependencyInjection
         services.AddScoped<ICompanyJobsQuery, CompanyJobsQuery>();
         services.AddScoped<ILiveJobCounter, LiveJobCountQuery>();
         services.AddScoped<IJobProjectionSource, JobProjectionQuery>();
+        services.AddScoped<IEnrichmentScopeQuery, EnrichmentScopeQuery>();
         services.AddScoped<IStaleJobsQuery, StaleJobsQuery>();
         services.AddScoped<IRawPostingReader, RawPostingReaderQuery>();
         services.AddScoped<IReprocessableJobsQuery, ReprocessableJobsQuery>();

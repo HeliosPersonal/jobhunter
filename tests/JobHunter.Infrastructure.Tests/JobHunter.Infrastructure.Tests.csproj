@@ -8,6 +8,7 @@
   -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\JobHunter.Infrastructure\JobHunter.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Claude\JobHunter.Claude.csproj" />
     <ProjectReference Include="..\..\src\JobHunter.Worker\JobHunter.Worker.csproj" />
     <ProjectReference Include="..\..\src\JobHunter.Api\JobHunter.Api.csproj" />
     <ProjectReference Include="..\JobHunter.TestKit\JobHunter.TestKit.csproj" />

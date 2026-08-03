@@ -149,6 +149,82 @@ namespace JobHunter.Infrastructure.Persistence.Migrations
                     b.ToTable("companies", (string)null);
                 });
 
+            modelBuilder.Entity("JobHunter.Domain.Intelligence.Enrichment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AiUsage")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("ai_usage");
+
+                    b.Property<string>("CompanyStage")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("company_stage");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsContractorFriendly")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_contractor_friendly");
+
+                    b.Property<bool>("IsRemote")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_remote");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_id");
+
+                    b.Property<string>("PromptVersion")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("prompt_version");
+
+                    b.Property<string>("RoleFamily")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("role_family");
+
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("run_id");
+
+                    b.Property<string>("TimezoneBand")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("timezone_band");
+
+                    b.Property<string>("_reasons")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("reasons");
+
+                    b.Property<string>("_technologies")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("technologies");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RunId");
+
+                    b.HasIndex("JobId", "CreatedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("idx_enrichments_job_latest");
+
+                    b.HasIndex("JobId", "RunId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_enrichments_job_run");
+
+                    b.ToTable("enrichments", (string)null);
+                });
+
             modelBuilder.Entity("JobHunter.Domain.Jobs.Job", b =>
                 {
                     b.Property<Guid>("Id")
@@ -324,6 +400,250 @@ namespace JobHunter.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("idx_job_technologies_tech");
 
                     b.ToTable("job_technologies", (string)null);
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Pipeline.Batch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("completed_at");
+
+                    b.Property<int?>("InputTokens")
+                        .HasColumnType("integer")
+                        .HasColumnName("input_tokens");
+
+                    b.Property<int>("ItemCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("item_count");
+
+                    b.Property<int?>("OutputTokens")
+                        .HasColumnType("integer")
+                        .HasColumnName("output_tokens");
+
+                    b.Property<int>("PollAttempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("poll_attempts");
+
+                    b.Property<string>("PromptVersion")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("prompt_version");
+
+                    b.Property<string>("ProviderBatchId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("provider_batch_id");
+
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("run_id");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("stage");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("state");
+
+                    b.Property<DateTimeOffset>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("submitted_at");
+
+                    b.Property<string>("Tier")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("State", "SubmittedAt")
+                        .HasDatabaseName("idx_batches_pending")
+                        .HasFilter("state IN ('Submitted','InProgress')");
+
+                    b.HasIndex("RunId", "Stage", "Tier")
+                        .IsUnique()
+                        .HasDatabaseName("uq_batches_run_stage_tier");
+
+                    b.ToTable("batches", (string)null);
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Pipeline.BatchItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("batch_id");
+
+                    b.Property<string>("CustomId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("custom_id");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_id");
+
+                    b.Property<string>("ParseError")
+                        .HasColumnType("text")
+                        .HasColumnName("parse_error");
+
+                    b.Property<string>("RawResult")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("raw_result");
+
+                    b.Property<short>("RetryCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)0)
+                        .HasColumnName("retry_count");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("state");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobId");
+
+                    b.HasIndex("BatchId", "CustomId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_batch_items");
+
+                    b.HasIndex("State", "RetryCount")
+                        .HasDatabaseName("idx_batch_items_retry")
+                        .HasFilter("state = 'ParseFailed'");
+
+                    b.ToTable("batch_items", (string)null);
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Pipeline.CostLedgerEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("BatchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("batch_id");
+
+                    b.Property<decimal>("CostUsd")
+                        .HasColumnType("numeric(8,4)")
+                        .HasColumnName("cost_usd");
+
+                    b.Property<int>("InputTokens")
+                        .HasColumnType("integer")
+                        .HasColumnName("input_tokens");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("kind");
+
+                    b.Property<int>("OutputTokens")
+                        .HasColumnType("integer")
+                        .HasColumnName("output_tokens");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at");
+
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("run_id");
+
+                    b.Property<string>("Stage")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("stage");
+
+                    b.Property<string>("Tier")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("RunId", "Stage", "Tier")
+                        .HasDatabaseName("idx_cost_ledger_run");
+
+                    b.ToTable("cost_ledger_entries", (string)null);
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Pipeline.Run", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("CeilingUsd")
+                        .HasColumnType("numeric(8,4)")
+                        .HasColumnName("ceiling_usd");
+
+                    b.Property<DateTimeOffset>("CutoffFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cutoff_from");
+
+                    b.Property<DateTimeOffset>("CutoffTo")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cutoff_to");
+
+                    b.Property<string>("FailureReason")
+                        .HasColumnType("text")
+                        .HasColumnName("failure_reason");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<int>("JobsCarriedOver")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("jobs_carried_over");
+
+                    b.Property<int>("JobsInScope")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("jobs_in_scope");
+
+                    b.Property<decimal>("SpentUsd")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(8,4)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("spent_usd");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("state");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FinishedAt")
+                        .HasDatabaseName("idx_runs_delivered")
+                        .HasFilter("state = 'Delivered'");
+
+                    b.ToTable("runs", (string)null);
                 });
 
             modelBuilder.Entity("JobHunter.Domain.Postings.RawPosting", b =>
@@ -521,6 +841,90 @@ namespace JobHunter.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("JobHunter.Domain.Intelligence.Enrichment", b =>
+                {
+                    b.HasOne("JobHunter.Domain.Jobs.Job", null)
+                        .WithMany()
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JobHunter.Domain.Pipeline.Run", null)
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsOne("JobHunter.Domain.Intelligence.AiSignals", "AiSignals", b1 =>
+                        {
+                            b1.Property<Guid>("EnrichmentId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<bool>("BuildsAiInfra")
+                                .HasColumnType("boolean")
+                                .HasColumnName("ai_builds_infra");
+
+                            b1.Property<bool>("BuildsAiProduct")
+                                .HasColumnType("boolean")
+                                .HasColumnName("ai_builds_product");
+
+                            b1.Property<bool>("IsResearch")
+                                .HasColumnType("boolean")
+                                .HasColumnName("ai_is_research");
+
+                            b1.Property<bool>("UsesAiTooling")
+                                .HasColumnType("boolean")
+                                .HasColumnName("ai_uses_tooling");
+
+                            b1.HasKey("EnrichmentId");
+
+                            b1.ToTable("enrichments");
+
+                            b1.WithOwner()
+                                .HasForeignKey("EnrichmentId");
+                        });
+
+                    b.OwnsOne("JobHunter.Domain.Intelligence.SalaryEstimate", "Salary", b1 =>
+                        {
+                            b1.Property<Guid>("EnrichmentId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<decimal>("Confidence")
+                                .HasColumnType("numeric(3,2)")
+                                .HasColumnName("salary_confidence");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasColumnType("char(3)")
+                                .HasColumnName("salary_currency");
+
+                            b1.Property<decimal>("Max")
+                                .HasColumnType("numeric(12,2)")
+                                .HasColumnName("salary_max");
+
+                            b1.Property<decimal>("Min")
+                                .HasColumnType("numeric(12,2)")
+                                .HasColumnName("salary_min");
+
+                            b1.Property<string>("Period")
+                                .IsRequired()
+                                .HasColumnType("text")
+                                .HasColumnName("salary_period");
+
+                            b1.HasKey("EnrichmentId");
+
+                            b1.ToTable("enrichments");
+
+                            b1.WithOwner()
+                                .HasForeignKey("EnrichmentId");
+                        });
+
+                    b.Navigation("AiSignals")
+                        .IsRequired();
+
+                    b.Navigation("Salary");
+                });
+
             modelBuilder.Entity("JobHunter.Domain.Jobs.Job", b =>
                 {
                     b.HasOne("JobHunter.Domain.Companies.Company", null)
@@ -589,6 +993,44 @@ namespace JobHunter.Infrastructure.Persistence.Migrations
                     b.HasOne("JobHunter.Domain.Jobs.Job", null)
                         .WithMany("Technologies")
                         .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Pipeline.Batch", b =>
+                {
+                    b.HasOne("JobHunter.Domain.Pipeline.Run", null)
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Pipeline.BatchItem", b =>
+                {
+                    b.HasOne("JobHunter.Domain.Pipeline.Batch", null)
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JobHunter.Domain.Jobs.Job", null)
+                        .WithMany()
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Pipeline.CostLedgerEntry", b =>
+                {
+                    b.HasOne("JobHunter.Domain.Pipeline.Batch", null)
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("JobHunter.Domain.Pipeline.Run", null)
+                        .WithMany()
+                        .HasForeignKey("RunId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

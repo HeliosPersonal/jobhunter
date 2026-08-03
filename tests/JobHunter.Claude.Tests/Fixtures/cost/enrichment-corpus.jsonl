@@ -1,0 +1,6 @@
+{"tier":"Cheap","rendered_prompt_chars":16000,"reported_input_tokens":4000,"reported_output_tokens":350}
+{"tier":"Cheap","rendered_prompt_chars":12000,"reported_input_tokens":3050,"reported_output_tokens":300}
+{"tier":"Cheap","rendered_prompt_chars":20000,"reported_input_tokens":4900,"reported_output_tokens":340}
+{"tier":"Cheap","rendered_prompt_chars":8000,"reported_input_tokens":2050,"reported_output_tokens":280}
+{"tier":"Deep","rendered_prompt_chars":24000,"reported_input_tokens":6100,"reported_output_tokens":900}
+{"tier":"Deep","rendered_prompt_chars":32000,"reported_input_tokens":7900,"reported_output_tokens":1100}

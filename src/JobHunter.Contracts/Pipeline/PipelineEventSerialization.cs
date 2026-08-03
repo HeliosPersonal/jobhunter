@@ -16,4 +16,9 @@ namespace JobHunter.Contracts.Pipeline;
 [JsonSerializable(typeof(JobDiscovered))]
 [JsonSerializable(typeof(JobDuplicateDetected))]
 [JsonSerializable(typeof(JobIndexRequested))]
+[JsonSerializable(typeof(RunStarted))]
+[JsonSerializable(typeof(EnrichmentBatchSubmitted))]
+[JsonSerializable(typeof(EnrichmentCompleted))]
+[JsonSerializable(typeof(RunFailed))]
+[JsonSerializable(typeof(RunCostAborted))]
 public sealed partial class PipelineEventContext : JsonSerializerContext;

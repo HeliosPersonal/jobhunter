@@ -1,0 +1,1 @@
+{"salary":{"min":50000,"max":70000,"currency":"XYZ","period":"Year","confidence":0.6},"isRemote":true,"isContractorFriendly":false,"timezoneBand":"Global","aiUsage":"None","companyStage":"Bootstrapped","technologies":["PHP"],"reasons":["Salary quoted in an unrecognised currency"]}

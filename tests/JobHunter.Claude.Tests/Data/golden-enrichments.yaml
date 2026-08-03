@@ -1,0 +1,556 @@
+# F3 golden set — 63 recorded enrichment tool-use payloads driven through the REAL
+# EnrichmentResultParser (GoldenEnrichmentSetTests). Each case asserts a labelled BAND, not an exact
+# value, so a non-deterministic model does not make the suite flaky: the recorded payload is fixed, but
+# the assertion tolerates the drift a live model would show, and the nightly live-drift job reuses these
+# same bands against fresh model output. The corpus spans every enum value, salary present/absent, the
+# five tolerant repairs (swap, clamp, unknown-currency drop, degraded enum, absent salary) and the hard
+# rejections (empty reasons, malformed JSON, missing/wrong-typed required fields, negative amount).
+#
+# Keys: id, why (label), raw (the tool-use input JSON), parses (bool). For parses:true — remote,
+# contractor, aiUsageIn, timezoneIn, stageIn, roleFamilyIn, buildsAiProduct, buildsAiInfra, usesAiTooling,
+# isResearch, salary (present|absent), salaryFloor, salaryCeil, currency, minReasons, minTech, maxTech are
+# optional band assertions. For parses:false — fail is a substring the recorded failure reason must contain.
+
+# ---------------------------------------------------------------------------------------------------
+# Clean cases: one per meaningful enum combination, salaries present and absent.
+# ---------------------------------------------------------------------------------------------------
+- id: 1
+  why: remote senior backend, high AI, Series B, USD band
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "High", "aiSignals": {"buildsAiProduct": false, "buildsAiInfra": true, "usesAiTooling": false, "isResearch": false}, "companyStage": "SeriesB", "roleFamily": "AiPlatform", "technologies": ["C#", ".NET", "PostgreSQL", "Kubernetes"], "reasons": ["Fully remote across EMEA", "Substantial LLM platform work", "Series B funding stated"], "salary": {"min": 120000, "max": 180000, "currency": "USD", "period": "Year", "confidence": 0.8}}'
+  parses: true
+  remote: true
+  contractor: false
+  aiUsageIn: [High]
+  timezoneIn: [EMEA]
+  stageIn: [SeriesB]
+  roleFamilyIn: [AiPlatform]
+  buildsAiInfra: true
+  buildsAiProduct: false
+  salary: present
+  salaryFloor: 100000
+  salaryCeil: 200000
+  currency: USD
+  minReasons: 3
+  minTech: 4
+
+- id: 2
+  why: onsite AMER, no AI, public company, no salary, backend
+  raw: '{"isRemote": false, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "None", "aiSignals": {"buildsAiProduct": false, "buildsAiInfra": false, "usesAiTooling": false, "isResearch": false}, "companyStage": "Public", "roleFamily": "BackendGeneric", "technologies": ["Java", "Spring"], "reasons": ["Onsite in New York", "No AI content in the posting", "Builds internal REST services"], "salary": null}'
+  parses: true
+  remote: false
+  contractor: false
+  aiUsageIn: [None]
+  timezoneIn: [AMER]
+  stageIn: [Public]
+  roleFamilyIn: [BackendGeneric]
+  buildsAiProduct: false
+  buildsAiInfra: false
+  usesAiTooling: false
+  isResearch: false
+  salary: absent
+  minReasons: 2
+
+- id: 3
+  why: contractor-friendly APAC, medium AI, seed, EUR
+  raw: '{"isRemote": true, "isContractorFriendly": true, "timezoneBand": "APAC", "aiUsage": "Medium", "companyStage": "Seed", "roleFamily": "FoundingEng", "technologies": ["Python", "PyTorch", "Ray"], "reasons": ["Contractors welcome", "APAC hours expected", "Seed stage startup with broad ownership"], "salary": {"min": 90000, "max": 130000, "currency": "EUR", "period": "Year", "confidence": 0.6}}'
+  parses: true
+  remote: true
+  contractor: true
+  aiUsageIn: [Medium]
+  timezoneIn: [APAC]
+  stageIn: [Seed]
+  roleFamilyIn: [FoundingEng]
+  salary: present
+  salaryFloor: 80000
+  salaryCeil: 140000
+  currency: EUR
+
+- id: 4
+  why: global remote, low AI, bootstrapped, GBP day rate
+  raw: '{"isRemote": true, "isContractorFriendly": true, "timezoneBand": "Global", "aiUsage": "Low", "companyStage": "Bootstrapped", "roleFamily": "Platform", "technologies": ["Go", "gRPC"], "reasons": ["Work from anywhere", "Incidental Copilot use only", "Self-funded profitable company", "Owns internal delivery platform"], "salary": {"min": 500, "max": 700, "currency": "GBP", "period": "Day", "confidence": 0.5}}'
+  parses: true
+  remote: true
+  contractor: true
+  aiUsageIn: [Low]
+  timezoneIn: [Global]
+  stageIn: [Bootstrapped]
+  roleFamilyIn: [Platform]
+  salary: present
+  salaryFloor: 400
+  salaryCeil: 800
+  currency: GBP
+
+- id: 5
+  why: Series A, EMEA, medium AI, CHF
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Medium", "companyStage": "SeriesA", "roleFamily": "Fullstack", "technologies": ["TypeScript", "React", "Node.js"], "reasons": ["Remote EMEA role", "Builds React frontend and Node backend", "Series A round closed"], "salary": {"min": 110000, "max": 140000, "currency": "CHF", "period": "Year", "confidence": 0.7}}'
+  parses: true
+  aiUsageIn: [Medium]
+  stageIn: [SeriesA]
+  roleFamilyIn: [Fullstack]
+  salary: present
+  currency: CHF
+
+- id: 6
+  why: Series C, AMER, high AI, CAD
+  raw: '{"isRemote": false, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "High", "companyStage": "SeriesC", "roleFamily": "AiPlatform", "technologies": ["Rust", "CUDA", "Triton"], "reasons": ["Builds inference serving infrastructure", "Series C stated in posting"], "salary": {"min": 160000, "max": 220000, "currency": "CAD", "period": "Year", "confidence": 0.75}}'
+  parses: true
+  aiUsageIn: [High]
+  stageIn: [SeriesC]
+  roleFamilyIn: [AiPlatform]
+  salary: present
+  currency: CAD
+
+- id: 7
+  why: Series D, Global, none AI, AUD
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "Global", "aiUsage": "None", "companyStage": "SeriesD", "roleFamily": "Frontend", "technologies": ["Kotlin", "Android"], "reasons": ["Builds the Android client UI", "Late-stage private company"], "salary": {"min": 140000, "max": 175000, "currency": "AUD", "period": "Year", "confidence": 0.65}}'
+  parses: true
+  aiUsageIn: [None]
+  stageIn: [SeriesD]
+  roleFamilyIn: [Frontend]
+  salary: present
+  currency: AUD
+
+- id: 8
+  why: hourly contractor rate, PLN
+  raw: '{"isRemote": true, "isContractorFriendly": true, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "SeriesA", "technologies": ["PHP", "Laravel"], "reasons": ["B2B contract offered", "Hourly PLN rate published"], "salary": {"min": 150, "max": 250, "currency": "PLN", "period": "Hour", "confidence": 0.55}}'
+  parses: true
+  contractor: true
+  salary: present
+  currency: PLN
+
+- id: 9
+  why: UAH monthly, seed
+  raw: '{"isRemote": true, "isContractorFriendly": true, "timezoneBand": "EMEA", "aiUsage": "None", "companyStage": "Seed", "technologies": ["Vue", "Nuxt"], "reasons": ["Kyiv-based seed startup", "Monthly UAH compensation"], "salary": {"min": 80000, "max": 120000, "currency": "UAH", "period": "Month", "confidence": 0.4}}'
+  parses: true
+  salary: present
+  currency: UAH
+
+- id: 10
+  why: JPY annual, public
+  raw: '{"isRemote": false, "isContractorFriendly": false, "timezoneBand": "APAC", "aiUsage": "Medium", "companyStage": "Public", "technologies": ["Scala", "Spark"], "reasons": ["Tokyo data platform", "Publicly listed employer"], "salary": {"min": 9000000, "max": 13000000, "currency": "JPY", "period": "Year", "confidence": 0.6}}'
+  parses: true
+  stageIn: [Public]
+  salary: present
+  currency: JPY
+
+# ---------------------------------------------------------------------------------------------------
+# Enum coverage — each remaining currency in the curated ISO set, to lock the accept-list.
+# ---------------------------------------------------------------------------------------------------
+- id: 11
+  why: NZD accepted
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "APAC", "aiUsage": "Low", "companyStage": "SeriesB", "technologies": ["Elixir"], "reasons": ["Remote APAC engineering role"], "salary": {"min": 120000, "max": 150000, "currency": "NZD", "period": "Year", "confidence": 0.5}}'
+  parses: true
+  salary: present
+  currency: NZD
+
+- id: 12
+  why: SEK accepted
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Medium", "companyStage": "SeriesC", "technologies": ["C++"], "reasons": ["Stockholm remote-first team"], "salary": {"min": 700000, "max": 900000, "currency": "SEK", "period": "Year", "confidence": 0.6}}'
+  parses: true
+  salary: present
+  currency: SEK
+
+- id: 13
+  why: NOK accepted
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "None", "companyStage": "Public", "technologies": ["Java"], "reasons": ["Oslo energy-sector employer"], "salary": {"min": 800000, "max": 1000000, "currency": "NOK", "period": "Year", "confidence": 0.55}}'
+  parses: true
+  salary: present
+  currency: NOK
+
+- id: 14
+  why: DKK accepted
+  raw: '{"isRemote": false, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "SeriesB", "technologies": ["Python"], "reasons": ["Copenhagen onsite role"], "salary": {"min": 600000, "max": 750000, "currency": "DKK", "period": "Year", "confidence": 0.5}}'
+  parses: true
+  salary: present
+  currency: DKK
+
+- id: 15
+  why: CZK accepted
+  raw: '{"isRemote": true, "isContractorFriendly": true, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "SeriesA", "technologies": ["C#"], "reasons": ["Prague remote contract"], "salary": {"min": 1500000, "max": 2000000, "currency": "CZK", "period": "Year", "confidence": 0.45}}'
+  parses: true
+  salary: present
+  currency: CZK
+
+- id: 16
+  why: INR accepted
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "APAC", "aiUsage": "High", "aiSignals": {"buildsAiProduct": true, "buildsAiInfra": false, "usesAiTooling": false, "isResearch": false}, "companyStage": "SeriesD", "roleFamily": "AiApplications", "technologies": ["Python", "TensorFlow"], "reasons": ["Bangalore team building LLM-backed product features"], "salary": {"min": 3000000, "max": 5000000, "currency": "INR", "period": "Year", "confidence": 0.6}}'
+  parses: true
+  roleFamilyIn: [AiApplications]
+  buildsAiProduct: true
+  buildsAiInfra: false
+  salary: present
+  currency: INR
+
+- id: 17
+  why: SGD accepted
+  raw: '{"isRemote": false, "isContractorFriendly": false, "timezoneBand": "APAC", "aiUsage": "Medium", "companyStage": "Public", "technologies": ["Go"], "reasons": ["Singapore fintech onsite"], "salary": {"min": 120000, "max": 160000, "currency": "SGD", "period": "Year", "confidence": 0.65}}'
+  parses: true
+  salary: present
+  currency: SGD
+
+- id: 18
+  why: ILS accepted
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "High", "companyStage": "SeriesB", "technologies": ["Rust", "WebAssembly"], "reasons": ["Tel Aviv deep-tech startup"], "salary": {"min": 350000, "max": 480000, "currency": "ILS", "period": "Year", "confidence": 0.55}}'
+  parses: true
+  salary: present
+  currency: ILS
+
+- id: 19
+  why: BRL accepted
+  raw: '{"isRemote": true, "isContractorFriendly": true, "timezoneBand": "AMER", "aiUsage": "Low", "companyStage": "Seed", "technologies": ["Ruby", "Rails"], "reasons": ["Sao Paulo remote contract"], "salary": {"min": 180000, "max": 260000, "currency": "BRL", "period": "Year", "confidence": 0.4}}'
+  parses: true
+  salary: present
+  currency: BRL
+
+- id: 20
+  why: ZAR accepted
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "None", "companyStage": "Bootstrapped", "technologies": ["JavaScript"], "reasons": ["Cape Town remote-first team"], "salary": {"min": 700000, "max": 950000, "currency": "ZAR", "period": "Year", "confidence": 0.45}}'
+  parses: true
+  salary: present
+  currency: ZAR
+
+# ---------------------------------------------------------------------------------------------------
+# Repair cases: the tolerant parser swaps, clamps, drops or degrades — never rejects.
+# ---------------------------------------------------------------------------------------------------
+- id: 21
+  why: inverted salary range is swapped
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Medium", "companyStage": "SeriesB", "technologies": ["C#"], "reasons": ["Range published high-to-low in the posting"], "salary": {"min": 200000, "max": 120000, "currency": "USD", "period": "Year", "confidence": 0.7}}'
+  parses: true
+  salary: present
+  salaryFloor: 120000
+  salaryCeil: 200000
+  currency: USD
+
+- id: 22
+  why: confidence above 1 is clamped, salary kept
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "High", "companyStage": "SeriesC", "technologies": ["Python"], "reasons": ["Model over-reported confidence"], "salary": {"min": 150000, "max": 190000, "currency": "USD", "period": "Year", "confidence": 1.9}}'
+  parses: true
+  salary: present
+  currency: USD
+
+- id: 23
+  why: negative confidence is clamped to zero, salary kept
+  raw: '{"isRemote": false, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "None", "companyStage": "Public", "technologies": ["Java"], "reasons": ["Confidence returned negative"], "salary": {"min": 90000, "max": 110000, "currency": "USD", "period": "Year", "confidence": -0.5}}'
+  parses: true
+  salary: present
+  currency: USD
+
+- id: 24
+  why: unknown currency drops the salary but keeps the assessment
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Medium", "companyStage": "SeriesA", "technologies": ["Go"], "reasons": ["Currency code not in ISO-4217 accept-list"], "salary": {"min": 100000, "max": 130000, "currency": "XYZ", "period": "Year", "confidence": 0.6}}'
+  parses: true
+  salary: absent
+  minReasons: 1
+
+- id: 25
+  why: unrecognised aiUsage degrades to Unknown
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Extreme", "companyStage": "SeriesB", "technologies": ["Python"], "reasons": ["Model emitted an out-of-schema aiUsage value"], "salary": null}'
+  parses: true
+  aiUsageIn: [Unknown]
+  salary: absent
+
+- id: 26
+  why: unrecognised companyStage degrades to Unknown
+  raw: '{"isRemote": false, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "Low", "companyStage": "PreSeed", "technologies": ["Ruby"], "reasons": ["Stage value outside the schema enum"], "salary": null}'
+  parses: true
+  stageIn: [Unknown]
+  salary: absent
+
+- id: 27
+  why: unrecognised timezoneBand degrades to Unknown
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "Mars", "aiUsage": "Medium", "companyStage": "SeriesA", "technologies": ["Rust"], "reasons": ["Timezone band value not recognised"], "salary": null}'
+  parses: true
+  timezoneIn: [Unknown]
+  salary: absent
+
+- id: 28
+  why: absent enum fields degrade to Unknown, absent roleFamily to Other, absent aiSignals to all-false
+  raw: '{"isRemote": true, "isContractorFriendly": false, "technologies": ["Elixir"], "reasons": ["Model omitted every enum field"]}'
+  parses: true
+  aiUsageIn: [Unknown]
+  timezoneIn: [Unknown]
+  stageIn: [Unknown]
+  roleFamilyIn: [Other]
+  buildsAiProduct: false
+  buildsAiInfra: false
+  usesAiTooling: false
+  isResearch: false
+  salary: absent
+
+- id: 29
+  why: non-string enum (numeric) degrades to Unknown
+  raw: '{"isRemote": false, "isContractorFriendly": false, "timezoneBand": 42, "aiUsage": "None", "companyStage": "Public", "technologies": ["Java"], "reasons": ["Timezone band came back as a number"], "salary": null}'
+  parses: true
+  timezoneIn: [Unknown]
+  salary: absent
+
+- id: 30
+  why: technologies over the cap of 25 are truncated
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "Global", "aiUsage": "Medium", "companyStage": "SeriesB", "technologies": ["t1","t2","t3","t4","t5","t6","t7","t8","t9","t10","t11","t12","t13","t14","t15","t16","t17","t18","t19","t20","t21","t22","t23","t24","t25","t26","t27","t28","t29","t30"], "reasons": ["Posting listed thirty technologies"], "salary": null}'
+  parses: true
+  maxTech: 25
+  minTech: 25
+  salary: absent
+
+- id: 31
+  why: reasons over the cap of 6 are truncated but non-empty
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "technologies": ["C#"], "reasons": ["r1","r2","r3","r4","r5","r6","r7","r8"], "salary": null}'
+  parses: true
+  minReasons: 6
+  salary: absent
+
+- id: 32
+  why: blank reasons are trimmed out, the rest survive
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "technologies": ["Go"], "reasons": ["  ", "Real reason after a blank entry", ""], "salary": null}'
+  parses: true
+  minReasons: 1
+  salary: absent
+
+- id: 33
+  why: blank technologies are trimmed out
+  raw: '{"isRemote": false, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "None", "companyStage": "Public", "technologies": ["", "  ", "PostgreSQL"], "reasons": ["Only one real technology listed"], "salary": null}'
+  parses: true
+  minTech: 1
+  maxTech: 1
+  salary: absent
+
+- id: 34
+  why: salary missing period defaults to Year, kept
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Medium", "companyStage": "SeriesA", "technologies": ["Python"], "reasons": ["Salary object omitted the period"], "salary": {"min": 100000, "max": 120000, "currency": "USD", "confidence": 0.6}}'
+  parses: true
+  salary: present
+  currency: USD
+
+- id: 35
+  why: salary missing confidence defaults to zero, kept
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Medium", "companyStage": "SeriesA", "technologies": ["Python"], "reasons": ["Salary object omitted confidence"], "salary": {"min": 100000, "max": 120000, "currency": "USD", "period": "Year"}}'
+  parses: true
+  salary: present
+  currency: USD
+
+- id: 36
+  why: unrecognised salary period defaults to Year
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "technologies": ["Go"], "reasons": ["Period value outside the schema enum"], "salary": {"min": 90000, "max": 100000, "currency": "EUR", "period": "Fortnight", "confidence": 0.5}}'
+  parses: true
+  salary: present
+  currency: EUR
+
+- id: 37
+  why: equal min and max salary is a point estimate, kept
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "Medium", "companyStage": "Public", "technologies": ["Java"], "reasons": ["Single-figure salary quoted"], "salary": {"min": 150000, "max": 150000, "currency": "USD", "period": "Year", "confidence": 0.7}}'
+  parses: true
+  salary: present
+  salaryFloor: 150000
+  salaryCeil: 150000
+  currency: USD
+
+- id: 38
+  why: lower-case currency is upper-cased and accepted
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "SeriesB", "technologies": ["C#"], "reasons": ["Currency arrived lower-case"], "salary": {"min": 100000, "max": 130000, "currency": "eur", "period": "Year", "confidence": 0.6}}'
+  parses: true
+  salary: present
+  currency: EUR
+
+- id: 39
+  why: zero salary amounts are non-negative, kept
+  raw: '{"isRemote": true, "isContractorFriendly": true, "timezoneBand": "Global", "aiUsage": "None", "companyStage": "Seed", "technologies": ["Python"], "reasons": ["Equity-only offer with zero base quoted"], "salary": {"min": 0, "max": 0, "currency": "USD", "period": "Year", "confidence": 0.2}}'
+  parses: true
+  salary: present
+  currency: USD
+
+# ---------------------------------------------------------------------------------------------------
+# The "AI company, CRUD work" guard (T17 territory): marketing says AI, the work is plain CRUD → Low/None.
+# ---------------------------------------------------------------------------------------------------
+- id: 40
+  why: AI-Engineer title but CRUD work is EnterpriseCrud, not AiPlatform (T15 guard)
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "Low", "aiSignals": {"buildsAiProduct": false, "buildsAiInfra": false, "usesAiTooling": true, "isResearch": false}, "companyStage": "SeriesB", "roleFamily": "EnterpriseCrud", "technologies": ["C#", "SQL Server"], "reasons": ["Title says AI Engineer but the work is standard CRUD API development", "Company markets an AI product yet no model or inference engineering appears", "Responsibilities are line-of-business forms over a database"], "salary": {"min": 120000, "max": 150000, "currency": "USD", "period": "Year", "confidence": 0.6}}'
+  parses: true
+  aiUsageIn: [Low, None]
+  roleFamilyIn: [EnterpriseCrud]
+  buildsAiProduct: false
+  buildsAiInfra: false
+  usesAiTooling: true
+  salary: present
+  currency: USD
+  minReasons: 3
+
+- id: 41
+  why: genuine AI research role is High and MlResearch
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "Global", "aiUsage": "High", "aiSignals": {"buildsAiProduct": false, "buildsAiInfra": false, "usesAiTooling": false, "isResearch": true}, "companyStage": "SeriesC", "roleFamily": "MlResearch", "technologies": ["Python", "JAX", "CUDA"], "reasons": ["Training foundation models day to day", "Publishes at ML venues"], "salary": {"min": 200000, "max": 300000, "currency": "USD", "period": "Year", "confidence": 0.8}}'
+  parses: true
+  aiUsageIn: [High]
+  roleFamilyIn: [MlResearch]
+  isResearch: true
+  buildsAiProduct: false
+  salary: present
+  currency: USD
+
+# ---------------------------------------------------------------------------------------------------
+# Hard rejections: recorded, never thrown (QG-3). fail is a substring of the failure reason.
+# ---------------------------------------------------------------------------------------------------
+- id: 42
+  why: empty reasons violates invariant 4
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "technologies": ["Go"], "reasons": [], "salary": null}'
+  parses: false
+  fail: reasons
+
+- id: 43
+  why: reasons all blank collapses to empty, invariant 4
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "technologies": ["Go"], "reasons": ["   ", ""], "salary": null}'
+  parses: false
+  fail: reasons
+
+- id: 44
+  why: reasons key absent entirely
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "technologies": ["Go"], "salary": null}'
+  parses: false
+  fail: reasons
+
+- id: 45
+  why: malformed JSON (truncated)
+  raw: '{"isRemote": true, "isContractorFriendly": false, "reasons": ["broken'
+  parses: false
+  fail: malformed JSON
+
+- id: 46
+  why: empty payload
+  raw: ''
+  parses: false
+  fail: empty
+
+- id: 47
+  why: payload is a JSON array, not an object
+  raw: '["isRemote", true]'
+  parses: false
+  fail: not a JSON object
+
+- id: 48
+  why: missing isRemote
+  raw: '{"isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "technologies": ["Go"], "reasons": ["No isRemote field"], "salary": null}'
+  parses: false
+  fail: isRemote
+
+- id: 49
+  why: isRemote wrong type (string, not bool)
+  raw: '{"isRemote": "yes", "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "technologies": ["Go"], "reasons": ["isRemote is a string"], "salary": null}'
+  parses: false
+  fail: isRemote
+
+- id: 50
+  why: missing isContractorFriendly
+  raw: '{"isRemote": true, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "technologies": ["Go"], "reasons": ["No contractor field"], "salary": null}'
+  parses: false
+  fail: isContractorFriendly
+
+- id: 51
+  why: salary is neither object nor null
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "technologies": ["Go"], "reasons": ["Salary came back as a bare number"], "salary": 150000}'
+  parses: false
+  fail: salary
+
+- id: 52
+  why: salary object missing min and max
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "technologies": ["Go"], "reasons": ["Salary object has only a currency"], "salary": {"currency": "USD", "period": "Year", "confidence": 0.5}}'
+  parses: false
+  fail: min
+
+- id: 53
+  why: salary missing currency
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "technologies": ["Go"], "reasons": ["Salary object has no currency"], "salary": {"min": 100000, "max": 120000, "period": "Year", "confidence": 0.5}}'
+  parses: false
+  fail: currency
+
+- id: 54
+  why: negative salary amount is rejected
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "technologies": ["Go"], "reasons": ["Negative minimum quoted"], "salary": {"min": -50000, "max": 120000, "currency": "USD", "period": "Year", "confidence": 0.5}}'
+  parses: false
+  fail: negative
+
+- id: 55
+  why: salary min is a string, treated as missing numeric
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "technologies": ["Go"], "reasons": ["Salary min came back as a string"], "salary": {"min": "lots", "max": 120000, "currency": "USD", "period": "Year", "confidence": 0.5}}'
+  parses: false
+  fail: min
+
+# ---------------------------------------------------------------------------------------------------
+# RoleFamily coverage (T15): the remaining families, plus the unrecognised-value repair to Other.
+# ---------------------------------------------------------------------------------------------------
+- id: 56
+  why: DevOps / SRE reliability role
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Public", "roleFamily": "DevOpsSRE", "technologies": ["Terraform", "Prometheus", "Kubernetes"], "reasons": ["Owns production reliability and on-call", "Runs the delivery and observability stack"], "salary": null}'
+  parses: true
+  roleFamilyIn: [DevOpsSRE]
+  salary: absent
+
+- id: 57
+  why: data science / analytics engineering role
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "Medium", "companyStage": "SeriesB", "roleFamily": "DataScience", "technologies": ["Python", "dbt", "Snowflake"], "reasons": ["Builds analytics models and dashboards", "Owns the data warehouse transformations"], "salary": null}'
+  parses: true
+  roleFamilyIn: [DataScience]
+  salary: absent
+
+- id: 58
+  why: forward-deployed / solutions engineering role
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "Medium", "companyStage": "SeriesC", "roleFamily": "ForwardDeployed", "technologies": ["Python", "TypeScript"], "reasons": ["Embedded with enterprise customers to integrate the product", "Solutions and forward-deployed engineering"], "salary": null}'
+  parses: true
+  roleFamilyIn: [ForwardDeployed]
+  salary: absent
+
+- id: 59
+  why: prompt engineering as the primary discipline
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "Global", "aiUsage": "High", "companyStage": "SeriesA", "roleFamily": "PromptEng", "technologies": ["Python"], "reasons": ["Designs and evaluates prompts as the core of the role", "Owns the prompt library and eval harness"], "salary": null}'
+  parses: true
+  roleFamilyIn: [PromptEng]
+  salary: absent
+
+- id: 60
+  why: unrecognised roleFamily degrades to Other, not a failure
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "roleFamily": "QuantumWizard", "technologies": ["Go"], "reasons": ["Role family value outside the schema enum"], "salary": null}'
+  parses: true
+  roleFamilyIn: [Other]
+  salary: absent
+
+# ---------------------------------------------------------------------------------------------------
+# AI sub-signals (T16): resolve the scalar. The trap (uses tooling) is separated from building on/with AI,
+# and a non-boolean or partial aiSignals object degrades field-by-field rather than failing the item.
+# ---------------------------------------------------------------------------------------------------
+- id: 61
+  why: AI-product company but CRUD work resolves usesAiTooling, never buildsAiProduct (T16 guard)
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "Low", "aiSignals": {"buildsAiProduct": false, "buildsAiInfra": false, "usesAiTooling": true, "isResearch": false}, "companyStage": "SeriesC", "roleFamily": "EnterpriseCrud", "technologies": ["TypeScript", "PostgreSQL"], "reasons": ["Company sells an AI product but the posting describes CRUD dashboards", "Team uses Copilot but builds no model or inference code"], "salary": null}'
+  parses: true
+  aiUsageIn: [Low, None]
+  roleFamilyIn: [EnterpriseCrud]
+  buildsAiProduct: false
+  buildsAiInfra: false
+  usesAiTooling: true
+  isResearch: false
+  salary: absent
+
+- id: 62
+  why: non-object aiSignals and partial fields degrade to false per field, item still parses
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Medium", "aiSignals": {"buildsAiInfra": true, "usesAiTooling": "yes"}, "companyStage": "SeriesB", "roleFamily": "AiPlatform", "technologies": ["Go"], "reasons": ["Partial and mistyped aiSignals object"], "salary": null}'
+  parses: true
+  roleFamilyIn: [AiPlatform]
+  buildsAiInfra: true
+  buildsAiProduct: false
+  usesAiTooling: false
+  isResearch: false
+  salary: absent
+
+# ---------------------------------------------------------------------------------------------------
+# AI-brand company, CRUD work (T17): the guard is emitted as a coherent low-signal, non-target combination
+# with an explicit mismatch reason — never inflated to a high signal by the company's marketing.
+# ---------------------------------------------------------------------------------------------------
+- id: 63
+  why: AI-brand company but CRUD work is low AiUsage and a non-target role, not a prestige-driven signal (T17)
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "Low", "aiSignals": {"buildsAiProduct": false, "buildsAiInfra": false, "usesAiTooling": true, "isResearch": false}, "companyStage": "SeriesC", "roleFamily": "EnterpriseCrud", "technologies": ["C#", "SQL Server", "Angular"], "reasons": ["Company brands itself as an AI leader but the role builds line-of-business CRUD screens", "No model, inference or ML engineering appears in the responsibilities", "Work is forms-over-data with an internal admin portal"], "salary": {"min": 130000, "max": 160000, "currency": "USD", "period": "Year", "confidence": 0.6}}'
+  parses: true
+  aiUsageIn: [Low, None]
+  roleFamilyIn: [EnterpriseCrud]
+  buildsAiProduct: false
+  buildsAiInfra: false
+  usesAiTooling: true
+  isResearch: false
+  salary: present
+  currency: USD
+  minReasons: 3
