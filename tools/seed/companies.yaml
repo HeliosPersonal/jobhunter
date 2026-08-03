@@ -196,3 +196,136 @@
   ats_kind: Greenhouse
   board_token: anthropic
   hq_country: US
+
+# --- Pure-play AI / dev-tools / infra employers (T14, TUNE-09) ---
+# Every binding below was verified live against its provider's public board API before committing.
+# Candidates whose ATS could not be bound to a supported provider (Greenhouse | Lever | Ashby | Workable)
+# are omitted rather than guessed: Hugging Face, Replicate, Fly.io, dbt Labs and Retool have no board on a
+# supported JSON provider; Warp's Greenhouse and Ashby boards resolve to two different companies; the live
+# "neon" boards are a Brazilian fintech, not the serverless-Postgres Neon — so all six are left out.
+
+- domain: openai.com
+  display_name: OpenAI
+  ats_kind: Ashby
+  board_token: openai
+  hq_country: US
+
+- domain: cursor.com
+  display_name: Cursor
+  ats_kind: Ashby
+  board_token: cursor
+  hq_country: US
+
+- domain: langchain.com
+  display_name: LangChain
+  ats_kind: Ashby
+  board_token: langchain
+  hq_country: US
+
+- domain: perplexity.ai
+  display_name: Perplexity
+  ats_kind: Ashby
+  board_token: perplexity
+  hq_country: US
+
+- domain: cohere.com
+  display_name: Cohere
+  ats_kind: Ashby
+  board_token: cohere
+  hq_country: CA
+
+- domain: together.ai
+  display_name: Together AI
+  ats_kind: Greenhouse
+  board_token: togetherai
+  hq_country: US
+
+- domain: pinecone.io
+  display_name: Pinecone
+  ats_kind: Ashby
+  board_token: pinecone
+  hq_country: US
+
+- domain: weaviate.io
+  display_name: Weaviate
+  ats_kind: Ashby
+  board_token: weaviate
+  hq_country: NL
+
+- domain: modal.com
+  display_name: Modal
+  ats_kind: Ashby
+  board_token: modal
+  hq_country: US
+
+- domain: baseten.co
+  display_name: Baseten
+  ats_kind: Ashby
+  board_token: baseten
+  hq_country: US
+
+- domain: temporal.io
+  display_name: Temporal
+  ats_kind: Ashby
+  board_token: temporal
+  hq_country: US
+
+- domain: railway.com
+  display_name: Railway
+  ats_kind: Ashby
+  board_token: railway
+  hq_country: US
+
+- domain: render.com
+  display_name: Render
+  ats_kind: Ashby
+  board_token: render
+  hq_country: US
+
+- domain: grafana.com
+  display_name: Grafana Labs
+  ats_kind: Greenhouse
+  board_token: grafanalabs
+  hq_country: US
+
+- domain: confluent.io
+  display_name: Confluent
+  ats_kind: Ashby
+  board_token: confluent
+  hq_country: US
+
+- domain: zapier.com
+  display_name: Zapier
+  ats_kind: Ashby
+  board_token: zapier
+  hq_country: US
+
+- domain: replit.com
+  display_name: Replit
+  ats_kind: Ashby
+  board_token: replit
+  hq_country: US
+
+- domain: zed.dev
+  display_name: Zed
+  ats_kind: Ashby
+  board_token: zed
+  hq_country: US
+
+- domain: notion.so
+  display_name: Notion
+  ats_kind: Ashby
+  board_token: notion
+  hq_country: US
+
+- domain: supabase.com
+  display_name: Supabase
+  ats_kind: Ashby
+  board_token: supabase
+  hq_country: US
+
+- domain: airbyte.com
+  display_name: Airbyte
+  ats_kind: Ashby
+  board_token: airbyte
+  hq_country: US
