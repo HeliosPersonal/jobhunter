@@ -21,18 +21,18 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 
 | ID | Task | Layer | Deps | Est | Status |
 |---|---|---|---|---|---|
-| T01 | [[T01-domain-run-batch\|Domain: Run, RunState, Batch, BatchItem]] | domain | — | M | pending |
-| T02 | [[T02-domain-enrichment\|Domain: Enrichment and its value objects]] | domain | — | S | pending |
-| T03 | [[T03-llm-batch-port\|ILlmBatchClient port and fake implementation]] | domain | — | S | pending |
-| T04 | [[T04-pipeline-persistence\|Migration and repositories for Run, Batch, Ledger]] | infra/db | T01 | M | pending |
-| T05 | [[T05-enrichment-persistence\|Migration and repository for enrichments]] | infra/db | T02, T04 | S | pending |
-| T06 | [[T06-cost-accountant\|CostAccountant, pricing table and token estimation]] | claude | T01 | M | pending |
-| T07 | [[T07-anthropic-batch-client\|AnthropicBatchClient]] | claude | T03 | L | pending |
-| T08 | [[T08-prompt-schema-parser\|Enrichment prompt, schema and tolerant parser]] | claude | T02 | L | pending |
-| T09 | [[T09-run-orchestrator\|RunOrchestrator: start, scope, resume]] | app | T04, T06 | M | pending |
-| T10 | [[T10-enrichment-submit\|Enrichment submission with the cost gate]] | app | T07, T08, T09 | M | pending |
-| T11 | [[T11-batch-poller\|Batch poller with backoff and deadline]] | app | T10 | M | pending |
-| T12 | [[T12-result-processing\|Result processing, per-item isolation and retry]] | app | T11, T05 | L | pending |
+| T01 | [[T01-domain-run-batch\|Domain: Run, RunState, Batch, BatchItem]] | domain | — | M | done |
+| T02 | [[T02-domain-enrichment\|Domain: Enrichment and its value objects]] | domain | — | S | done |
+| T03 | [[T03-llm-batch-port\|ILlmBatchClient port and fake implementation]] | domain | — | S | done |
+| T04 | [[T04-pipeline-persistence\|Migration and repositories for Run, Batch, Ledger]] | infra/db | T01 | M | done |
+| T05 | [[T05-enrichment-persistence\|Migration and repository for enrichments]] | infra/db | T02, T04 | S | done |
+| T06 | [[T06-cost-accountant\|CostAccountant, pricing table and token estimation]] | claude | T01 | M | done |
+| T07 | [[T07-anthropic-batch-client\|AnthropicBatchClient]] | claude | T03 | L | done |
+| T08 | [[T08-prompt-schema-parser\|Enrichment prompt, schema and tolerant parser]] | claude | T02 | L | done |
+| T09 | [[T09-run-orchestrator\|RunOrchestrator: start, scope, resume]] | app | T04, T06 | M | done |
+| T10 | [[T10-enrichment-submit\|Enrichment submission with the cost gate]] | app | T07, T08, T09 | M | done |
+| T11 | [[T11-batch-poller\|Batch poller with backoff and deadline]] | app | T10 | M | done |
+| T12 | [[T12-result-processing\|Result processing, per-item isolation and retry]] | app | T11, T05 | L | done |
 | T13 | [[T13-crash-matrix-golden\|Crash matrix, golden set and cost dashboards]] | tests | T12 | L | done |
 | T14 | [[T14-ollama-fallback-adapter\|Ollama cheap-tier fallback adapter]] | claude | T07 | S | done |
 | T15 | [[T15-role-family-classification\|Emit a RoleFamily / title-tier classification]] | claude | T02, T08 | M | done |
