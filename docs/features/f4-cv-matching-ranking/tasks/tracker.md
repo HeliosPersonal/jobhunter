@@ -24,7 +24,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T01 | [[T01-domain-profile-match\|Domain: Profile, CvVersion, Match, Score]] | domain | — | M | done |
 | T02 | [[T02-matching-persistence\|Migration and repositories for profiles, CVs, matches, scores]] | infra/db | T01 | M | done |
 | T03 | [[T03-cv-upload-versioning\|CV upload, text extraction and versioning]] | app | T02 | M | done |
-| T04 | [[T04-match-prompt-schema\|Match prompt, schema and parser]] | claude | T01 | L | pending |
+| T04 | [[T04-match-prompt-schema\|Match prompt, schema and parser]] | claude | T01 | L | done |
 | T05 | [[T05-matching-submit\|Matching submission through the F3 Run machinery]] | app | T04, T02 | M | pending |
 | T06 | [[T06-match-result-processing\|Match result processing]] | app | T05 | M | pending |
 | T07 | [[T07-score-calculator\|ScoreCalculator]] | app | T01 | M | pending |
