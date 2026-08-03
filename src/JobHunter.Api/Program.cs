@@ -20,11 +20,16 @@ builder.Services.AddJobHunterInfrastructure(builder.Configuration);
 // 4. Keycloak OIDC bearer auth for the API surface; the admin scope gates /health and future ops.
 builder.AddApiSecurity();
 
-// 5. Readiness dependency checks — tagged `ready`, gate /ready only. PostgreSQL and RabbitMQ are hard
+// 5. Problem details, OpenAPI + Scalar and per-token rate limiting (T04).
+builder.AddApiPipeline();
+
+// 6. Readiness dependency checks — tagged `ready`, gate /ready only. PostgreSQL and RabbitMQ are hard
 //    dependencies; Redis degrades gracefully but is still probed (observability §3).
 builder.AddReadinessChecks();
 
 var app = builder.Build();
+
+app.UseApiPipeline();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -36,5 +41,6 @@ await app.RunAsync();
 namespace JobHunter.Api
 {
     /// <summary>Exposed only so <c>WebApplicationFactory&lt;Program&gt;</c> can host the API in tests.</summary>
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public sealed partial class Program;
 }

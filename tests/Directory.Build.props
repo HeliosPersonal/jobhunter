@@ -17,7 +17,7 @@
 
     <!-- Exclude the deployables' composition roots, the Aspire projects and Contracts from coverage.
          These are wiring, verified by the system starting, not by unit tests. -->
-    <ExcludeByFile>**/Migrations/*.cs</ExcludeByFile>
+    <ExcludeByFile>**/Migrations/*.cs,**/*.generated.cs</ExcludeByFile>
     <ExcludeByAttribute>ExcludeFromCodeCoverageAttribute;GeneratedCodeAttribute</ExcludeByAttribute>
     <Exclude>[JobHunter.AppHost]*;[JobHunter.ServiceDefaults]*;[JobHunter.Contracts]*;[JobHunter.TestKit]*;[*]*.Migrations.*</Exclude>
   </PropertyGroup>
