@@ -26,8 +26,12 @@ The C# record is the source of truth; the JSON Schema is generated from it, so t
 > parser lands an unrecognised or absent value on it. This bumped `PromptVersion` to `enrich-v2`. See the
 > [[../../../reviews/career-alignment-tuning-backlog|tuning backlog]].
 >
-> **Planned change (TUNE-04, F3 T16):** add AiUsage sub-signals (e.g. `buildsAiProduct`, `buildsAiInfra`,
-> `usesAiTooling`, `isResearch`) alongside the existing scalar to sharpen the target/trap boundary.
+> **Shipped (TUNE-04, F3 T16):** an `AiSignals` object of four booleans — `buildsAiProduct`,
+> `buildsAiInfra`, `usesAiTooling`, `isResearch` — sits alongside the existing `AiUsage` scalar (which is
+> kept). Each is derived from the described engineering work, so a posting that sells an AI product but
+> describes CRUD work resolves `usesAiTooling`, never `buildsAiProduct`/`buildsAiInfra`. The object is
+> optional on the wire: an absent object, or an absent/non-boolean field within it, degrades to `false`
+> rather than failing the item (parsing step 8). This bumped `PromptVersion` to `enrich-v3`.
 
 ```csharp
 public sealed record EnrichmentOutput(
@@ -36,10 +40,14 @@ public sealed record EnrichmentOutput(
     bool IsContractorFriendly,
     TimezoneBand TimezoneBand,              // EMEA | AMER | APAC | Global | Unknown
     AiUsageLevel AiUsage,                   // None | Low | Medium | High
+    AiSignalsDto AiSignals,                 // resolving sub-signals; absent object → all-false
     CompanyStage CompanyStage,              // Seed | SeriesA..SeriesD | Public | Bootstrapped | Unknown
     RoleFamily RoleFamily,                  // AiPlatform | Platform | ... | EnterpriseCrud | Other (real fallback)
     IReadOnlyList<string> Technologies,     // canonical names where recognised
     IReadOnlyList<string> Reasons);         // >= 1, else the item is rejected
+
+public sealed record AiSignalsDto(
+    bool BuildsAiProduct, bool BuildsAiInfra, bool UsesAiTooling, bool IsResearch);
 
 public sealed record SalaryEstimateDto(
     decimal Min, decimal Max, string Currency, SalaryPeriod Period, decimal Confidence);
@@ -67,6 +75,9 @@ Generated schema (abridged):
     "isContractorFriendly":  { "type": "boolean" },
     "timezoneBand":          { "enum": ["EMEA", "AMER", "APAC", "Global", "Unknown"] },
     "aiUsage":               { "enum": ["None", "Low", "Medium", "High"] },
+    "aiSignals":             { "type": "object", "properties": {
+        "buildsAiProduct": { "type": "boolean" }, "buildsAiInfra": { "type": "boolean" },
+        "usesAiTooling":   { "type": "boolean" }, "isResearch":    { "type": "boolean" } } },
     "companyStage":          { "enum": ["Seed","SeriesA","SeriesB","SeriesC","SeriesD","Public","Bootstrapped"] },
     "roleFamily":            { "enum": ["AiPlatform","Platform","AiApplications","ForwardDeployed","FoundingEng","BackendGeneric","Frontend","Fullstack","DevOpsSRE","MlResearch","DataScience","PromptEng","EnterpriseCrud","Other"] },
     "technologies":          { "type": "array", "items": { "type": "string" }, "maxItems": 25 },
@@ -81,7 +92,7 @@ braces — but the first line of defence is the schema.
 
 ## Prompt
 
-`JobHunter.Claude/Prompts/EnrichmentPrompt.cs`, `PromptVersion = "enrich-v2"`.
+`JobHunter.Claude/Prompts/EnrichmentPrompt.cs`, `PromptVersion = "enrich-v3"`.
 
 **System**
 
@@ -98,6 +109,10 @@ Rules:
 - Timezone band is where the role expects overlap, which is often not where the company is.
 - AI usage is how much the ENGINEERING work involves building with or on AI systems. A company that
   sells an AI product but whose posting describes CRUD work is Low.
+- AI sub-signals refine that scalar. Set each only from the described engineering work, with a reason:
+  buildsAiProduct (features on top of AI/LLMs), buildsAiInfra (the platform AI runs on), usesAiTooling
+  (merely uses AI tooling for conventional work), isResearch (trains/evaluates models). They are
+  independent; a posting that sells an AI product but describes CRUD work sets usesAiTooling at most.
 - Company stage: only from evidence in the posting (funding mentions, size statements, "public
   company", "early stage"). Otherwise Unknown.
 - Role family: classify by the WORK the posting describes, never by the title string. A posting

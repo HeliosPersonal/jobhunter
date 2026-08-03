@@ -30,6 +30,9 @@ public sealed class TolerantJsonParserTests
         o.AiUsage.ShouldBe(AiUsageLevel.High);
         o.CompanyStage.ShouldBe(CompanyStage.SeriesB);
         o.RoleFamily.ShouldBe(RoleFamily.AiPlatform);
+        o.AiSignals.BuildsAiInfra.ShouldBeTrue();
+        o.AiSignals.BuildsAiProduct.ShouldBeFalse();
+        o.AiSignals.UsesAiTooling.ShouldBeFalse();
         o.Technologies.ShouldBe(["Go", "Kubernetes", "PostgreSQL"]);
         o.Reasons.Count.ShouldBe(2);
         o.Salary!.Currency.ShouldBe("USD");
@@ -137,5 +140,41 @@ public sealed class TolerantJsonParserTests
     {
         TolerantJsonParser.Parse(null).IsSuccess.ShouldBeFalse();
         TolerantJsonParser.Parse("   ").IsSuccess.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Absent_ai_signals_degrade_to_all_false_without_failing_the_item()
+    {
+        var outcome = TolerantJsonParser.Parse(
+            """
+            {"isRemote":true,"isContractorFriendly":false,"timezoneBand":"EMEA","aiUsage":"Low",
+             "companyStage":"Seed","technologies":["Go"],"reasons":["No aiSignals object present"]}
+            """);
+
+        outcome.IsSuccess.ShouldBeTrue();
+        var s = outcome.Output!.AiSignals;
+        s.BuildsAiProduct.ShouldBeFalse();
+        s.BuildsAiInfra.ShouldBeFalse();
+        s.UsesAiTooling.ShouldBeFalse();
+        s.IsResearch.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void An_ai_product_company_with_crud_work_resolves_uses_tooling_not_builds_product()
+    {
+        // TUNE-04 target/trap boundary: marketing says AI, the work is CRUD → usesAiTooling, never buildsAiProduct.
+        var outcome = TolerantJsonParser.Parse(
+            """
+            {"isRemote":true,"isContractorFriendly":false,"timezoneBand":"AMER","aiUsage":"Low",
+             "aiSignals":{"buildsAiProduct":false,"buildsAiInfra":false,"usesAiTooling":true,"isResearch":false},
+             "companyStage":"SeriesB","roleFamily":"EnterpriseCrud","technologies":["C#"],
+             "reasons":["Company markets an AI product but the work is standard CRUD API development"]}
+            """);
+
+        outcome.IsSuccess.ShouldBeTrue();
+        var s = outcome.Output!.AiSignals;
+        s.UsesAiTooling.ShouldBeTrue();
+        s.BuildsAiProduct.ShouldBeFalse();
+        s.BuildsAiInfra.ShouldBeFalse();
     }
 }

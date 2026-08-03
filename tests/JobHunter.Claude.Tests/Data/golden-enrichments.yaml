@@ -1,4 +1,4 @@
-# F3 golden set — 60 recorded enrichment tool-use payloads driven through the REAL
+# F3 golden set — 62 recorded enrichment tool-use payloads driven through the REAL
 # EnrichmentResultParser (GoldenEnrichmentSetTests). Each case asserts a labelled BAND, not an exact
 # value, so a non-deterministic model does not make the suite flaky: the recorded payload is fixed, but
 # the assertion tolerates the drift a live model would show, and the nightly live-drift job reuses these
@@ -7,16 +7,16 @@
 # rejections (empty reasons, malformed JSON, missing/wrong-typed required fields, negative amount).
 #
 # Keys: id, why (label), raw (the tool-use input JSON), parses (bool). For parses:true — remote,
-# contractor, aiUsageIn, timezoneIn, stageIn, salary (present|absent), salaryFloor, salaryCeil, currency,
-# minReasons, minTech, maxTech are optional band assertions. For parses:false — fail is a substring the
-# recorded failure reason must contain.
+# contractor, aiUsageIn, timezoneIn, stageIn, roleFamilyIn, buildsAiProduct, buildsAiInfra, usesAiTooling,
+# isResearch, salary (present|absent), salaryFloor, salaryCeil, currency, minReasons, minTech, maxTech are
+# optional band assertions. For parses:false — fail is a substring the recorded failure reason must contain.
 
 # ---------------------------------------------------------------------------------------------------
 # Clean cases: one per meaningful enum combination, salaries present and absent.
 # ---------------------------------------------------------------------------------------------------
 - id: 1
   why: remote senior backend, high AI, Series B, USD band
-  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "High", "companyStage": "SeriesB", "roleFamily": "AiPlatform", "technologies": ["C#", ".NET", "PostgreSQL", "Kubernetes"], "reasons": ["Fully remote across EMEA", "Substantial LLM platform work", "Series B funding stated"], "salary": {"min": 120000, "max": 180000, "currency": "USD", "period": "Year", "confidence": 0.8}}'
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "High", "aiSignals": {"buildsAiProduct": false, "buildsAiInfra": true, "usesAiTooling": false, "isResearch": false}, "companyStage": "SeriesB", "roleFamily": "AiPlatform", "technologies": ["C#", ".NET", "PostgreSQL", "Kubernetes"], "reasons": ["Fully remote across EMEA", "Substantial LLM platform work", "Series B funding stated"], "salary": {"min": 120000, "max": 180000, "currency": "USD", "period": "Year", "confidence": 0.8}}'
   parses: true
   remote: true
   contractor: false
@@ -24,6 +24,8 @@
   timezoneIn: [EMEA]
   stageIn: [SeriesB]
   roleFamilyIn: [AiPlatform]
+  buildsAiInfra: true
+  buildsAiProduct: false
   salary: present
   salaryFloor: 100000
   salaryCeil: 200000
@@ -33,7 +35,7 @@
 
 - id: 2
   why: onsite AMER, no AI, public company, no salary, backend
-  raw: '{"isRemote": false, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "None", "companyStage": "Public", "roleFamily": "BackendGeneric", "technologies": ["Java", "Spring"], "reasons": ["Onsite in New York", "No AI content in the posting", "Builds internal REST services"], "salary": null}'
+  raw: '{"isRemote": false, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "None", "aiSignals": {"buildsAiProduct": false, "buildsAiInfra": false, "usesAiTooling": false, "isResearch": false}, "companyStage": "Public", "roleFamily": "BackendGeneric", "technologies": ["Java", "Spring"], "reasons": ["Onsite in New York", "No AI content in the posting", "Builds internal REST services"], "salary": null}'
   parses: true
   remote: false
   contractor: false
@@ -41,6 +43,10 @@
   timezoneIn: [AMER]
   stageIn: [Public]
   roleFamilyIn: [BackendGeneric]
+  buildsAiProduct: false
+  buildsAiInfra: false
+  usesAiTooling: false
+  isResearch: false
   salary: absent
   minReasons: 2
 
@@ -167,9 +173,11 @@
 
 - id: 16
   why: INR accepted
-  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "APAC", "aiUsage": "High", "companyStage": "SeriesD", "roleFamily": "AiApplications", "technologies": ["Python", "TensorFlow"], "reasons": ["Bangalore team building LLM-backed product features"], "salary": {"min": 3000000, "max": 5000000, "currency": "INR", "period": "Year", "confidence": 0.6}}'
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "APAC", "aiUsage": "High", "aiSignals": {"buildsAiProduct": true, "buildsAiInfra": false, "usesAiTooling": false, "isResearch": false}, "companyStage": "SeriesD", "roleFamily": "AiApplications", "technologies": ["Python", "TensorFlow"], "reasons": ["Bangalore team building LLM-backed product features"], "salary": {"min": 3000000, "max": 5000000, "currency": "INR", "period": "Year", "confidence": 0.6}}'
   parses: true
   roleFamilyIn: [AiApplications]
+  buildsAiProduct: true
+  buildsAiInfra: false
   salary: present
   currency: INR
 
@@ -256,13 +264,17 @@
   salary: absent
 
 - id: 28
-  why: absent enum fields degrade to Unknown, absent roleFamily to Other
+  why: absent enum fields degrade to Unknown, absent roleFamily to Other, absent aiSignals to all-false
   raw: '{"isRemote": true, "isContractorFriendly": false, "technologies": ["Elixir"], "reasons": ["Model omitted every enum field"]}'
   parses: true
   aiUsageIn: [Unknown]
   timezoneIn: [Unknown]
   stageIn: [Unknown]
   roleFamilyIn: [Other]
+  buildsAiProduct: false
+  buildsAiInfra: false
+  usesAiTooling: false
+  isResearch: false
   salary: absent
 
 - id: 29
@@ -351,20 +363,25 @@
 # ---------------------------------------------------------------------------------------------------
 - id: 40
   why: AI-Engineer title but CRUD work is EnterpriseCrud, not AiPlatform (T15 guard)
-  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "Low", "companyStage": "SeriesB", "roleFamily": "EnterpriseCrud", "technologies": ["C#", "SQL Server"], "reasons": ["Title says AI Engineer but the work is standard CRUD API development", "Company markets an AI product yet no model or inference engineering appears", "Responsibilities are line-of-business forms over a database"], "salary": {"min": 120000, "max": 150000, "currency": "USD", "period": "Year", "confidence": 0.6}}'
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "Low", "aiSignals": {"buildsAiProduct": false, "buildsAiInfra": false, "usesAiTooling": true, "isResearch": false}, "companyStage": "SeriesB", "roleFamily": "EnterpriseCrud", "technologies": ["C#", "SQL Server"], "reasons": ["Title says AI Engineer but the work is standard CRUD API development", "Company markets an AI product yet no model or inference engineering appears", "Responsibilities are line-of-business forms over a database"], "salary": {"min": 120000, "max": 150000, "currency": "USD", "period": "Year", "confidence": 0.6}}'
   parses: true
   aiUsageIn: [Low, None]
   roleFamilyIn: [EnterpriseCrud]
+  buildsAiProduct: false
+  buildsAiInfra: false
+  usesAiTooling: true
   salary: present
   currency: USD
   minReasons: 3
 
 - id: 41
   why: genuine AI research role is High and MlResearch
-  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "Global", "aiUsage": "High", "companyStage": "SeriesC", "roleFamily": "MlResearch", "technologies": ["Python", "JAX", "CUDA"], "reasons": ["Training foundation models day to day", "Publishes at ML venues"], "salary": {"min": 200000, "max": 300000, "currency": "USD", "period": "Year", "confidence": 0.8}}'
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "Global", "aiUsage": "High", "aiSignals": {"buildsAiProduct": false, "buildsAiInfra": false, "usesAiTooling": false, "isResearch": true}, "companyStage": "SeriesC", "roleFamily": "MlResearch", "technologies": ["Python", "JAX", "CUDA"], "reasons": ["Training foundation models day to day", "Publishes at ML venues"], "salary": {"min": 200000, "max": 300000, "currency": "USD", "period": "Year", "confidence": 0.8}}'
   parses: true
   aiUsageIn: [High]
   roleFamilyIn: [MlResearch]
+  isResearch: true
+  buildsAiProduct: false
   salary: present
   currency: USD
 
@@ -491,4 +508,31 @@
   raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Low", "companyStage": "Seed", "roleFamily": "QuantumWizard", "technologies": ["Go"], "reasons": ["Role family value outside the schema enum"], "salary": null}'
   parses: true
   roleFamilyIn: [Other]
+  salary: absent
+
+# ---------------------------------------------------------------------------------------------------
+# AI sub-signals (T16): resolve the scalar. The trap (uses tooling) is separated from building on/with AI,
+# and a non-boolean or partial aiSignals object degrades field-by-field rather than failing the item.
+# ---------------------------------------------------------------------------------------------------
+- id: 61
+  why: AI-product company but CRUD work resolves usesAiTooling, never buildsAiProduct (T16 guard)
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "AMER", "aiUsage": "Low", "aiSignals": {"buildsAiProduct": false, "buildsAiInfra": false, "usesAiTooling": true, "isResearch": false}, "companyStage": "SeriesC", "roleFamily": "EnterpriseCrud", "technologies": ["TypeScript", "PostgreSQL"], "reasons": ["Company sells an AI product but the posting describes CRUD dashboards", "Team uses Copilot but builds no model or inference code"], "salary": null}'
+  parses: true
+  aiUsageIn: [Low, None]
+  roleFamilyIn: [EnterpriseCrud]
+  buildsAiProduct: false
+  buildsAiInfra: false
+  usesAiTooling: true
+  isResearch: false
+  salary: absent
+
+- id: 62
+  why: non-object aiSignals and partial fields degrade to false per field, item still parses
+  raw: '{"isRemote": true, "isContractorFriendly": false, "timezoneBand": "EMEA", "aiUsage": "Medium", "aiSignals": {"buildsAiInfra": true, "usesAiTooling": "yes"}, "companyStage": "SeriesB", "roleFamily": "AiPlatform", "technologies": ["Go"], "reasons": ["Partial and mistyped aiSignals object"], "salary": null}'
+  parses: true
+  roleFamilyIn: [AiPlatform]
+  buildsAiInfra: true
+  buildsAiProduct: false
+  usesAiTooling: false
+  isResearch: false
   salary: absent

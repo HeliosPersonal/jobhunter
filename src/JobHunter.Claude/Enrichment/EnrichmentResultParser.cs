@@ -44,6 +44,11 @@ public sealed class EnrichmentResultParser : IEnrichmentResultParser
             output.IsContractorFriendly,
             output.TimezoneBand,
             output.AiUsage,
+            new AiSignals(
+                output.AiSignals.BuildsAiProduct,
+                output.AiSignals.BuildsAiInfra,
+                output.AiSignals.UsesAiTooling,
+                output.AiSignals.IsResearch),
             output.CompanyStage,
             output.RoleFamily,
             output.Technologies,

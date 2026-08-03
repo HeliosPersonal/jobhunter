@@ -33,6 +33,7 @@ public sealed class EnrichmentResultParserTests
         var outcome = Parse(
             """
             {"isRemote":true,"isContractorFriendly":false,"timezoneBand":"EMEA","aiUsage":"High",
+             "aiSignals":{"buildsAiProduct":false,"buildsAiInfra":true,"usesAiTooling":false,"isResearch":false},
              "companyStage":"SeriesB","roleFamily":"AiPlatform","technologies":["Go","Kubernetes"],
              "reasons":["Posting states fully remote across EMEA","Builds LLM inference infrastructure"]}
             """);
@@ -49,6 +50,8 @@ public sealed class EnrichmentResultParserTests
         e.AiUsage.ShouldBe(AiUsageLevel.High);
         e.CompanyStage.ShouldBe(CompanyStage.SeriesB);
         e.RoleFamily.ShouldBe(RoleFamily.AiPlatform);
+        e.AiSignals.BuildsAiInfra.ShouldBeTrue();
+        e.AiSignals.BuildsAiProduct.ShouldBeFalse();
         e.Technologies.ShouldBe(["Go", "Kubernetes"]);
         e.Reasons.Count.ShouldBeGreaterThanOrEqualTo(1);
     }

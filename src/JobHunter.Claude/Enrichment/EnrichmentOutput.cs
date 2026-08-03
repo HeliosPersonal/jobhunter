@@ -17,10 +17,22 @@ public sealed record EnrichmentOutput(
     bool IsContractorFriendly,
     TimezoneBand TimezoneBand,
     AiUsageLevel AiUsage,
+    AiSignalsDto AiSignals,
     CompanyStage CompanyStage,
     RoleFamily RoleFamily,
     IReadOnlyList<string> Technologies,
     IReadOnlyList<string> Reasons);
+
+/// <summary>
+/// The wire shape of the AI sub-signals (enrichment-schema §Output record, TUNE-04). Each boolean is
+/// derived from the described engineering work; an absent or non-boolean value degrades to <c>false</c>,
+/// so the sub-signals are optional on the wire and never make an otherwise-valid item fail.
+/// </summary>
+public sealed record AiSignalsDto(
+    bool BuildsAiProduct,
+    bool BuildsAiInfra,
+    bool UsesAiTooling,
+    bool IsResearch);
 
 /// <summary>The wire shape of an estimated salary; <c>null</c> on the parent is a legal "cannot tell".</summary>
 public sealed record SalaryEstimateDto(

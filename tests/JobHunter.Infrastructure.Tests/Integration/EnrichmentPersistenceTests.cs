@@ -28,6 +28,7 @@ public sealed class EnrichmentPersistenceTests
             Guid.CreateVersion7(), jobId, runId,
             SalaryEstimate.TryCreate(120_000m, 160_000m, "USD", SalaryPeriod.Year, 0.7m).Value,
             isRemote: true, isContractorFriendly: false, TimezoneBand.EMEA, AiUsageLevel.Medium,
+            new AiSignals(buildsAiProduct: false, buildsAiInfra: true, usesAiTooling: true, isResearch: false),
             CompanyStage.SeriesB, RoleFamily.Platform, technologies: ["C#", ".NET"],
             reasons: ["Salary band inferred from peers."],
             promptVersion, Now);
@@ -49,6 +50,11 @@ public sealed class EnrichmentPersistenceTests
         stored.Salary!.Min.ShouldBe(120_000m);
         stored.Salary.Confidence.ShouldBe(0.7m);
         stored.TimezoneBand.ShouldBe(TimezoneBand.EMEA);
+        stored.RoleFamily.ShouldBe(RoleFamily.Platform);
+        stored.AiSignals.BuildsAiInfra.ShouldBeTrue();
+        stored.AiSignals.UsesAiTooling.ShouldBeTrue();
+        stored.AiSignals.BuildsAiProduct.ShouldBeFalse();
+        stored.AiSignals.IsResearch.ShouldBeFalse();
         stored.Reasons.ShouldHaveSingleItem().ShouldBe("Salary band inferred from peers.");
         stored.Technologies.ShouldBe(["C#", ".NET"]);
         stored.PromptVersion.ShouldBe("enrich-v1");
@@ -84,9 +90,11 @@ public sealed class EnrichmentPersistenceTests
             """
             INSERT INTO enrichments
                 (id, job_id, run_id, is_remote, is_contractor_friendly, timezone_band, ai_usage,
+                 ai_builds_product, ai_builds_infra, ai_uses_tooling, ai_is_research,
                  company_stage, role_family, technologies, reasons, prompt_version, created_at)
             VALUES
-                (@id, @job, @run, true, false, 'EMEA', 'Medium', 'SeriesB', 'Platform', '[]', '["x"]', 'v1', @now);
+                (@id, @job, @run, true, false, 'EMEA', 'Medium', false, false, false, false,
+                 'SeriesB', 'Platform', '[]', '["x"]', 'v1', @now);
             """;
         command.Parameters.AddWithValue("id", Guid.CreateVersion7());
         command.Parameters.AddWithValue("job", seed.JobId);
@@ -105,7 +113,8 @@ public sealed class EnrichmentPersistenceTests
         Should.Throw<ArgumentException>(() => new Enrichment(
             Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), salary: null,
             isRemote: true, isContractorFriendly: false, TimezoneBand.Global, AiUsageLevel.None,
-            CompanyStage.Unknown, RoleFamily.Other, technologies: [], reasons: ["   "], promptVersion: "v1", Now));
+            AiSignals.None, CompanyStage.Unknown, RoleFamily.Other, technologies: [], reasons: ["   "],
+            promptVersion: "v1", Now));
 
         await Task.CompletedTask;
     }

@@ -55,8 +55,8 @@ public sealed class BatchResultProcessingHandlerTests
 
     private static EnrichmentAggregate NewEnrichment(EnrichmentParseRequest req) =>
         new(req.EnrichmentId, req.JobId, req.RunId, salary: null, isRemote: true, isContractorFriendly: false,
-            TimezoneBand.EMEA, AiUsageLevel.Low, CompanyStage.Seed, RoleFamily.BackendGeneric, [], ["a reason"],
-            req.PromptVersion, req.CreatedAt);
+            TimezoneBand.EMEA, AiUsageLevel.Low, AiSignals.None, CompanyStage.Seed, RoleFamily.BackendGeneric, [],
+            ["a reason"], req.PromptVersion, req.CreatedAt);
 
     private BatchResultProcessingHandler CreateHandler() =>
         new(_runs, _enrichments, _parser, _client(), _accountant, _clock, _ids,

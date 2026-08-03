@@ -28,6 +28,7 @@ public sealed class Enrichment : Entity
         bool isContractorFriendly,
         TimezoneBand timezoneBand,
         AiUsageLevel aiUsage,
+        AiSignals aiSignals,
         CompanyStage companyStage,
         RoleFamily roleFamily,
         IReadOnlyList<string> technologies,
@@ -48,6 +49,7 @@ public sealed class Enrichment : Entity
 
         ArgumentNullException.ThrowIfNull(reasons);
         ArgumentNullException.ThrowIfNull(technologies);
+        ArgumentNullException.ThrowIfNull(aiSignals);
         ArgumentException.ThrowIfNullOrWhiteSpace(promptVersion);
 
         var cleanedReasons = reasons
@@ -77,6 +79,7 @@ public sealed class Enrichment : Entity
         IsContractorFriendly = isContractorFriendly;
         TimezoneBand = timezoneBand;
         AiUsage = aiUsage;
+        AiSignals = aiSignals;
         CompanyStage = companyStage;
         RoleFamily = roleFamily;
         PromptVersion = promptVersion;
@@ -104,6 +107,9 @@ public sealed class Enrichment : Entity
     public TimezoneBand TimezoneBand { get; private set; }
 
     public AiUsageLevel AiUsage { get; private set; }
+
+    /// <summary>The resolving AI sub-signals that separate building-with-AI from merely using AI tooling (TUNE-04).</summary>
+    public AiSignals AiSignals { get; private set; } = AiSignals.None;
 
     public CompanyStage CompanyStage { get; private set; }
 

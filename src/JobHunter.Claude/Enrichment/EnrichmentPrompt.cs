@@ -13,7 +13,7 @@ namespace JobHunter.Claude.Enrichment;
 public static class EnrichmentPrompt
 {
     /// <summary>Bump whenever the system prompt, the user template, the schema or a parsing rule changes.</summary>
-    public const string PromptVersion = "enrich-v2";
+    public const string PromptVersion = "enrich-v3";
 
     /// <summary>The posting text is truncated to this many characters at a paragraph boundary.</summary>
     public const int MaxDescriptionChars = 12_000;
@@ -32,6 +32,14 @@ public static class EnrichmentPrompt
         - Timezone band is where the role expects overlap, which is often not where the company is.
         - AI usage is how much the ENGINEERING work involves building with or on AI systems. A company that
           sells an AI product but whose posting describes CRUD work is Low.
+        - AI sub-signals refine that scalar. Set each only from the described engineering work, and give a
+          reason that quotes or paraphrases the responsibilities:
+            * buildsAiProduct — the role builds product features on top of AI/LLMs (e.g. an AI-backed feature).
+            * buildsAiInfra   — the role builds the platform AI runs on (serving, inference, training systems).
+            * usesAiTooling   — the role merely uses AI tooling (e.g. Copilot) to do otherwise-conventional work.
+            * isResearch      — the role trains or evaluates models as the substance of the work.
+          These are independent, so a role can set none of them. A posting that sells an AI product but whose
+          responsibilities are ordinary CRUD sets usesAiTooling at most — never buildsAiProduct or buildsAiInfra.
         - Company stage: only from evidence in the posting (funding mentions, size statements, "public
           company", "early stage"). Otherwise Unknown.
         - Role family: classify by the WORK the posting describes, never by the title string. A posting

@@ -63,6 +63,10 @@ public static class TolerantJsonParser
             var aiUsage = ReadEnum(root, "aiUsage", AiUsageLevel.Unknown, anomalies);
             var companyStage = ReadEnum(root, "companyStage", CompanyStage.Unknown, anomalies);
 
+            // AI sub-signals resolve the scalar (TUNE-04). They are optional on the wire: an absent object,
+            // or an absent/non-boolean field within it, degrades to false rather than failing the item.
+            var aiSignals = ReadAiSignals(root);
+
             // RoleFamily's fallback is Other — a real "none of the above" classification, not a sentinel —
             // so an unrecognised or absent value still yields a legitimate family (parsing step 8).
             var roleFamily = ReadEnum(root, "roleFamily", RoleFamily.Other, anomalies);
@@ -91,6 +95,7 @@ public static class TolerantJsonParser
                 isContractorFriendly,
                 timezoneBand,
                 aiUsage,
+                aiSignals,
                 companyStage,
                 roleFamily,
                 technologies,
@@ -116,6 +121,23 @@ public static class TolerantJsonParser
 
         return el.ValueKind == JsonValueKind.False;
     }
+
+    private static AiSignalsDto ReadAiSignals(JsonElement root)
+    {
+        if (!root.TryGetProperty("aiSignals", out var el) || el.ValueKind != JsonValueKind.Object)
+        {
+            return new AiSignalsDto(false, false, false, false);
+        }
+
+        return new AiSignalsDto(
+            ReadBoolOrFalse(el, "buildsAiProduct"),
+            ReadBoolOrFalse(el, "buildsAiInfra"),
+            ReadBoolOrFalse(el, "usesAiTooling"),
+            ReadBoolOrFalse(el, "isResearch"));
+    }
+
+    private static bool ReadBoolOrFalse(JsonElement obj, string name) =>
+        obj.TryGetProperty(name, out var el) && el.ValueKind == JsonValueKind.True;
 
     private static TEnum ReadEnum<TEnum>(JsonElement root, string name, TEnum fallback, List<string> anomalies)
         where TEnum : struct, Enum

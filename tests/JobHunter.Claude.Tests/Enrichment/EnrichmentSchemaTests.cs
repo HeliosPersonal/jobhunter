@@ -78,6 +78,20 @@ public sealed class EnrichmentSchemaTests
     }
 
     [Fact]
+    public void Ai_signals_is_an_optional_object_of_boolean_sub_signals()
+    {
+        // The sub-signals resolve the AiUsage scalar (TUNE-04); they are deliberately not in 'required'.
+        var required = Root().GetProperty("required").EnumerateArray().Select(v => v.GetString()).ToList();
+        required.ShouldNotContain("aiSignals");
+
+        var props = Root().GetProperty("properties").GetProperty("aiSignals").GetProperty("properties");
+        foreach (var name in new[] { "buildsAiProduct", "buildsAiInfra", "usesAiTooling", "isResearch" })
+        {
+            props.GetProperty(name).GetProperty("type").GetString().ShouldBe("boolean");
+        }
+    }
+
+    [Fact]
     public void Salary_is_object_or_null_with_a_currency_pattern()
     {
         var salary = Root().GetProperty("properties").GetProperty("salary");

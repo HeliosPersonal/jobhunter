@@ -44,6 +44,18 @@ internal sealed class EnrichmentConfiguration : IEntityTypeConfiguration<Enrichm
         b.Property(x => x.IsContractorFriendly).HasColumnName("is_contractor_friendly").IsRequired();
         b.Property(x => x.TimezoneBand).HasColumnName("timezone_band").IsRequired();
         b.Property(x => x.AiUsage).HasColumnName("ai_usage").IsRequired();
+
+        // The AI sub-signals (TUNE-04) are an owned value object stored inline as four boolean columns; the
+        // value object is never null (it degrades to all-false), so the owned entity is required.
+        b.OwnsOne(x => x.AiSignals, signals =>
+        {
+            signals.Property(s => s.BuildsAiProduct).HasColumnName("ai_builds_product").IsRequired();
+            signals.Property(s => s.BuildsAiInfra).HasColumnName("ai_builds_infra").IsRequired();
+            signals.Property(s => s.UsesAiTooling).HasColumnName("ai_uses_tooling").IsRequired();
+            signals.Property(s => s.IsResearch).HasColumnName("ai_is_research").IsRequired();
+        });
+        b.Navigation(x => x.AiSignals).IsRequired();
+
         b.Property(x => x.CompanyStage).HasColumnName("company_stage").IsRequired();
         b.Property(x => x.RoleFamily).HasColumnName("role_family").IsRequired();
         b.Property(x => x.PromptVersion).HasColumnName("prompt_version").IsRequired();

@@ -120,6 +120,26 @@ public sealed class GoldenEnrichmentSetTests
             yield return $"roleFamily {e.RoleFamily} not in [{string.Join(", ", c.RoleFamilyIn)}]";
         }
 
+        if (c.BuildsAiProduct is { } bap && e.AiSignals.BuildsAiProduct != bap)
+        {
+            yield return $"aiSignals.buildsAiProduct expected {bap}, got {e.AiSignals.BuildsAiProduct}";
+        }
+
+        if (c.BuildsAiInfra is { } bai && e.AiSignals.BuildsAiInfra != bai)
+        {
+            yield return $"aiSignals.buildsAiInfra expected {bai}, got {e.AiSignals.BuildsAiInfra}";
+        }
+
+        if (c.UsesAiTooling is { } uat && e.AiSignals.UsesAiTooling != uat)
+        {
+            yield return $"aiSignals.usesAiTooling expected {uat}, got {e.AiSignals.UsesAiTooling}";
+        }
+
+        if (c.IsResearch is { } ir && e.AiSignals.IsResearch != ir)
+        {
+            yield return $"aiSignals.isResearch expected {ir}, got {e.AiSignals.IsResearch}";
+        }
+
         if (c.Salary is SalaryExpectation.Present)
         {
             if (e.Salary is null)
@@ -186,6 +206,10 @@ public sealed class GoldenEnrichmentSetTests
                 TimezoneIn: Set(m, "timezoneIn"),
                 StageIn: Set(m, "stageIn"),
                 RoleFamilyIn: Set(m, "roleFamilyIn"),
+                BuildsAiProduct: OptionalBool(m, "buildsAiProduct"),
+                BuildsAiInfra: OptionalBool(m, "buildsAiInfra"),
+                UsesAiTooling: OptionalBool(m, "usesAiTooling"),
+                IsResearch: OptionalBool(m, "isResearch"),
                 Salary: ParseSalaryExpectation(Optional(m, "salary")),
                 SalaryFloor: OptionalDecimal(m, "salaryFloor"),
                 SalaryCeil: OptionalDecimal(m, "salaryCeil"),
@@ -249,6 +273,10 @@ public sealed class GoldenEnrichmentSetTests
         IReadOnlyList<string> TimezoneIn,
         IReadOnlyList<string> StageIn,
         IReadOnlyList<string> RoleFamilyIn,
+        bool? BuildsAiProduct,
+        bool? BuildsAiInfra,
+        bool? UsesAiTooling,
+        bool? IsResearch,
         SalaryExpectation Salary,
         decimal? SalaryFloor,
         decimal? SalaryCeil,

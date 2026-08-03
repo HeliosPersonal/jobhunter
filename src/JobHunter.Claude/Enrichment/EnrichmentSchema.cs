@@ -49,6 +49,10 @@ public static class EnrichmentSchema
             WriteBoolean(w, "isContractorFriendly");
             WriteEnum(w, "timezoneBand", EnumValuesExceptUnknown<TimezoneBand>());
             WriteEnum(w, "aiUsage", EnumValuesExceptUnknown<AiUsageLevel>());
+
+            // aiSignals resolves the scalar (TUNE-04). It is deliberately optional — the model supplies the
+            // sub-signals when the work supports them, and an absent object degrades to all-false in the parser.
+            WriteAiSignals(w);
             WriteEnum(w, "companyStage", EnumValuesExceptUnknown<CompanyStage>());
 
             // roleFamily is a closed enum whose 'Other' member is a legitimate classification, not a
@@ -94,6 +98,19 @@ public static class EnrichmentSchema
         w.WriteEndObject(); // properties
 
         w.WriteEndObject(); // salary
+    }
+
+    private static void WriteAiSignals(Utf8JsonWriter w)
+    {
+        w.WriteStartObject("aiSignals");
+        w.WriteString("type", "object");
+        w.WriteStartObject("properties");
+        WriteBoolean(w, "buildsAiProduct");
+        WriteBoolean(w, "buildsAiInfra");
+        WriteBoolean(w, "usesAiTooling");
+        WriteBoolean(w, "isResearch");
+        w.WriteEndObject(); // properties
+        w.WriteEndObject(); // aiSignals
     }
 
     private static void WriteBoolean(Utf8JsonWriter w, string name)

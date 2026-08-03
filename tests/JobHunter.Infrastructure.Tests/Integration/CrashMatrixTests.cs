@@ -385,6 +385,7 @@ public sealed class CrashMatrixTests
             var enrichment = new EnrichmentAggregate(
                 _ids.NewId(), jobId, runId, salary: null, isRemote: true, isContractorFriendly: false,
                 JobHunter.Domain.Intelligence.TimezoneBand.EMEA, JobHunter.Domain.Intelligence.AiUsageLevel.Medium,
+                JobHunter.Domain.Intelligence.AiSignals.None,
                 JobHunter.Domain.Intelligence.CompanyStage.SeriesB,
                 JobHunter.Domain.Intelligence.RoleFamily.Platform, technologies: ["Go"],
                 reasons: ["pre-stored before the crash"], EnrichmentPrompt.PromptVersion, Now);

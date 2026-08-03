@@ -23,11 +23,13 @@ public sealed class EnrichmentRepository(JobHunterDbContext context, INpgsqlConn
         """
         INSERT INTO enrichments
             (id, job_id, run_id, salary_min, salary_max, salary_currency, salary_period, salary_confidence,
-             is_remote, is_contractor_friendly, timezone_band, ai_usage, company_stage, technologies,
+             is_remote, is_contractor_friendly, timezone_band, ai_usage, ai_builds_product, ai_builds_infra,
+             ai_uses_tooling, ai_is_research, company_stage, role_family, technologies,
              reasons, prompt_version, created_at)
         VALUES
             (@id, @job_id, @run_id, @salary_min, @salary_max, @salary_currency, @salary_period, @salary_confidence,
-             @is_remote, @is_contractor_friendly, @timezone_band, @ai_usage, @company_stage, @technologies,
+             @is_remote, @is_contractor_friendly, @timezone_band, @ai_usage, @ai_builds_product, @ai_builds_infra,
+             @ai_uses_tooling, @ai_is_research, @company_stage, @role_family, @technologies,
              @reasons, @prompt_version, @created_at)
         ON CONFLICT (job_id, run_id) DO NOTHING
         RETURNING id;
@@ -63,7 +65,12 @@ public sealed class EnrichmentRepository(JobHunterDbContext context, INpgsqlConn
         command.Parameters.Add(new NpgsqlParameter("is_contractor_friendly", NpgsqlDbType.Boolean) { Value = e.IsContractorFriendly });
         command.Parameters.Add(new NpgsqlParameter("timezone_band", NpgsqlDbType.Text) { Value = e.TimezoneBand.ToString() });
         command.Parameters.Add(new NpgsqlParameter("ai_usage", NpgsqlDbType.Text) { Value = e.AiUsage.ToString() });
+        command.Parameters.Add(new NpgsqlParameter("ai_builds_product", NpgsqlDbType.Boolean) { Value = e.AiSignals.BuildsAiProduct });
+        command.Parameters.Add(new NpgsqlParameter("ai_builds_infra", NpgsqlDbType.Boolean) { Value = e.AiSignals.BuildsAiInfra });
+        command.Parameters.Add(new NpgsqlParameter("ai_uses_tooling", NpgsqlDbType.Boolean) { Value = e.AiSignals.UsesAiTooling });
+        command.Parameters.Add(new NpgsqlParameter("ai_is_research", NpgsqlDbType.Boolean) { Value = e.AiSignals.IsResearch });
         command.Parameters.Add(new NpgsqlParameter("company_stage", NpgsqlDbType.Text) { Value = e.CompanyStage.ToString() });
+        command.Parameters.Add(new NpgsqlParameter("role_family", NpgsqlDbType.Text) { Value = e.RoleFamily.ToString() });
         command.Parameters.Add(new NpgsqlParameter("technologies", NpgsqlDbType.Jsonb) { Value = StringListJson.Serialize(e.Technologies) });
         command.Parameters.Add(new NpgsqlParameter("reasons", NpgsqlDbType.Jsonb) { Value = StringListJson.Serialize(e.Reasons) });
         command.Parameters.Add(new NpgsqlParameter("prompt_version", NpgsqlDbType.Text) { Value = e.PromptVersion });
