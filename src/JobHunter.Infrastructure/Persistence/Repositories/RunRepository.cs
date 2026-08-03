@@ -69,6 +69,14 @@ public sealed class RunRepository(JobHunterDbContext context) : IRunRepository
                 e => e.RunId == runId && e.Stage == stage && e.Tier == tier && e.Kind == kind,
                 cancellationToken);
 
+    public async Task<IReadOnlyList<BatchItem>> FindBatchItemsAsync(
+        Guid batchId,
+        CancellationToken cancellationToken = default) =>
+        await context.Set<BatchItem>()
+            .Where(i => i.BatchId == batchId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
     public async Task<IReadOnlyList<Guid>> FindRetriableJobIdsAsync(CancellationToken cancellationToken = default) =>
         await context.Set<BatchItem>()
             .Where(i =>

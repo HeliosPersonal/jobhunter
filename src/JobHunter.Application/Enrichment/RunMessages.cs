@@ -29,6 +29,16 @@ public sealed record EnrichmentSubmissionDue(Guid RunId);
 public sealed record BatchPollDue(Guid RunId);
 
 /// <summary>
+/// A provider batch has ended and its results are ready to stream, parse and store (F3 SAD §6.2, T11 →
+/// T12). Published by the poller the moment <see cref="Domain.Abstractions.ProviderBatchState.Ended"/> is
+/// observed; handled by the result-processing step (T12), which streams each item, upserts an enrichment
+/// or records a per-item failure, writes the actual-cost ledger entry and advances the Run to
+/// <see cref="RunState.Matching"/>. An internal application message, not a cross-boundary event. Keyed on
+/// <see cref="RunId"/>; the unique <c>(job_id, run_id)</c> enrichment index makes reprocessing safe (AC-06).
+/// </summary>
+public sealed record BatchResultsReady(Guid RunId, Guid BatchId, string ProviderBatchId);
+
+/// <summary>
 /// One non-terminal Run must be re-entered at its current state after a restart (F3 SAD §6.1, QG-1,
 /// AC-05). Published one-per-Run by the startup resume sweep so a single Run's resumption is a single
 /// message's concern; handled by <see cref="RunOrchestrator"/>, which loads the Run and dispatches on

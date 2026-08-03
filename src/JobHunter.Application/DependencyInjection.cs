@@ -17,6 +17,7 @@ public static class DependencyInjection
     {
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IIdGenerator, UuidV7Generator>();
+        services.AddSingleton<IJitter, SystemJitter>();
 
         // Discovery application services — resolved by the CLI seed command and the recurring jobs.
         services.AddScoped<Discovery.CompanyRegistryService>();
@@ -58,6 +59,16 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton(sp =>
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Enrichment.RunOptions>>().Value);
+
+        // The batch poller (T11): a delayed job that re-enqueues itself on the backoff schedule, never a
+        // loop (S5). Resolved by Wolverine for BatchPollDue; it polls the persisted provider batch and
+        // never resubmits (AC-05), and ships partial at the deadline or the 6 h cap (AC-09).
+        services.AddScoped<Enrichment.BatchPollHandler>();
+        services.AddOptions<Enrichment.PollOptions>()
+            .Validate(o => o.MaxPollDuration > TimeSpan.Zero, "Poll:MaxPollDuration must be positive.")
+            .ValidateOnStart();
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Enrichment.PollOptions>>().Value);
 
         return services;
     }

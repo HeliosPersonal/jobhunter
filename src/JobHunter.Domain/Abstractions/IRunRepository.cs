@@ -67,6 +67,14 @@ public interface IRunRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Every <see cref="BatchItem"/> belonging to <paramref name="batchId"/>, tracked for update. The
+    /// poller loads them when a batch does not finish before the deadline or the 6 h cap, so it can mark
+    /// each as carried-over (<see cref="BatchItemState.ProviderError"/>) and let the next Run re-scope them
+    /// via <see cref="FindRetriableJobIdsAsync"/> (AC-08, AC-09).
+    /// </summary>
+    Task<IReadOnlyList<BatchItem>> FindBatchItemsAsync(Guid batchId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// The job ids of items that failed their first attempt and are eligible for their single retry on the
     /// next Run (AC-08): items in <see cref="BatchItemState.ParseFailed"/> or
     /// <see cref="BatchItemState.ProviderError"/> whose retry count is below the ceiling. The next Run's
