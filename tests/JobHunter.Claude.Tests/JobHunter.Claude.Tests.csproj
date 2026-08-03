@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Unit and fixture suites for the Anthropic adapter layer (F3 T06-T08, T14). CostAccountant and the
+    pricing table (T06), the tolerant parser and enrichment schema (T08) and the recorded batch-result
+    fixtures are all exercised with zero network and no time dependency.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\JobHunter.Claude\JobHunter.Claude.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Application\JobHunter.Application.csproj" />
+    <ProjectReference Include="..\..\src\JobHunter.Domain\JobHunter.Domain.csproj" />
+    <ProjectReference Include="..\JobHunter.TestKit\JobHunter.TestKit.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
