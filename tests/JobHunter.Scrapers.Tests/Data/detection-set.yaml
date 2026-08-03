@@ -1,0 +1,172 @@
+# The labelled detection corpus (T08, AC-03/AC-04). Fifty companies with a known board (or none),
+# each replayed as a zero-network probe: the router answers the ATS the company actually uses and 404s
+# everything else. Accuracy must stay >= 47/50 — the detector's job is to bind the right board or bind
+# nothing, never to attribute another company's jobs. `token` is the board slug the provider answers to;
+# where it differs from the domain label the case exercises the careers-URL / hyphen token derivation.
+companies:
+  # --- Greenhouse, exact domain-derived token, apply URL points home (score 0.90) ---
+  - domain: stripe.com
+    boards: [{ provider: greenhouse, token: stripe, applyMatches: true }]
+    expect: greenhouse
+  - domain: gitlab.com
+    boards: [{ provider: greenhouse, token: gitlab, applyMatches: true }]
+    expect: greenhouse
+  - domain: airbnb.com
+    boards: [{ provider: greenhouse, token: airbnb, applyMatches: true }]
+    expect: greenhouse
+  - domain: coinbase.com
+    boards: [{ provider: greenhouse, token: coinbase, applyMatches: true }]
+    expect: greenhouse
+  - domain: doordash.com
+    boards: [{ provider: greenhouse, token: doordash, applyMatches: true }]
+    expect: greenhouse
+  - domain: robinhood.com
+    boards: [{ provider: greenhouse, token: robinhood, applyMatches: true }]
+    expect: greenhouse
+  - domain: dropbox.com
+    boards: [{ provider: greenhouse, token: dropbox, applyMatches: true }]
+    expect: greenhouse
+  - domain: pinterest.com
+    boards: [{ provider: greenhouse, token: pinterest, applyMatches: true }]
+    expect: greenhouse
+  - domain: snowflake.com
+    boards: [{ provider: greenhouse, token: snowflake, applyMatches: true }]
+    expect: greenhouse
+  - domain: datadoghq.com
+    boards: [{ provider: greenhouse, token: datadoghq, applyMatches: true }]
+    expect: greenhouse
+  - domain: asana.com
+    boards: [{ provider: greenhouse, token: asana, applyMatches: true }]
+    expect: greenhouse
+  - domain: twilio.com
+    boards: [{ provider: greenhouse, token: twilio, applyMatches: true }]
+    expect: greenhouse
+  - domain: okta.com
+    boards: [{ provider: greenhouse, token: okta, applyMatches: true }]
+    expect: greenhouse
+  - domain: cloudflare.com
+    boards: [{ provider: greenhouse, token: cloudflare, applyMatches: true }]
+    expect: greenhouse
+  - domain: hashicorp.com
+    boards: [{ provider: greenhouse, token: hashicorp, applyMatches: true }]
+    expect: greenhouse
+
+  # --- Lever, exact domain-derived token ---
+  - domain: netlify.com
+    boards: [{ provider: lever, token: netlify, applyMatches: true }]
+    expect: lever
+  - domain: mixpanel.com
+    boards: [{ provider: lever, token: mixpanel, applyMatches: true }]
+    expect: lever
+  - domain: brex.com
+    boards: [{ provider: lever, token: brex, applyMatches: true }]
+    expect: lever
+  - domain: ramp.com
+    boards: [{ provider: lever, token: ramp, applyMatches: true }]
+    expect: lever
+  - domain: notion.so
+    boards: [{ provider: lever, token: notion, applyMatches: true }]
+    expect: lever
+  - domain: loom.com
+    boards: [{ provider: lever, token: loom, applyMatches: true }]
+    expect: lever
+  - domain: vercel.com
+    boards: [{ provider: lever, token: vercel, applyMatches: true }]
+    expect: lever
+  - domain: replit.com
+    boards: [{ provider: lever, token: replit, applyMatches: true }]
+    expect: lever
+  - domain: census.co
+    boards: [{ provider: lever, token: census, applyMatches: true }]
+    expect: lever
+  - domain: retool.com
+    boards: [{ provider: lever, token: retool, applyMatches: true }]
+    expect: lever
+  - domain: webflow.com
+    boards: [{ provider: lever, token: webflow, applyMatches: true }]
+    expect: lever
+  - domain: sentry.io
+    boards: [{ provider: lever, token: sentry, applyMatches: true }]
+    expect: lever
+
+  # --- Ashby, exact domain-derived token ---
+  - domain: linear.app
+    boards: [{ provider: ashby, token: linear, applyMatches: true }]
+    expect: ashby
+  - domain: render.com
+    boards: [{ provider: ashby, token: render, applyMatches: true }]
+    expect: ashby
+  - domain: modal.com
+    boards: [{ provider: ashby, token: modal, applyMatches: true }]
+    expect: ashby
+  - domain: supabase.com
+    boards: [{ provider: ashby, token: supabase, applyMatches: true }]
+    expect: ashby
+  - domain: posthog.com
+    boards: [{ provider: ashby, token: posthog, applyMatches: true }]
+    expect: ashby
+  - domain: warp.dev
+    boards: [{ provider: ashby, token: warp, applyMatches: true }]
+    expect: ashby
+  - domain: zed.dev
+    boards: [{ provider: ashby, token: zed, applyMatches: true }]
+    expect: ashby
+  - domain: raycast.com
+    boards: [{ provider: ashby, token: raycast, applyMatches: true }]
+    expect: ashby
+
+  # --- Workable, exact domain-derived token ---
+  - domain: typeform.com
+    boards: [{ provider: workable, token: typeform, applyMatches: true }]
+    expect: workable
+  - domain: hotjar.com
+    boards: [{ provider: workable, token: hotjar, applyMatches: true }]
+    expect: workable
+  - domain: remote.com
+    boards: [{ provider: workable, token: remote, applyMatches: true }]
+    expect: workable
+  - domain: personio.com
+    boards: [{ provider: workable, token: personio, applyMatches: true }]
+    expect: workable
+  - domain: pipedrive.com
+    boards: [{ provider: workable, token: pipedrive, applyMatches: true }]
+    expect: workable
+  - domain: gorgias.com
+    boards: [{ provider: workable, token: gorgias, applyMatches: true }]
+    expect: workable
+  - domain: aircall.io
+    boards: [{ provider: workable, token: aircall, applyMatches: true }]
+    expect: workable
+  - domain: payfit.com
+    boards: [{ provider: workable, token: payfit, applyMatches: true }]
+    expect: workable
+
+  # --- Token differs from the domain: hyphen-collapsed and careers-URL derivation ---
+  - domain: acme-labs.com
+    boards: [{ provider: greenhouse, token: acmelabs, applyMatches: true }]
+    expect: greenhouse
+  - domain: foo-bar.io
+    boards: [{ provider: lever, token: foobar, applyMatches: true }]
+    expect: lever
+  - domain: bigco.com
+    careersUrl: https://jobs.ashbyhq.com/bigco-inc
+    boards: [{ provider: ashby, token: bigco-inc, applyMatches: true }]
+    expect: ashby
+
+  # --- No board reachable: the correct answer is to bind nothing ---
+  - domain: darkmatter-holdings.com
+    boards: []
+    expect: none
+  - domain: private-familyoffice.com
+    boards: []
+    expect: none
+  - domain: no-public-ats.example
+    boards: []
+    expect: none
+
+  # --- Two providers both answer for the same slug: ambiguous, stays inactive ---
+  - domain: dualstack.io
+    boards:
+      - { provider: greenhouse, token: dualstack, applyMatches: true }
+      - { provider: lever, token: dualstack, applyMatches: true }
+    expect: ambiguous

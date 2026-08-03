@@ -1,0 +1,17 @@
+{
+  "jobs": [
+    {
+      "id": "ashby-0001",
+      "title": "Senior Product Engineer",
+      "descriptionPlain": "Ship product surfaces used by millions.",
+      "applyUrl": "https://jobs.ashbyhq.com/acme/ashby-0001",
+      "location": "Remote - US",
+      "secondaryLocations": [ "New York" ],
+      "isRemote": true,
+      "employmentType": "FullTime",
+      "compensation": { "compensationTierSummary": "$180K – $220K" },
+      "publishedAt": "2026-07-20T00:00:00Z",
+      "updatedAt": "2026-07-30T12:00:00Z"
+    }
+  ]
+}

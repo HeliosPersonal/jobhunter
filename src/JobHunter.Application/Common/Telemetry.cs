@@ -5,7 +5,7 @@ namespace JobHunter.Application.Common;
 
 /// <summary>
 /// The single <see cref="ActivitySource"/> and <see cref="Meter"/> for the whole pipeline, plus the
-/// eight domain instruments declared once here (observability §2). No other file creates a meter or
+/// nine domain instruments declared once here (observability §2). No other file creates a meter or
 /// an activity source. Label discipline is enforced by <see cref="TelemetryLabels"/> and asserted in T11.
 /// </summary>
 public static class Telemetry
@@ -48,4 +48,10 @@ public static class Telemetry
     // 8
     public static readonly Counter<long> ParseFailures =
         Meter.CreateCounter<long>("jobhunter.llm.parse_failures", "items", "LLM items that failed schema validation");
+
+    // 9 — the share of a board's postings whose content was unchanged since the last fetch (AC-02).
+    // Expected ≈ 0.90: most postings are re-seen verbatim every six hours and only bump last_seen_at.
+    public static readonly Histogram<double> RawPostingsUnchangedRatio =
+        Meter.CreateHistogram<double>(
+            "jobhunter.raw_postings.unchanged_ratio", "ratio", "Fraction of a board's postings unchanged since last fetch");
 }

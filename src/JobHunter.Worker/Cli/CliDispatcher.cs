@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using JobHunter.Application;
 using JobHunter.Infrastructure;
 using JobHunter.Infrastructure.Configuration;
 using JobHunter.Infrastructure.Messaging;
@@ -18,6 +19,7 @@ public static class CliDispatcher
     {
         ["migrate"] = CliCommand.Migrate,
         ["replay-dlq"] = CliCommand.ReplayDlq,
+        ["seed"] = CliCommand.Seed,
     };
 
     /// <summary>
@@ -63,6 +65,7 @@ public static class CliDispatcher
         {
             CliCommand.Migrate => await MigrateCommand.RunAsync(host.Services),
             CliCommand.ReplayDlq => await ReplayDlqCommand.RunAsync(host.Services, args),
+            CliCommand.Seed => await SeedCommand.RunAsync(host.Services, args),
             _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unhandled CLI command."),
         };
     }
@@ -72,6 +75,7 @@ public static class CliDispatcher
     {
         var builder = Host.CreateApplicationBuilder(args);
         builder.AddEnvVariablesAndConfigureSecrets();
+        builder.Services.AddJobHunterApplication();
         builder.Services.AddJobHunterInfrastructure(builder.Configuration);
         builder.Services.AddDeadLetterReplay();
 

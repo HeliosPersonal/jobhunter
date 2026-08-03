@@ -2,7 +2,7 @@
 status: Draft
 owner: "Viacheslav Melnichenko"
 reviewers: ["Tech Lead (Viacheslav)"]
-updated_at: "2026-08-02"
+updated_at: "2026-08-03"
 feature_size: "M"
 stage: "13"
 ticket: ""
@@ -19,19 +19,19 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 
 | ID | Task | Layer | Deps | Est | Status |
 |---|---|---|---|---|---|
-| T01 | [[T01-domain-company-binding\|Domain: Company, AtsBinding, CanonicalDomain]] | domain | — | M | pending |
-| T02 | [[T02-registry-persistence\|Migration and repositories for registry tables]] | infra/db | T01 | M | pending |
-| T03 | [[T03-registry-seeding\|Company registry seeding and expansion]] | app | T02 | M | pending |
-| T04 | [[T04-politeness-handler\|PolitenessHandler: rate limit, robots, SSRF, user-agent]] | infra/http | — | L | pending |
-| T05 | [[T05-ijobsource-greenhouse\|IJobSource port and Greenhouse adapter]] | scrapers | T04 | M | pending |
-| T06 | [[T06-lever-ashby-workable\|Lever, Ashby and Workable adapters]] | scrapers | T05 | L | pending |
-| T07 | [[T07-jsonld-careers-adapter\|JSON-LD career-page adapter (Tier 2)]] | scrapers | T05 | M | pending |
-| T08 | [[T08-binding-detection\|ATS binding detection]] | app | T06 | L | pending |
-| T09 | [[T09-binding-redetection\|Binding re-detection and ATS migration]] | app | T08 | M | pending |
-| T10 | [[T10-discovery-cycle\|Discovery cycle handler and fan-out]] | app | T02, T05 | M | pending |
-| T11 | [[T11-raw-ingestion-dedup\|Raw posting ingestion with content-hash dedup]] | app | T10 | M | pending |
-| T12 | [[T12-quarantine-logging\|Quarantine, fetch logging and degraded reporting]] | app | T11 | M | pending |
-| T13 | [[T13-closure-sweep\|Closure sweep: emit JobClosed for postings gone from their board]] | app | T11 | S | pending |
+| T01 | [[T01-domain-company-binding\|Domain: Company, AtsBinding, CanonicalDomain]] | domain | — | M | done |
+| T02 | [[T02-registry-persistence\|Migration and repositories for registry tables]] | infra/db | T01 | M | done |
+| T03 | [[T03-registry-seeding\|Company registry seeding and expansion]] | app | T02 | M | done |
+| T04 | [[T04-politeness-handler\|PolitenessHandler: rate limit, robots, SSRF, user-agent]] | infra/http | — | L | done |
+| T05 | [[T05-ijobsource-greenhouse\|IJobSource port and Greenhouse adapter]] | scrapers | T04 | M | done |
+| T06 | [[T06-lever-ashby-workable\|Lever, Ashby and Workable adapters]] | scrapers | T05 | L | done |
+| T07 | [[T07-jsonld-careers-adapter\|JSON-LD career-page adapter (Tier 2)]] | scrapers | T05 | M | done |
+| T08 | [[T08-binding-detection\|ATS binding detection]] | app | T06 | L | done |
+| T09 | [[T09-binding-redetection\|Binding re-detection and ATS migration]] | app | T08 | M | done |
+| T10 | [[T10-discovery-cycle\|Discovery cycle handler and fan-out]] | app | T02, T05 | M | done |
+| T11 | [[T11-raw-ingestion-dedup\|Raw posting ingestion with content-hash dedup]] | app | T10 | M | done |
+| T12 | [[T12-quarantine-logging\|Quarantine, fetch logging and degraded reporting]] | app | T11 | M | done |
+| T13 | [[T13-closure-sweep\|Closure sweep: emit JobClosed for postings gone from their board]] | app | T11 | S | done |
 
 **13 tasks · 1×S + 9×M + 3×L ≈ 7.5 person-days** (T13 is the small closure sweep).
 

@@ -1,0 +1,17 @@
+{
+  "jobs": [
+    {
+      "id": 6001,
+      "title": "Backend Engineer",
+      "updated_at": "2026-07-29T09:00:00-04:00",
+      "requisition_id": "REQ-6001",
+      "location": { "name": "Remote" },
+      "absolute_url": "https://boards.greenhouse.io/acme/jobs/6001",
+      "content": "&lt;p&gt;Own the API.&lt;/p&gt;",
+      "departments": [ { "name": "Engineering" } ]
+    },
+    {
+      "id": 6002,
+      "title": "Data Engineer",
+      "updated_at": "2026-07-29T10:00:00-04:00",
+      "location": { "name": "Rem

@@ -1,13 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    ATS adapter layer. Empty in F0 — F1 fills it with the five IJobSource adapters. It exists now so
-    the dependency direction (Hosts → Scrapers → Application → Domain) is asserted by T12 from day one
-    and a later feature adds a class, not a project reference (QG-1).
+    ATS adapter layer (QG-1): one class per provider behind IJobSource, so adding a provider is a new
+    class here, not a change to the pipeline. Adapters never construct an HttpClient — they resolve the
+    shared politeness-gated client by name (QG-2), asserted by an architecture test.
   -->
   <ItemGroup>
     <ProjectReference Include="..\JobHunter.Application\JobHunter.Application.csproj" />
     <ProjectReference Include="..\JobHunter.Domain\JobHunter.Domain.csproj" />
+    <ProjectReference Include="..\JobHunter.Contracts\JobHunter.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Streaming, parsing and canonicalisation helpers are internal; the tests project drives them. -->
+    <InternalsVisibleTo Include="JobHunter.Scrapers.Tests" />
   </ItemGroup>
 
 </Project>

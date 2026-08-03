@@ -1,0 +1,198 @@
+# JobHunter curated company registry (F1 T03, ADR-F1-0001).
+#
+# One entry per hiring organisation. This is the trusted seed: every entry carries a known ATS binding,
+# so `seed` creates the company active with a confident binding and local discovery produces jobs on the
+# first run. Provenance is `Curated` for every row here — the weekly directory crawl proposes companies
+# inactive under `DirectoryCrawl` instead.
+#
+# Schema (validated by CompanySeedLoader, which fails naming the offending line):
+#   domain:        required, canonicalisable registrable domain (natural key, unique)
+#   display_name:  required
+#   ats_kind:      required, one of Greenhouse | Lever | Ashby | Workable | CareersPage
+#   board_token:   required, the provider's board slug (or full careers URL for CareersPage)
+#   careers_url:   optional detection hint
+#   hq_country:    optional ISO-3166-1 alpha-2
+#
+# Curation (which companies belong here) is deliberately out of scope of the code: add, remove or correct
+# a row and re-run `seed` — it is idempotent and reports zero inserts when nothing changed.
+
+- domain: stripe.com
+  display_name: Stripe
+  ats_kind: Greenhouse
+  board_token: stripe
+  careers_url: https://stripe.com/jobs
+  hq_country: US
+
+- domain: airtable.com
+  display_name: Airtable
+  ats_kind: Greenhouse
+  board_token: airtable
+  hq_country: US
+
+- domain: gitlab.com
+  display_name: GitLab
+  ats_kind: Greenhouse
+  board_token: gitlab
+  hq_country: US
+
+- domain: databricks.com
+  display_name: Databricks
+  ats_kind: Greenhouse
+  board_token: databricks
+  hq_country: US
+
+- domain: benchling.com
+  display_name: Benchling
+  ats_kind: Greenhouse
+  board_token: benchling
+  hq_country: US
+
+- domain: robinhood.com
+  display_name: Robinhood
+  ats_kind: Greenhouse
+  board_token: robinhood
+  hq_country: US
+
+- domain: coinbase.com
+  display_name: Coinbase
+  ats_kind: Greenhouse
+  board_token: coinbase
+  hq_country: US
+
+- domain: dropbox.com
+  display_name: Dropbox
+  ats_kind: Greenhouse
+  board_token: dropbox
+  hq_country: US
+
+- domain: cloudflare.com
+  display_name: Cloudflare
+  ats_kind: Greenhouse
+  board_token: cloudflare
+  hq_country: US
+
+- domain: reddit.com
+  display_name: Reddit
+  ats_kind: Greenhouse
+  board_token: reddit
+  hq_country: US
+
+- domain: figma.com
+  display_name: Figma
+  ats_kind: Greenhouse
+  board_token: figma
+  hq_country: US
+
+- domain: brex.com
+  display_name: Brex
+  ats_kind: Greenhouse
+  board_token: brex
+  hq_country: US
+
+- domain: plaid.com
+  display_name: Plaid
+  ats_kind: Lever
+  board_token: plaid
+  hq_country: US
+
+- domain: netlify.com
+  display_name: Netlify
+  ats_kind: Greenhouse
+  board_token: netlify
+  hq_country: US
+
+- domain: mixpanel.com
+  display_name: Mixpanel
+  ats_kind: Greenhouse
+  board_token: mixpanel
+  hq_country: US
+
+- domain: nutanix.com
+  display_name: Nutanix
+  ats_kind: Lever
+  board_token: nutanix
+  hq_country: US
+
+- domain: ramp.com
+  display_name: Ramp
+  ats_kind: Ashby
+  board_token: ramp
+  hq_country: US
+
+- domain: linear.app
+  display_name: Linear
+  ats_kind: Ashby
+  board_token: linear
+  hq_country: US
+
+- domain: posthog.com
+  display_name: PostHog
+  ats_kind: Ashby
+  board_token: posthog
+  hq_country: US
+
+- domain: deel.com
+  display_name: Deel
+  ats_kind: Ashby
+  board_token: deel
+  hq_country: US
+
+- domain: monzo.com
+  display_name: Monzo
+  ats_kind: Greenhouse
+  board_token: monzo
+  hq_country: GB
+
+- domain: wise.com
+  display_name: Wise
+  ats_kind: Greenhouse
+  board_token: transferwise
+  hq_country: GB
+
+- domain: gymshark.com
+  display_name: Gymshark
+  ats_kind: Workable
+  board_token: gymshark
+  hq_country: GB
+
+- domain: remote.com
+  display_name: Remote
+  ats_kind: Greenhouse
+  board_token: remotecom
+  hq_country: US
+
+- domain: elastic.co
+  display_name: Elastic
+  ats_kind: Greenhouse
+  board_token: elastic
+  hq_country: US
+
+- domain: hashicorp.com
+  display_name: HashiCorp
+  ats_kind: Greenhouse
+  board_token: hashicorp
+  hq_country: US
+
+- domain: sourcegraph.com
+  display_name: Sourcegraph
+  ats_kind: Greenhouse
+  board_token: sourcegraph91
+  hq_country: US
+
+- domain: vercel.com
+  display_name: Vercel
+  ats_kind: Greenhouse
+  board_token: vercel
+  hq_country: US
+
+- domain: mistral.ai
+  display_name: Mistral AI
+  ats_kind: Lever
+  board_token: mistral
+  hq_country: FR
+
+- domain: anthropic.com
+  display_name: Anthropic
+  ats_kind: Greenhouse
+  board_token: anthropic
+  hq_country: US

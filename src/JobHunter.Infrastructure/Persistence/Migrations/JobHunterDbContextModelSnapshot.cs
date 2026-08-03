@@ -22,6 +22,279 @@ namespace JobHunter.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("JobHunter.Domain.Companies.AtsBinding", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AtsKind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("ats_kind");
+
+                    b.Property<string>("BoardToken")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("board_token");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<decimal>("Confidence")
+                        .HasColumnType("numeric(3,2)")
+                        .HasColumnName("confidence");
+
+                    b.Property<DateTimeOffset>("DetectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("detected_at");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("evidence");
+
+                    b.Property<DateTimeOffset?>("RetiredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("retired_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId", "AtsKind", "BoardToken")
+                        .IsUnique()
+                        .HasDatabaseName("uq_ats_bindings_live")
+                        .HasFilter("retired_at IS NULL");
+
+                    b.ToTable("ats_bindings", (string)null);
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Companies.Company", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CanonicalDomain")
+                        .IsRequired()
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)")
+                        .HasColumnName("canonical_domain");
+
+                    b.Property<string>("CareersUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("careers_url");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("display_name");
+
+                    b.Property<string>("EmployeeBand")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("employee_band");
+
+                    b.Property<DateTimeOffset>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_seen_at");
+
+                    b.Property<string>("HqCountry")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("hq_country");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("source");
+
+                    b.Property<string>("Stage")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("stage");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CanonicalDomain")
+                        .IsUnique()
+                        .HasDatabaseName("uq_companies_domain");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("idx_companies_active")
+                        .HasFilter("is_active");
+
+                    b.ToTable("companies", (string)null);
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Postings.RawPosting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasColumnType("char(64)")
+                        .HasColumnName("content_hash");
+
+                    b.Property<string>("ExternalId")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("external_id");
+
+                    b.Property<DateTimeOffset>("FetchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fetched_at");
+
+                    b.Property<short>("HttpStatus")
+                        .HasColumnType("smallint")
+                        .HasColumnName("http_status");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("payload");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FetchedAt")
+                        .HasDatabaseName("idx_raw_postings_fetched");
+
+                    b.HasIndex("SourceId", "LastSeenAt")
+                        .HasDatabaseName("idx_raw_postings_source_seen");
+
+                    b.HasIndex("SourceId", "ExternalId", "ContentHash")
+                        .IsUnique()
+                        .HasDatabaseName("uq_raw_postings_dedup");
+
+                    b.ToTable("raw_postings", (string)null);
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Sources.JobSource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("BindingId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("binding_id");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("company_id");
+
+                    b.Property<short>("ConsecutiveFailures")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)0)
+                        .HasColumnName("consecutive_failures");
+
+                    b.Property<string>("EndpointUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("endpoint_url");
+
+                    b.Property<DateTimeOffset?>("LastFetchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_fetched_at");
+
+                    b.Property<DateTimeOffset?>("QuarantinedUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("quarantined_until");
+
+                    b.Property<short>("RequestsPerSecond")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)1)
+                        .HasColumnName("requests_per_second");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BindingId");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("QuarantinedUntil", "LastFetchedAt")
+                        .HasDatabaseName("idx_job_sources_dispatch")
+                        .HasFilter("quarantined_until IS NULL");
+
+                    b.ToTable("job_sources", (string)null);
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Sources.SourceFetchLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("detail");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_ms");
+
+                    b.Property<short>("HttpStatus")
+                        .HasColumnType("smallint")
+                        .HasColumnName("http_status");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("outcome");
+
+                    b.Property<int>("PostingsChanged")
+                        .HasColumnType("integer")
+                        .HasColumnName("postings_changed");
+
+                    b.Property<int>("PostingsReturned")
+                        .HasColumnType("integer")
+                        .HasColumnName("postings_returned");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("source_id");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceId", "StartedAt")
+                        .HasDatabaseName("idx_fetch_log_source_started");
+
+                    b.ToTable("source_fetch_log", (string)null);
+                });
+
             modelBuilder.Entity("JobHunter.Infrastructure.Persistence.Reference.PlatformMarker", b =>
                 {
                     b.Property<Guid>("Id")
@@ -51,6 +324,48 @@ namespace JobHunter.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("uq_platform_markers_label");
 
                     b.ToTable("platform_markers", (string)null);
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Companies.AtsBinding", b =>
+                {
+                    b.HasOne("JobHunter.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Postings.RawPosting", b =>
+                {
+                    b.HasOne("JobHunter.Domain.Sources.JobSource", null)
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Sources.JobSource", b =>
+                {
+                    b.HasOne("JobHunter.Domain.Companies.AtsBinding", null)
+                        .WithMany()
+                        .HasForeignKey("BindingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JobHunter.Domain.Companies.Company", null)
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Sources.SourceFetchLog", b =>
+                {
+                    b.HasOne("JobHunter.Domain.Sources.JobSource", null)
+                        .WithMany()
+                        .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }
