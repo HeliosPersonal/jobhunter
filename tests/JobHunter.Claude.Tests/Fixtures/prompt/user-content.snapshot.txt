@@ -1,0 +1,11 @@
+Company: Acme AI (acme.ai)
+Title: Senior Platform Engineer
+Location: Remote (EMEA)
+Published salary: €90,000–€120,000
+Employment type: FullTime
+
+--- POSTING ---
+We are hiring a platform engineer.
+
+You will build internal tooling.
+--- END POSTING ---
