@@ -30,6 +30,19 @@ public sealed class RawPostingRepository(INpgsqlConnectionFactory connectionFact
         RETURNING (xmax = 0) AS inserted;
         """;
 
+    // The 90-day retention prune (T09, O3): delete only postings gone cold — last seen before the cutoff —
+    // and, defensively, only those no live/closed job still references through job_aliases. The NOT EXISTS
+    // makes the intent explicit in SQL; the restrict FK on job_aliases → raw_postings is the backstop that
+    // would refuse a delete even if this clause were ever wrong, so a referenced posting is never removed.
+    private const string PruneSql =
+        """
+        DELETE FROM raw_postings r
+        WHERE r.last_seen_at < @older_than
+          AND NOT EXISTS (
+              SELECT 1 FROM job_aliases a WHERE a.raw_posting_id = r.id
+          );
+        """;
+
     public async Task<IngestOutcome> IngestAsync(RawPosting posting, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(posting);
@@ -48,5 +61,14 @@ public sealed class RawPostingRepository(INpgsqlConnectionFactory connectionFact
 
         var inserted = (bool)(await command.ExecuteScalarAsync(cancellationToken))!;
         return inserted ? IngestOutcome.Inserted : IngestOutcome.Unchanged;
+    }
+
+    public async Task<int> PruneOlderThanAsync(DateTimeOffset olderThan, CancellationToken cancellationToken = default)
+    {
+        await using var connection = await connectionFactory.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(PruneSql, connection);
+        command.Parameters.Add(new NpgsqlParameter("older_than", NpgsqlDbType.TimestampTz) { Value = olderThan });
+
+        return await command.ExecuteNonQueryAsync(cancellationToken);
     }
 }

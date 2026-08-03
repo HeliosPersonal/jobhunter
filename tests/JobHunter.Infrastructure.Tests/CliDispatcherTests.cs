@@ -10,10 +10,39 @@ public sealed class CliDispatcherTests
     [InlineData("migrate", CliCommand.Migrate)]
     [InlineData("MIGRATE", CliCommand.Migrate)]
     [InlineData("replay-dlq", CliCommand.ReplayDlq)]
+    [InlineData("reprocess", CliCommand.Reprocess)]
+    [InlineData("prune-raw", CliCommand.PruneRaw)]
     public void A_recognised_verb_maps_to_its_command(string verb, CliCommand expected)
     {
         CliDispatcher.TryGetCommand([verb], out var command).ShouldBeTrue();
         command.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void The_since_option_is_parsed_as_a_utc_instant()
+    {
+        var since = CliDispatcher.GetSinceOption(["reprocess", "--since", "2026-01-15"]);
+
+        since.ShouldNotBeNull();
+        since!.Value.ToUniversalTime().ShouldBe(new DateTimeOffset(2026, 1, 15, 0, 0, 0, TimeSpan.Zero));
+    }
+
+    [Fact]
+    public void The_since_option_is_null_when_absent()
+    {
+        CliDispatcher.GetSinceOption(["reprocess"]).ShouldBeNull();
+    }
+
+    [Fact]
+    public void The_since_option_is_null_when_the_flag_has_no_value()
+    {
+        CliDispatcher.GetSinceOption(["reprocess", "--since"]).ShouldBeNull();
+    }
+
+    [Fact]
+    public void The_since_option_is_null_when_the_value_is_not_a_date()
+    {
+        CliDispatcher.GetSinceOption(["reprocess", "--since", "not-a-date"]).ShouldBeNull();
     }
 
     [Fact]

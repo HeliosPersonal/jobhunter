@@ -11,4 +11,13 @@ public enum CliCommand
 
     /// <summary>Upsert the curated company registry from the seed file, then exit (F1 T03).</summary>
     Seed,
+
+    /// <summary>
+    /// Re-run normalisation and deduplication over stored raw payloads with zero network, preserving job
+    /// identities where the fingerprint is unchanged (F2 T09, AC-09). Operator-scoped.
+    /// </summary>
+    Reprocess,
+
+    /// <summary>Prune raw postings older than the retention window (90 days), then exit (F2 T09, O3).</summary>
+    PruneRaw,
 }

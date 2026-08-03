@@ -70,6 +70,7 @@ internal sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         b.Property(x => x.LastSeenAt).HasColumnName("last_seen_at").IsRequired();
         b.Property(x => x.ClosedAt).HasColumnName("closed_at");
         b.Property(x => x.Status).HasColumnName("status").IsRequired();
+        b.Property(x => x.SupersededBy).HasColumnName("superseded_by");
         b.Property(x => x.IsTier2).HasColumnName("is_tier2").HasDefaultValue(false).IsRequired();
 
         b.HasOne<JobHunter.Domain.Companies.Company>()

@@ -25,12 +25,14 @@ public sealed class JobRepository(JobHunterDbContext context, INpgsqlConnectionF
             (id, company_id, origin_raw_posting_id, fingerprint, fingerprint_version, title,
              normalised_title, seniority, description, apply_url, locations, remote_policy,
              employment_type, salary_min, salary_max, salary_currency, salary_period, salary_raw,
-             posted_at, posted_at_granularity, first_seen_at, last_seen_at, closed_at, status, is_tier2)
+             posted_at, posted_at_granularity, first_seen_at, last_seen_at, closed_at, status,
+             superseded_by, is_tier2)
         VALUES
             (@id, @company_id, @origin_raw_posting_id, @fingerprint, @fingerprint_version, @title,
              @normalised_title, @seniority, @description, @apply_url, @locations, @remote_policy,
              @employment_type, @salary_min, @salary_max, @salary_currency, @salary_period, @salary_raw,
-             @posted_at, @posted_at_granularity, @first_seen_at, @last_seen_at, @closed_at, @status, @is_tier2)
+             @posted_at, @posted_at_granularity, @first_seen_at, @last_seen_at, @closed_at, @status,
+             @superseded_by, @is_tier2)
         ON CONFLICT (fingerprint) DO NOTHING
         RETURNING id;
         """;
@@ -134,6 +136,7 @@ public sealed class JobRepository(JobHunterDbContext context, INpgsqlConnectionF
         command.Parameters.Add(new NpgsqlParameter("last_seen_at", NpgsqlDbType.TimestampTz) { Value = job.LastSeenAt });
         command.Parameters.Add(new NpgsqlParameter("closed_at", NpgsqlDbType.TimestampTz) { Value = Nullable(job.ClosedAt) });
         command.Parameters.Add(new NpgsqlParameter("status", NpgsqlDbType.Text) { Value = job.Status.ToString() });
+        command.Parameters.Add(new NpgsqlParameter("superseded_by", NpgsqlDbType.Uuid) { Value = Nullable(job.SupersededBy) });
         command.Parameters.Add(new NpgsqlParameter("is_tier2", NpgsqlDbType.Boolean) { Value = job.IsTier2 });
     }
 

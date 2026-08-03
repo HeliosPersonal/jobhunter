@@ -69,6 +69,12 @@ public static class DependencyInjection
         services.AddScoped<ILiveJobsQuery, LiveJobsQuery>();
         services.AddScoped<IStaleJobsQuery, StaleJobsQuery>();
         services.AddScoped<IRawPostingReader, RawPostingReaderQuery>();
+        services.AddScoped<IReprocessableJobsQuery, ReprocessableJobsQuery>();
+
+        // F2 reprocessing and retention (T09): the offline recompute over stored payloads (zero network) and
+        // the 90-day raw-payload prune. Both are resolved by the Worker's operator-scoped CLI verbs.
+        services.AddScoped<JobHunter.Application.Reprocessing.ReprocessingService>();
+        services.AddScoped<JobHunter.Application.Reprocessing.RetentionService>();
 
         // F2 technology tagging (T07): the committed vocabulary is loaded once from the embedded YAML — a
         // malformed file fails the host at startup, not at first tag — and the pure tagger over it is a

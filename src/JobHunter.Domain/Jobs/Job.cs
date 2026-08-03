@@ -21,6 +21,12 @@ public sealed class Job : Entity
     public static readonly Error CannotReopenQuarantined =
         new("job.reopen.quarantined", "A quarantined job cannot be reopened; resolve the quarantine first.");
 
+    public static readonly Error CannotSupersedeQuarantined =
+        new("job.supersede.quarantined", "A quarantined job cannot be superseded; resolve the quarantine first.");
+
+    public static readonly Error IsSuperseded =
+        new("job.superseded", "A superseded job is terminal; it cannot be closed or reopened.");
+
     private readonly List<JobAlias> _aliases = [];
     private readonly List<JobTechnology> _technologies = [];
 
@@ -144,6 +150,13 @@ public sealed class Job : Entity
 
     public JobStatus Status { get; private set; }
 
+    /// <summary>
+    /// When <see cref="JobStatus.Superseded"/>, the id of the job that replaced this one after a
+    /// reprocessing fingerprint change (AC-09); null otherwise. The superseded row is retained, not deleted,
+    /// so downstream references resolve to a successor rather than dangling.
+    /// </summary>
+    public Guid? SupersededBy { get; private set; }
+
     /// <summary>True when this job originated from a JSON-LD career page (Tier 2, lower confidence).</summary>
     public bool IsTier2 { get; private set; }
 
@@ -209,6 +222,8 @@ public sealed class Job : Entity
         {
             case JobStatus.Quarantined:
                 return CannotCloseQuarantined;
+            case JobStatus.Superseded:
+                return IsSuperseded;
             case JobStatus.Closed:
                 return Result<Job>.Success(this);
             default:
@@ -229,12 +244,42 @@ public sealed class Job : Entity
         {
             case JobStatus.Quarantined:
                 return CannotReopenQuarantined;
+            case JobStatus.Superseded:
+                return IsSuperseded;
             case JobStatus.Live:
                 return Result<Job>.Success(this);
             default:
                 Status = JobStatus.Live;
                 ClosedAt = null;
                 BumpLastSeen(at);
+                return Result<Job>.Success(this);
+        }
+    }
+
+    /// <summary>
+    /// Retires this job in favour of <paramref name="successorId"/> after a reprocessing fingerprint change
+    /// (AC-09). The row is kept — its provenance and any downstream references still resolve — and
+    /// <see cref="SupersededBy"/> records where the opening moved to, rather than orphaning it silently.
+    /// Idempotent: superseding an already-superseded job keeps the first successor. A quarantined job is
+    /// left withheld and refuses, exactly as closure does; a live or closed job may be superseded.
+    /// </summary>
+    public Result<Job> Supersede(Guid successorId, DateTimeOffset at)
+    {
+        if (successorId == Guid.Empty)
+        {
+            throw new ArgumentException("Successor job id must not be empty.", nameof(successorId));
+        }
+
+        switch (Status)
+        {
+            case JobStatus.Quarantined:
+                return CannotSupersedeQuarantined;
+            case JobStatus.Superseded:
+                return Result<Job>.Success(this);
+            default:
+                Status = JobStatus.Superseded;
+                SupersededBy = successorId;
+                ClosedAt = at;
                 return Result<Job>.Success(this);
         }
     }

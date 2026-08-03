@@ -213,6 +213,66 @@ public sealed class JobTests
     }
 
     [Fact]
+    public void Supersede_marks_the_job_superseded_and_records_its_successor()
+    {
+        var job = NewJob();
+        var successor = Guid.Parse("77777777-7777-7777-7777-777777777777");
+        var at = Seen.AddDays(30);
+
+        var result = job.Supersede(successor, at);
+
+        result.IsSuccess.ShouldBeTrue();
+        job.Status.ShouldBe(JobStatus.Superseded);
+        job.SupersededBy.ShouldBe(successor);
+        job.ClosedAt.ShouldBe(at);
+    }
+
+    [Fact]
+    public void Supersede_is_idempotent_and_keeps_the_first_successor()
+    {
+        var job = NewJob();
+        var first = Guid.Parse("77777777-7777-7777-7777-777777777777");
+        job.Supersede(first, Seen.AddDays(30));
+
+        job.Supersede(Guid.Parse("88888888-8888-8888-8888-888888888888"), Seen.AddDays(40))
+            .IsSuccess.ShouldBeTrue();
+
+        job.Status.ShouldBe(JobStatus.Superseded);
+        job.SupersededBy.ShouldBe(first);
+    }
+
+    [Fact]
+    public void An_empty_successor_id_is_rejected()
+    {
+        var job = NewJob();
+
+        Should.Throw<ArgumentException>(() => job.Supersede(Guid.Empty, Seen.AddDays(1)));
+    }
+
+    [Fact]
+    public void A_quarantined_job_cannot_be_superseded()
+    {
+        var job = NewJob(JobStatus.Quarantined);
+
+        var result = job.Supersede(Guid.Parse("77777777-7777-7777-7777-777777777777"), Seen.AddDays(1));
+
+        result.IsFailure.ShouldBeTrue();
+        result.Error.ShouldBe(Job.CannotSupersedeQuarantined);
+        job.Status.ShouldBe(JobStatus.Quarantined);
+    }
+
+    [Fact]
+    public void A_superseded_job_cannot_be_reopened_or_closed()
+    {
+        var job = NewJob();
+        job.Supersede(Guid.Parse("77777777-7777-7777-7777-777777777777"), Seen.AddDays(1));
+
+        job.Reopen(Seen.AddDays(2)).IsFailure.ShouldBeTrue();
+        job.Close(Seen.AddDays(2)).IsFailure.ShouldBeTrue();
+        job.Status.ShouldBe(JobStatus.Superseded);
+    }
+
+    [Fact]
     public void Registering_an_alias_records_provenance()
     {
         var job = NewJob();

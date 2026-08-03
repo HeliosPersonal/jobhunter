@@ -20,7 +20,33 @@ public static class CliDispatcher
         ["migrate"] = CliCommand.Migrate,
         ["replay-dlq"] = CliCommand.ReplayDlq,
         ["seed"] = CliCommand.Seed,
+        ["reprocess"] = CliCommand.Reprocess,
+        ["prune-raw"] = CliCommand.PruneRaw,
     };
+
+    /// <summary>
+    /// Parses a <c>--since &lt;yyyy-MM-dd&gt;</c> option to an instant, if present and well-formed. Pure, so
+    /// the reprocess verb's scoping is unit-tested without a host. Returns null when the flag is absent or
+    /// its value is missing/unparseable — the caller then defaults to the full history.
+    /// </summary>
+    public static DateTimeOffset? GetSinceOption(string[] args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+
+        var index = Array.FindIndex(args, a => string.Equals(a, "--since", StringComparison.OrdinalIgnoreCase));
+        if (index < 0 || index + 1 >= args.Length)
+        {
+            return null;
+        }
+
+        return DateTimeOffset.TryParse(
+            args[index + 1],
+            System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+            out var parsed)
+            ? parsed
+            : null;
+    }
 
     /// <summary>
     /// True when the first non-flag argument is a recognised verb. Pure — no side effects — so the
@@ -66,6 +92,8 @@ public static class CliDispatcher
             CliCommand.Migrate => await MigrateCommand.RunAsync(host.Services),
             CliCommand.ReplayDlq => await ReplayDlqCommand.RunAsync(host.Services, args),
             CliCommand.Seed => await SeedCommand.RunAsync(host.Services, args),
+            CliCommand.Reprocess => await ReprocessCommand.RunAsync(host.Services, args),
+            CliCommand.PruneRaw => await PruneRawCommand.RunAsync(host.Services),
             _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unhandled CLI command."),
         };
     }

@@ -46,6 +46,7 @@ erDiagram
     timestamptz last_seen_at
     timestamptz closed_at
     text status
+    uuid superseded_by
     boolean is_tier2
   }
   JOB_ALIASES {
@@ -90,8 +91,9 @@ The canonical vacancy. One row per real opening ([[../../CONTEXT]] invariant 2).
 | `posted_at` | timestamptz | NULL | |
 | `posted_at_granularity` | text | NOT NULL | `Exact` or `Day` — Workable publishes date only |
 | `first_seen_at` / `last_seen_at` | timestamptz | NOT NULL | |
-| `closed_at` | timestamptz | NULL | |
-| `status` | text | NOT NULL | `Live`, `Closed`, `Quarantined` |
+| `closed_at` | timestamptz | NULL | also set when a job is superseded by reprocessing |
+| `status` | text | NOT NULL | `Live`, `Closed`, `Quarantined`, `Superseded` |
+| `superseded_by` | uuid | NULL | set only when `status = 'Superseded'`; the id of the job that now carries the opening after a reprocessing fingerprint change (AC-09) |
 | `is_tier2` | boolean | NOT NULL DEFAULT false | JSON-LD career-page origin, lower confidence |
 
 **Access patterns:**
@@ -102,6 +104,16 @@ The canonical vacancy. One row per real opening ([[../../CONTEXT]] invariant 2).
 **Constraints:** `fingerprint` unique — enforced by the database, not by application logic, so
 concurrent consumers cannot both insert (SAD §6.1). `title` and `normalised_title` are separate
 columns on purpose: normalising for comparison must never change what the Owner sees (AC-05).
+
+**Reprocessing lifecycle (AC-09, T09):** the `reprocess` operator command re-runs normalisation over
+each job's stored origin payload with zero network. A job whose recomputed fingerprint is unchanged
+keeps its `id`, so its enrichments and matches stay attached. A job whose fingerprint changed under an
+improved rule is retired to `status = 'Superseded'` with `superseded_by` pointing at the new job that
+now carries the opening — the old row is kept, not deleted, so downstream references resolve to a
+successor rather than dangling. A quarantined job is never superseded out from under review. The
+retention job (`prune-raw`) deletes `raw_postings` last seen more than 90 days ago (O3), but never one
+still referenced by a `job_aliases` row — enforced both by the prune's `NOT EXISTS` and by the
+`job_aliases → raw_postings` restrict FK.
 
 ### `job_aliases`
 

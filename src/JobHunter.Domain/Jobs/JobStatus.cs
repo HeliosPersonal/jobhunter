@@ -15,4 +15,11 @@ public enum JobStatus
 
     /// <summary>Withheld from the pipeline pending review — never auto-closed or auto-reopened.</summary>
     Quarantined,
+
+    /// <summary>
+    /// Retired by reprocessing: a normalisation-rule change moved this job's fingerprint, so a new job now
+    /// carries the opening and this row points at it via <c>superseded_by</c> rather than being deleted
+    /// (AC-09). A terminal state — never auto-closed or auto-reopened.
+    /// </summary>
+    Superseded,
 }
