@@ -63,6 +63,7 @@ public static class DependencyInjection
         services.AddScoped<IJobSourceRepository, JobSourceRepository>();
         services.AddScoped<IRawPostingRepository, RawPostingRepository>();
         services.AddScoped<IJobRepository, JobRepository>();
+        services.AddScoped<IRunRepository, RunRepository>();
         services.AddScoped<IDegradedCoverageQuery, DegradedCoverageQuery>();
         services.AddScoped<IClosureSweepQuery, ClosureSweepQuery>();
         services.AddScoped<IRedetectionQuery, RedetectionQuery>();
