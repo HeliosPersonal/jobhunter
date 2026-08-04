@@ -7,7 +7,7 @@ namespace JobHunter.Infrastructure.Persistence.Intelligence;
 
 /// <summary>
 /// Maps the <see cref="Score"/> aggregate to <c>scores</c> (data-model §scores, ADR-F4-0001). Its identity
-/// is the composite <c>(job_id, run_id)</c>, so there is no surrogate id. Every one of the five score
+/// is the composite <c>(job_id, run_id)</c>, so there is no surrogate id. Every one of the six score
 /// components is stored as an owned <see cref="ScoreComponents"/> value object (QG-1), so a test can
 /// recompute <c>final_score</c> from them and fail if it does not reconcile. <c>idx_scores_run_final</c>
 /// serves the digest query — <c>(run_id, final_score DESC) WHERE NOT suppressed</c> — and
@@ -31,6 +31,7 @@ internal sealed class ScoreConfiguration : IEntityTypeConfiguration<Score>
             c.Property(v => v.Preference).HasColumnName("preference_component").HasColumnType("numeric(5,4)").IsRequired();
             c.Property(v => v.Freshness).HasColumnName("freshness_component").HasColumnType("numeric(5,4)").IsRequired();
             c.Property(v => v.ConfidenceMultiplier).HasColumnName("confidence_multiplier").HasColumnType("numeric(3,2)").IsRequired();
+            c.Property(v => v.AntiGoalMultiplier).HasColumnName("anti_goal_multiplier").HasColumnType("numeric(3,2)").IsRequired();
         });
         b.Navigation(x => x.Components).IsRequired();
 

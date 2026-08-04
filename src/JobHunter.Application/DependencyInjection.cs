@@ -117,6 +117,9 @@ public static class DependencyInjection
         // renormalises the preference weight away, so the pipeline runs end-to-end today without F7's schema.
         services.AddOptions<Ranking.RankingOptions>()
             .Validate(o => o.TopJobCount > 0, "Ranking:TopJobCount must be positive.")
+            .Validate(
+                o => o.AntiGoalPenaltyFactor is >= 0m and <= 1m,
+                "Ranking:AntiGoalPenaltyFactor must be in [0, 1].")
             .ValidateOnStart();
         services.AddSingleton(sp =>
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Ranking.RankingOptions>>().Value);

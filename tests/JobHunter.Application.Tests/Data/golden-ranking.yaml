@@ -3,10 +3,10 @@
 # 50 jobs judged against one fixed CV/Owner — EMEA, Senior, a 100000 USD salary floor, seeking FullTime
 # and Contract — by the REAL, pure ranking chain with no LLM in the loop: PreMatchFilter (the factual
 # gate, T12) then AlignmentCalculator + ScoreCalculator + SuppressionEvaluator (the career-alignment
-# component, the linear scorer and the presentation rules, T07/T08/T14). Each case records the deep tier's
-# fit judgement (`model_score`) and the enrichment's recorded classifications (`ai_usage`, `role_family`)
-# — the numbers/labels the batch would have returned — plus the job's facts, and states the band the whole
-# chain must reconcile to.
+# component, the linear scorer, the anti-goal down-weight and the presentation rules, T07/T08/T14/T15).
+# Each case records the deep tier's fit judgement (`model_score`) and the enrichment's recorded
+# classifications (`ai_usage`, `role_family`) — the numbers/labels the batch would have returned — plus the
+# job's facts, and states the band the whole chain must reconcile to.
 #
 # The assertions are on BANDS and RELATIVE ORDER, never exact scores — the model is not deterministic and
 # a test pretending otherwise is a flaky test that gets disabled within a month. The bands (final score):
@@ -20,6 +20,12 @@
 # 0.1875 freshness (they were 0.80 match, 0.20 freshness). Career alignment now carries a quarter of the
 # effective score, so every case records the ai_usage/role_family that produces its alignment, and the
 # whole set was recalibrated in this PR — see the T14 task doc.
+#
+# T15 anti-goal down-weight (stated reason, gate G10): a role the Owner is deliberately leaving — low AI
+# usage (None/Low/Unknown) on the EnterpriseCrud family — is now multiplied by the default 0.50 penalty
+# factor before banding. No case moved band: the only anti-goal cases (id26, id36) were already `reject`
+# (alignment pins EnterpriseCrud at 0, so they top out at 100 × 0.75 × 0.50 = 37.5), and a multiplier
+# that only lowers a score cannot promote any case. The down-weight is off (×1.00) for every other case.
 #
 # This file IS gate G10: a change to the match prompt, the schema or the ranking weights that moves a case
 # out of its band, or reorders the top five, fails the build — or is updated here in the same PR with a

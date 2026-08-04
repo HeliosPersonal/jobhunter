@@ -10,14 +10,17 @@ namespace JobHunter.Application.Ranking;
 /// present, and the timestamps, it produces the 0–100 ordering key and the named components that rebuild
 /// it (QG-1):
 ///
-/// <code>final = 100 × (w_m·match + w_a·alignment + w_p·preference + w_f·freshness) × confidence</code>
+/// <code>final = 100 × (w_m·match + w_a·alignment + w_p·preference + w_f·freshness) × confidence × antiGoal</code>
 ///
 /// <para>When no preference model is active the preference weight is redistributed across the remaining
 /// weights in proportion, so the effective weights still sum to 1 and the preference term contributes
 /// nothing — a job is never penalised for the absence of a model that has not been trained yet. Freshness
 /// decays as <c>exp(-ageDays/7)</c>, capped at 1.00 for a just-seen (or future-dated) posting and
 /// approaching 0 for an ancient one. Confidence is a multiplier — 1.00 with an enrichment, 0.85 without —
-/// so uncertainty lowers a score rather than excluding the job (AC-09).</para>
+/// so uncertainty lowers a score rather than excluding the job (AC-09). The anti-goal multiplier (T15) is a
+/// second, parallel multiplier — 1.00 for an ordinary role, a configured fraction for a role the Owner is
+/// deliberately leaving (<see cref="AntiGoalClassifier"/>) — stored like confidence so the down-weight
+/// remains reconcilable (QG-1) rather than a silent adjustment.</para>
 /// </summary>
 public static class ScoreCalculator
 {
@@ -31,8 +34,10 @@ public static class ScoreCalculator
     /// Scores one job. <paramref name="alignment"/> is the career-alignment component in <c>[0,1]</c>
     /// (from <see cref="AlignmentCalculator"/>). <paramref name="preference"/> is null when no preference
     /// model is active, in which case its weight is renormalised away rather than counted as zero fit.
-    /// Every argument is a value: the same arguments always produce the same result, on any thread, in
-    /// any culture, in any order.
+    /// <paramref name="antiGoalMultiplier"/> is the T15 down-weight in <c>[0,1]</c>: 1.00 (the default) for
+    /// an ordinary role, a configured fraction for a role the Owner is deliberately leaving. Every argument
+    /// is a value: the same arguments always produce the same result, on any thread, in any culture, in any
+    /// order.
     /// </summary>
     public static ScoreResult Calculate(
         MatchFacts match,
@@ -41,7 +46,8 @@ public static class ScoreCalculator
         bool hasEnrichment,
         DateTimeOffset firstSeenAt,
         DateTimeOffset now,
-        RankingWeights weights)
+        RankingWeights weights,
+        decimal antiGoalMultiplier = 1.00m)
     {
         ArgumentNullException.ThrowIfNull(weights);
 
@@ -54,7 +60,7 @@ public static class ScoreCalculator
         var effectiveWeights = preferencePresent ? weights : Renormalise(weights);
 
         var components = new ScoreComponents(
-            matchComponent, alignment, preferenceComponent, freshnessComponent, confidence);
+            matchComponent, alignment, preferenceComponent, freshnessComponent, confidence, antiGoalMultiplier);
 
         // Derive the total from the very components and weights that are stored, so reconciliation is exact
         // by construction (QG-1): there is no second, drifting copy of the arithmetic.

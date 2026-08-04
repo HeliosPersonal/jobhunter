@@ -129,6 +129,12 @@ public sealed class RankingHandler(
 
             var alignment = AlignmentCalculator.Calculate(job.AiUsage, job.RoleFamily);
 
+            // T15: a role the Owner is deliberately leaving (low AI on the enterprise-CRUD family) is
+            // down-weighted by the configured penalty factor — stored as a multiplier so the total stays
+            // reconcilable (QG-1) — or, when the Owner opts in, suppressed with the classifier's reason.
+            var antiGoal = AntiGoalClassifier.Classify(job.AiUsage, job.RoleFamily);
+            var antiGoalMultiplier = antiGoal.IsAntiGoal ? _options.AntiGoalPenaltyFactor : 1.00m;
+
             var result = ScoreCalculator.Calculate(
                 new MatchFacts(job.JobId, job.MatchScore),
                 alignment.Value,
@@ -136,12 +142,14 @@ public sealed class RankingHandler(
                 job.HasEnrichment,
                 job.FirstSeenAt,
                 _clock.UtcNow,
-                RankingWeights.Default);
+                RankingWeights.Default,
+                antiGoalMultiplier);
 
             // Suppression is evaluated once, here, and the reason carried alongside the result, so the
             // persisted flag and the top-jobs projection never disagree.
             var reason = SuppressionEvaluator.Evaluate(
-                result, job.EstimatedSalary, profile, _options.SalaryFloorSuppression);
+                result, job.EstimatedSalary, profile, _options.SalaryFloorSuppression,
+                antiGoal, _options.AntiGoalSuppression);
             results.Add(new ScoredJob(result, reason));
         }
 

@@ -20,12 +20,12 @@ public sealed class ScoreRepository(JobHunterDbContext context, INpgsqlConnectio
         """
         INSERT INTO scores
             (job_id, run_id, final_score, match_component, alignment_component, preference_component,
-             freshness_component, confidence_multiplier, preference_model_id, suppressed, suppression_reason,
-             computed_at)
+             freshness_component, confidence_multiplier, anti_goal_multiplier, preference_model_id, suppressed,
+             suppression_reason, computed_at)
         VALUES
             (@job_id, @run_id, @final_score, @match_component, @alignment_component, @preference_component,
-             @freshness_component, @confidence_multiplier, @preference_model_id, @suppressed,
-             @suppression_reason, @computed_at)
+             @freshness_component, @confidence_multiplier, @anti_goal_multiplier, @preference_model_id,
+             @suppressed, @suppression_reason, @computed_at)
         ON CONFLICT (job_id, run_id) DO NOTHING
         RETURNING job_id;
         """;
@@ -56,6 +56,7 @@ public sealed class ScoreRepository(JobHunterDbContext context, INpgsqlConnectio
         command.Parameters.Add(new NpgsqlParameter("preference_component", NpgsqlDbType.Numeric) { Value = s.Components.Preference });
         command.Parameters.Add(new NpgsqlParameter("freshness_component", NpgsqlDbType.Numeric) { Value = s.Components.Freshness });
         command.Parameters.Add(new NpgsqlParameter("confidence_multiplier", NpgsqlDbType.Numeric) { Value = s.Components.ConfidenceMultiplier });
+        command.Parameters.Add(new NpgsqlParameter("anti_goal_multiplier", NpgsqlDbType.Numeric) { Value = s.Components.AntiGoalMultiplier });
         command.Parameters.Add(new NpgsqlParameter("preference_model_id", NpgsqlDbType.Uuid) { Value = Nullable(s.PreferenceModelId) });
         command.Parameters.Add(new NpgsqlParameter("suppressed", NpgsqlDbType.Boolean) { Value = s.Suppressed });
         command.Parameters.Add(new NpgsqlParameter("suppression_reason", NpgsqlDbType.Text) { Value = Nullable(s.SuppressionReason) });

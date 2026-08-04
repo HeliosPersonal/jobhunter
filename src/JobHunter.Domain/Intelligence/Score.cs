@@ -105,7 +105,7 @@ public sealed class Score
     /// <summary>The 0–100 ordering key of the digest.</summary>
     public decimal FinalScore { get; private set; }
 
-    /// <summary>The five named inputs the total reconciles from (QG-1).</summary>
+    /// <summary>The six named inputs the total reconciles from (QG-1).</summary>
     public ScoreComponents Components { get; private set; } = null!;
 
     /// <summary>Which preference-model version produced the preference component; null when none was active.</summary>

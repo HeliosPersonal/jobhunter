@@ -16,6 +16,16 @@ public sealed class ScoreComponentsTests
         components.Preference.ShouldBe(0.50m);
         components.Freshness.ShouldBe(0.40m);
         components.ConfidenceMultiplier.ShouldBe(0.85m);
+        // The anti-goal multiplier defaults to 1.00 — no penalty — so an ordinary role is untouched (T15).
+        components.AntiGoalMultiplier.ShouldBe(1.00m);
+    }
+
+    [Fact]
+    public void The_anti_goal_multiplier_is_stored_when_supplied()
+    {
+        var components = new ScoreComponents(0.80m, 0.60m, 0.50m, 0.40m, 1.00m, antiGoalMultiplier: 0.50m);
+
+        components.AntiGoalMultiplier.ShouldBe(0.50m);
     }
 
     [Theory]
@@ -41,6 +51,16 @@ public sealed class ScoreComponentsTests
     {
         Should.Throw<ArgumentOutOfRangeException>(
             () => new ScoreComponents(0.5m, 0.5m, 0.5m, 0.5m, confidence));
+    }
+
+    [Theory]
+    [InlineData(-0.01)]
+    [InlineData(1.01)]
+    public void An_out_of_range_anti_goal_multiplier_is_rejected(decimal antiGoal)
+    {
+        // The anti-goal factor down-weights, so zero is legal (a full penalty) but negative or above 1 is not.
+        Should.Throw<ArgumentOutOfRangeException>(
+            () => new ScoreComponents(0.5m, 0.5m, 0.5m, 0.5m, 1.00m, antiGoalMultiplier: antiGoal));
     }
 
     [Fact]
@@ -73,6 +93,17 @@ public sealed class ScoreComponentsTests
     }
 
     [Fact]
+    public void The_anti_goal_multiplier_scales_the_whole_score_like_confidence()
+    {
+        var full = new ScoreComponents(0.80m, 0.60m, 0.50m, 0.40m, 1.00m);
+        var penalised = new ScoreComponents(0.80m, 0.60m, 0.50m, 0.40m, 1.00m, antiGoalMultiplier: 0.50m);
+
+        // Multiplicative, like confidence: an anti-goal role keeps its components but halves its total (T15).
+        penalised.Reconcile(RankingWeights.Default)
+            .ShouldBe(full.Reconcile(RankingWeights.Default) * 0.50m);
+    }
+
+    [Fact]
     public void Equal_components_are_equal_by_value()
     {
         var a = new ScoreComponents(0.80m, 0.60m, 0.50m, 0.40m, 1.00m);
@@ -86,6 +117,15 @@ public sealed class ScoreComponentsTests
     {
         var a = new ScoreComponents(0.80m, 0.60m, 0.50m, 0.40m, 1.00m);
         var b = new ScoreComponents(0.80m, 0.30m, 0.50m, 0.40m, 1.00m);
+
+        a.ShouldNotBe(b);
+    }
+
+    [Fact]
+    public void Components_differing_only_in_the_anti_goal_multiplier_are_not_equal()
+    {
+        var a = new ScoreComponents(0.80m, 0.60m, 0.50m, 0.40m, 1.00m);
+        var b = new ScoreComponents(0.80m, 0.60m, 0.50m, 0.40m, 1.00m, antiGoalMultiplier: 0.50m);
 
         a.ShouldNotBe(b);
     }

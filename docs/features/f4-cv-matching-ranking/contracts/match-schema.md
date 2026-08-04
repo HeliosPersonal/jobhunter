@@ -147,8 +147,10 @@ Non-negotiable, and the subject of the QG-2 leakage suite:
 Computed by `ScoreCalculator`, never by the model ([[../adr/0001-explainable-linear-scoring|ADR-F4-0001]]).
 
 > **Done (TUNE-01, F4 T14):** the explainable `alignment` component below realised the planned re-weight
-> from `0.60·match + 0.25·preference + 0.15·freshness`. The anti-goal down-weight and opt-in suppression
-> (TUNE-02, T15) remain planned — see the [[../../../reviews/career-alignment-tuning-backlog|tuning backlog]].
+> from `0.60·match + 0.25·preference + 0.15·freshness`.
+> **Done (TUNE-02, F4 T15):** the `antiGoal` multiplier below down-weights (default) or, opt-in,
+> suppresses roles the Owner is deliberately leaving. The general non-target-family filter (TUNE-06, T17)
+> remains planned — see the [[../../../reviews/career-alignment-tuning-backlog|tuning backlog]].
 
 ```
 match_component      = matchScore / 100
@@ -156,8 +158,9 @@ alignment_component  = 0.5·aiUsageScore + 0.5·roleFamilyTierScore, in [0, 1]
 preference_component = Σ over dimensions: weight(dimension, jobValue), clamped to [0, 1]
 freshness_component  = exp(-ageDays / 7)
 confidence           = enrichment present ? 1.00 : 0.85
+antiGoal             = anti-goal role ? penalty factor (default 0.50) : 1.00
 
-final_score = 100 × (0.45·match + 0.20·alignment + 0.20·preference + 0.15·freshness) × confidence
+final_score = 100 × (0.45·match + 0.20·alignment + 0.20·preference + 0.15·freshness) × confidence × antiGoal
 ```
 
 `alignment` rewards the Owner's AI-platform / platform trajectory, computed by `AlignmentCalculator` from
@@ -170,6 +173,18 @@ high-AI-usage role scores 1.00 and a no-AI anti-goal role scores 0.00 exactly. A
 enrichment degrades to the lowest-alignment inputs (None / Other). The component carries a reason
 (invariant 4). When no preference model is active its 0.20 weight renormalises across the other three, so
 the effective weights become `0.5625·match + 0.25·alignment + 0.1875·freshness`.
+
+`antiGoal` (TUNE-02, T15) is a second, parallel multiplier — like `confidence`, it scales the whole
+weighted total rather than being one weighted term — that down-weights a role the Owner is deliberately
+leaving: low AI usage (`AiUsage ∈ {None, Low, Unknown}`) on the `EnterpriseCrud` family, classified by
+`AntiGoalClassifier`. It is 1.00 for every other role and a configured penalty factor (`Ranking:AntiGoalPenaltyFactor`,
+default 0.50) for an anti-goal one. The multiplier is **stored**, so the total still reconciles from its
+components (QG-1) — the down-weight is never a silent adjustment. The guard is deliberately narrow: an
+enterprise-CRUD posting that genuinely involves AI, or a low-AI role in another family, is not caught here
+(the general non-target-family filter is TUNE-06/T17). Because alignment already pins `EnterpriseCrud` at
+0, even a perfect-fit anti-goal role tops out at `100 × 0.75 × 0.50 = 37.5` under the default penalty,
+below the presentation threshold — so the down-weight alone reasons it out of the digest, and the Owner
+can opt into an explicit `Anti-goal role family: {family}` suppression instead.
 
 | Component | Weight | Rationale |
 |---|---|---|
@@ -186,15 +201,20 @@ A fortnight-old posting is still visible if the fit is excellent, which is the i
 
 | Rule | Reason recorded |
 |---|---|
+| Anti-goal role, opt-in enabled (`Ranking:AntiGoalSuppression`) | `Anti-goal role family: {family}` |
 | `final_score < 40` | `Below presentation threshold` |
 | Salary estimate below floor, high confidence, opt-in enabled | `Below salary floor ({amount})` |
 | Learned preference hard rule (F7) | `Learned preference: {dimension} = {value}` |
 
-> **Planned change (TUNE-02/06, F4 T15/T17):** add reason-logged down-weight (default) or opt-in
-> suppression rows for anti-goal roles (`Anti-goal role family: {family}`) and non-target families
-> (`Not a target role family: {family}`, for `roleFamily ∈ {MlResearch, DataScience, PromptEng,
-> EnterpriseCrud}`), retrievable via `/hidden` and counted in the footer (invariant 11). See the
-> [[../../../reviews/career-alignment-tuning-backlog|tuning backlog]].
+The anti-goal rule is reported first because it names the deliberate policy the Owner set up, which is more
+informative than the generic threshold; it is off by default (the anti-goal signal is a down-weight, not a
+filter, until opted in) and, like every suppression, leaves the job retrievable via `/hidden` and counted
+in the footer (invariant 11).
+
+> **Planned change (TUNE-06, F4 T17):** add reason-logged down-weight (default) or opt-in suppression rows
+> for the general non-target families (`Not a target role family: {family}`, for
+> `roleFamily ∈ {MlResearch, DataScience, PromptEng}`), retrievable via `/hidden` and counted in the
+> footer (invariant 11). See the [[../../../reviews/career-alignment-tuning-backlog|tuning backlog]].
 
 Suppressed jobs are **counted and reported** in the digest footer, never silently dropped.
 

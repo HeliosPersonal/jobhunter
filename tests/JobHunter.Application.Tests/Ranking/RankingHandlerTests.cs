@@ -360,6 +360,102 @@ public sealed class RankingHandlerTests
         completed.TopJobIds[0].ShouldBe(aligned);
     }
 
+    // ---- T15: the anti-goal down-weight and its opt-in suppression -----------------------------
+
+    [Fact]
+    public async Task An_anti_goal_role_is_down_weighted_by_the_configured_penalty_factor()
+    {
+        var run = RankingRun();
+        GivenRun(run);
+        var antiGoal = Guid.CreateVersion7();
+        // A perfect-fit anti-goal role: low AI on the enterprise-CRUD family. A mild penalty (0.9) isolates the
+        // stored down-weight from the presentation threshold, so we can see the multiplier without it also being
+        // suppressed for being below 40 — that interaction is asserted separately below.
+        GivenJobs(Job(antiGoal, 100, aiUsage: AiUsageLevel.None, roleFamily: RoleFamily.EnterpriseCrud));
+
+        await CreateHandler(new RankingOptions { AntiGoalPenaltyFactor = 0.9m })
+            .Handle(Message(), _bus, CancellationToken.None);
+
+        var score = _scores.Stored.Single(s => s.JobId == antiGoal);
+        // The multiplier is stored (reconcilable, QG-1), not a silent adjustment; the job stays visible.
+        score.Components.AntiGoalMultiplier.ShouldBe(0.9m);
+        score.Suppressed.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task The_default_penalty_pushes_a_perfect_fit_anti_goal_role_below_the_presentation_threshold()
+    {
+        var run = RankingRun();
+        GivenRun(run);
+        var antiGoal = Guid.CreateVersion7();
+        // With alignment pinned at 0 for the enterprise-CRUD family, even a perfect-fit anti-goal role tops out
+        // at 100 × 0.75 × 0.5 = 37.5 under the default penalty — below the 40 threshold — so the down-weight
+        // alone drives a reasoned suppression, not a silent filter (invariant 11). The job stays retrievable.
+        GivenJobs(Job(antiGoal, 100, aiUsage: AiUsageLevel.None, roleFamily: RoleFamily.EnterpriseCrud));
+
+        await CreateHandler(new RankingOptions()).Handle(Message(), _bus, CancellationToken.None);
+
+        var score = _scores.Stored.Single(s => s.JobId == antiGoal);
+        score.Components.AntiGoalMultiplier.ShouldBe(0.5m);
+        score.Suppressed.ShouldBeTrue();
+        score.SuppressionReason.ShouldBe("Below presentation threshold");
+    }
+
+    [Fact]
+    public async Task A_non_anti_goal_role_carries_a_neutral_anti_goal_multiplier()
+    {
+        var run = RankingRun();
+        GivenRun(run);
+        var ordinary = Guid.CreateVersion7();
+        GivenJobs(Job(ordinary, 80, aiUsage: AiUsageLevel.High, roleFamily: RoleFamily.AiPlatform));
+
+        await CreateHandler(new RankingOptions { AntiGoalPenaltyFactor = 0.5m })
+            .Handle(Message(), _bus, CancellationToken.None);
+
+        _scores.Stored.Single().Components.AntiGoalMultiplier.ShouldBe(1.00m);
+    }
+
+    [Fact]
+    public async Task A_high_fit_anti_goal_role_no_longer_out_ranks_a_tier_one_alignment_role()
+    {
+        var run = RankingRun();
+        GivenRun(run);
+        var aligned = Guid.CreateVersion7();
+        var antiGoal = Guid.CreateVersion7();
+        // The anti-goal role has the higher raw fit (100 vs 70); the down-weight must stop it out-ranking the
+        // genuinely aligned Tier-1 role (feeds T19). Without the penalty the CRUD role would float to the top.
+        GivenJobs(
+            Job(aligned, 70, aiUsage: AiUsageLevel.High, roleFamily: RoleFamily.AiPlatform),
+            Job(antiGoal, 100, aiUsage: AiUsageLevel.None, roleFamily: RoleFamily.EnterpriseCrud));
+
+        await CreateHandler(new RankingOptions { AntiGoalPenaltyFactor = 0.5m })
+            .Handle(Message(), _bus, CancellationToken.None);
+
+        var alignedScore = _scores.Stored.Single(s => s.JobId == aligned);
+        var antiGoalScore = _scores.Stored.Single(s => s.JobId == antiGoal);
+        alignedScore.FinalScore.ShouldBeGreaterThan(antiGoalScore.FinalScore);
+
+        Publishes().OfType<RankingCompleted>().ShouldHaveSingleItem().TopJobIds[0].ShouldBe(aligned);
+    }
+
+    [Fact]
+    public async Task An_opted_in_anti_goal_role_is_suppressed_with_the_family_reason()
+    {
+        var run = RankingRun();
+        GivenRun(run);
+        var antiGoal = Guid.CreateVersion7();
+        GivenJobs(Job(antiGoal, 100, aiUsage: AiUsageLevel.None, roleFamily: RoleFamily.EnterpriseCrud));
+
+        await CreateHandler(new RankingOptions { AntiGoalSuppression = true })
+            .Handle(Message(), _bus, CancellationToken.None);
+
+        var score = _scores.Stored.Single();
+        // A suppressed anti-goal job stays retrievable and carries the specific reason (invariant 11).
+        score.Suppressed.ShouldBeTrue();
+        score.SuppressionReason.ShouldBe("Anti-goal role family: EnterpriseCrud");
+        Publishes().OfType<RankingCompleted>().ShouldHaveSingleItem().SuppressedCount.ShouldBe(1);
+    }
+
     /// <summary>Models the idempotent upsert on the unique <c>(job_id, run_id)</c> key of the scores table.</summary>
     private sealed class FakeScoreRepository : IScoreRepository
     {

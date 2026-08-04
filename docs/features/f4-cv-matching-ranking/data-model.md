@@ -76,6 +76,7 @@ erDiagram
     numeric preference_component
     numeric freshness_component
     numeric confidence_multiplier
+    numeric anti_goal_multiplier
     uuid preference_model_id FK
     boolean suppressed
     text suppression_reason
@@ -165,12 +166,13 @@ The output of arithmetic, not of a model. Every component is stored (QG-1).
 | `preference_component` | numeric(5,4) | from the active preference model |
 | `freshness_component` | numeric(5,4) | exponential decay on age |
 | `confidence_multiplier` | numeric(3,2) | 1.00 with an enrichment, 0.85 without (AC-09) |
+| `anti_goal_multiplier` | numeric(3,2) | 1.00 ordinary, penalty factor (default 0.50) for an anti-goal role (TUNE-02, T15) |
 | `preference_model_id` | uuid | FK — which model version produced the preference component |
 | `suppressed` | boolean | |
 | `suppression_reason` | text | NULL unless suppressed — invariant 11, AC-05 |
 | `computed_at` | timestamptz | |
 
-**Reconciliation is asserted, not assumed:** a test recomputes `final_score` from the five stored
+**Reconciliation is asserted, not assumed:** a test recomputes `final_score` from the six stored
 components and the recorded weights, and fails if it does not match. A score that cannot be
 reconstructed from its own components is a bug, not a rounding difference.
 

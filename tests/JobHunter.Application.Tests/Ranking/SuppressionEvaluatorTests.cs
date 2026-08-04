@@ -152,4 +152,54 @@ public sealed class SuppressionEvaluatorTests
         Should.Throw<ArgumentNullException>(() =>
             SuppressionEvaluator.Evaluate(ScoreOf(80m), null, null!, salaryFloorOptIn: false));
     }
+
+    [Fact]
+    public void An_anti_goal_role_is_not_suppressed_by_default()
+    {
+        // T15: the anti-goal down-weight is a penalty, not a filter, until explicitly opted in. A verdict
+        // alone must never hide the job — it stays visible (merely down-weighted) so it is not a silent filter.
+        var antiGoal = new AntiGoalVerdict(true, "Anti-goal role family: EnterpriseCrud");
+
+        var reason = SuppressionEvaluator.Evaluate(
+            ScoreOf(80m), null, ProfileWithFloor(), salaryFloorOptIn: false,
+            antiGoal, antiGoalSuppressionOptIn: false);
+
+        reason.ShouldBeNull();
+    }
+
+    [Fact]
+    public void An_opted_in_anti_goal_role_is_suppressed_with_the_verdict_reason()
+    {
+        var antiGoal = new AntiGoalVerdict(true, "Anti-goal role family: EnterpriseCrud");
+
+        var reason = SuppressionEvaluator.Evaluate(
+            ScoreOf(80m), null, ProfileWithFloor(), salaryFloorOptIn: false,
+            antiGoal, antiGoalSuppressionOptIn: true);
+
+        reason.ShouldBe("Anti-goal role family: EnterpriseCrud");
+    }
+
+    [Fact]
+    public void A_non_anti_goal_role_is_unaffected_by_the_opt_in()
+    {
+        var reason = SuppressionEvaluator.Evaluate(
+            ScoreOf(80m), null, ProfileWithFloor(), salaryFloorOptIn: false,
+            AntiGoalVerdict.None, antiGoalSuppressionOptIn: true);
+
+        reason.ShouldBeNull();
+    }
+
+    [Fact]
+    public void The_anti_goal_reason_takes_precedence_over_the_threshold_reason()
+    {
+        // An opted-in anti-goal role also below the threshold reports the specific anti-goal reason — the
+        // deliberate policy the Owner set up is more informative than the generic threshold.
+        var antiGoal = new AntiGoalVerdict(true, "Anti-goal role family: EnterpriseCrud");
+
+        var reason = SuppressionEvaluator.Evaluate(
+            ScoreOf(20m), null, ProfileWithFloor(), salaryFloorOptIn: false,
+            antiGoal, antiGoalSuppressionOptIn: true);
+
+        reason.ShouldBe("Anti-goal role family: EnterpriseCrud");
+    }
 }

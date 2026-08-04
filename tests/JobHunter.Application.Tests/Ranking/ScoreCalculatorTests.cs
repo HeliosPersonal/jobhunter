@@ -63,6 +63,33 @@ public sealed class ScoreCalculatorTests
     }
 
     [Fact]
+    public void The_anti_goal_multiplier_defaults_to_one_and_is_stored_when_supplied()
+    {
+        var ordinary = ScoreCalculator.Calculate(
+            new MatchFacts(Guid.NewGuid(), 80), 0.7m, 0.5m, hasEnrichment: true, Now, Now, RankingWeights.Default);
+        var penalised = ScoreCalculator.Calculate(
+            new MatchFacts(Guid.NewGuid(), 80), 0.7m, 0.5m, hasEnrichment: true, Now, Now, RankingWeights.Default,
+            antiGoalMultiplier: 0.50m);
+
+        ordinary.Components.AntiGoalMultiplier.ShouldBe(1.00m);
+        penalised.Components.AntiGoalMultiplier.ShouldBe(0.50m);
+    }
+
+    [Fact]
+    public void The_anti_goal_multiplier_scales_the_final_score_and_still_reconciles()
+    {
+        var ordinary = ScoreCalculator.Calculate(
+            new MatchFacts(Guid.NewGuid(), 80), 0.7m, 0.5m, hasEnrichment: true, Now, Now, RankingWeights.Default);
+        var penalised = ScoreCalculator.Calculate(
+            new MatchFacts(Guid.NewGuid(), 80), 0.7m, 0.5m, hasEnrichment: true, Now, Now, RankingWeights.Default,
+            antiGoalMultiplier: 0.50m);
+
+        // A multiplier like confidence: the whole total halves, and the stored components still rebuild it (QG-1).
+        penalised.FinalScore.ShouldBe(ordinary.FinalScore * 0.50m);
+        penalised.FinalScore.ShouldBe(penalised.Components.Reconcile(penalised.EffectiveWeights));
+    }
+
+    [Fact]
     public void A_missing_enrichment_lowers_the_confidence_multiplier_to_the_documented_value()
     {
         var withEnrichment = ScoreCalculator.Calculate(

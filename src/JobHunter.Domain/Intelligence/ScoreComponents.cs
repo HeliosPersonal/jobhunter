@@ -3,15 +3,19 @@ using JobHunter.Domain.Common;
 namespace JobHunter.Domain.Intelligence;
 
 /// <summary>
-/// The five named inputs a <see cref="Score"/> is built from (data-model §scores, QG-1): the normalised
+/// The six named inputs a <see cref="Score"/> is built from (data-model §scores, QG-1): the normalised
 /// match component, the career-alignment component (TUNE-01/F4 T14), the preference component from the
-/// active F7 model, the exponential-decay freshness component, and the confidence multiplier (1.00 with
-/// an enrichment, 0.85 without — AC-09). Every one is stored so a score can be <em>reconstructed</em>
-/// from its parts, which is what makes QG-1 a test rather than a promise.
+/// active F7 model, the exponential-decay freshness component, the confidence multiplier (1.00 with
+/// an enrichment, 0.85 without — AC-09), and the anti-goal multiplier (1.00 for an ordinary role, a
+/// down-weight below it for a role the Owner is deliberately leaving — TUNE-02/F4 T15). Every one is
+/// stored so a score can be <em>reconstructed</em> from its parts, which is what makes QG-1 a test
+/// rather than a promise.
 ///
 /// <para>The four weighted components are fractions in <c>[0,1]</c>; the confidence multiplier is in
-/// <c>(0,1]</c>. A value out of range is a programmer error — the arithmetic upstream produced nonsense —
-/// so construction throws rather than clamping.</para>
+/// <c>(0,1]</c>; the anti-goal multiplier is in <c>[0,1]</c> — zero is a legal full penalty. A value out
+/// of range is a programmer error — the arithmetic upstream produced nonsense — so construction throws
+/// rather than clamping. The anti-goal multiplier is optional and defaults to <c>1.00</c>, so a caller
+/// that does not down-weight builds exactly the score it did before T15.</para>
 /// </summary>
 public sealed class ScoreComponents : ValueObject
 {
@@ -20,12 +24,14 @@ public sealed class ScoreComponents : ValueObject
         decimal alignment,
         decimal preference,
         decimal freshness,
-        decimal confidenceMultiplier)
+        decimal confidenceMultiplier,
+        decimal antiGoalMultiplier = 1.00m)
     {
         EnsureFraction(match, nameof(match));
         EnsureFraction(alignment, nameof(alignment));
         EnsureFraction(preference, nameof(preference));
         EnsureFraction(freshness, nameof(freshness));
+        EnsureFraction(antiGoalMultiplier, nameof(antiGoalMultiplier));
 
         if (confidenceMultiplier is <= 0m or > 1m)
         {
@@ -40,6 +46,7 @@ public sealed class ScoreComponents : ValueObject
         Preference = preference;
         Freshness = freshness;
         ConfidenceMultiplier = confidenceMultiplier;
+        AntiGoalMultiplier = antiGoalMultiplier;
     }
 
     /// <summary>The normalised match score in <c>[0,1]</c>, before weighting.</summary>
@@ -62,9 +69,17 @@ public sealed class ScoreComponents : ValueObject
     public decimal ConfidenceMultiplier { get; }
 
     /// <summary>
+    /// The anti-goal multiplier in <c>[0,1]</c> (TUNE-02/F4 T15): 1.00 for an ordinary role, a down-weight
+    /// below it (default 0.50) for a role the Owner is deliberately leaving — low AI usage on the
+    /// enterprise-CRUD family. Like the confidence multiplier, it scales the whole weighted total rather
+    /// than being one weighted term, so fit-dominant scoring cannot float an anti-goal role to the top.
+    /// </summary>
+    public decimal AntiGoalMultiplier { get; }
+
+    /// <summary>
     /// The final 0–100 score these components and <paramref name="weights"/> reconcile to:
-    /// <c>100 × (w_m·match + w_a·alignment + w_p·preference + w_f·freshness) × confidence</c>. The
-    /// <see cref="Score"/> aggregate asserts its stored total equals this (QG-1), so the arithmetic
+    /// <c>100 × (w_m·match + w_a·alignment + w_p·preference + w_f·freshness) × confidence × antiGoal</c>.
+    /// The <see cref="Score"/> aggregate asserts its stored total equals this (QG-1), so the arithmetic
     /// lives in one place.
     /// </summary>
     public decimal Reconcile(RankingWeights weights)
@@ -77,7 +92,7 @@ public sealed class ScoreComponents : ValueObject
             + (weights.Preference * Preference)
             + (weights.Freshness * Freshness);
 
-        return 100m * weighted * ConfidenceMultiplier;
+        return 100m * weighted * ConfidenceMultiplier * AntiGoalMultiplier;
     }
 
     protected override IEnumerable<object?> GetEqualityComponents()
@@ -87,6 +102,7 @@ public sealed class ScoreComponents : ValueObject
         yield return Preference;
         yield return Freshness;
         yield return ConfidenceMultiplier;
+        yield return AntiGoalMultiplier;
     }
 
     private static void EnsureFraction(decimal value, string name)

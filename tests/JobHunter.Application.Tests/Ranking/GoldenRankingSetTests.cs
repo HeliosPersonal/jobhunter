@@ -34,6 +34,10 @@ public sealed class GoldenRankingSetTests
     private const decimal GoodFloor = 55m;
     private const decimal MarginalFloor = 40m;
 
+    // The default anti-goal penalty factor (T15), matching RankingOptions.AntiGoalPenaltyFactor, so the golden
+    // chain down-weights anti-goal roles exactly as the handler does with default options.
+    private const decimal DefaultAntiGoalPenaltyFactor = 0.5m;
+
     private static readonly DateTimeOffset Now = new(2026, 8, 3, 6, 0, 0, TimeSpan.Zero);
 
     // The one fixed reference Owner the whole set is judged against: EMEA, Senior, a 100000 USD floor, open to
@@ -166,7 +170,13 @@ public sealed class GoldenRankingSetTests
         //    unenriched job has no recorded classifications, so it degrades to the lowest-alignment defaults.
         var alignment = AlignmentCalculator.Calculate(testCase.AiUsage, testCase.RoleFamily);
 
-        // 3. The pure linear scorer, with no preference model active (its weight renormalises away).
+        // 3. The anti-goal down-weight (T15), classified and applied exactly as the handler does with the
+        //    default options: penalty factor 0.50, suppression off. A role the Owner is deliberately leaving
+        //    (low AI on the enterprise-CRUD family) is halved, stored reconcilably (QG-1).
+        var antiGoal = AntiGoalClassifier.Classify(testCase.AiUsage, testCase.RoleFamily);
+        var antiGoalMultiplier = antiGoal.IsAntiGoal ? DefaultAntiGoalPenaltyFactor : 1.00m;
+
+        // 4. The pure linear scorer, with no preference model active (its weight renormalises away).
         var result = ScoreCalculator.Calculate(
             new MatchFacts(testCase.Job.JobId, testCase.ModelScore),
             alignment.Value,
@@ -174,12 +184,14 @@ public sealed class GoldenRankingSetTests
             testCase.Job.Enrichment is not null,
             firstSeenAt: Now.AddDays(-testCase.AgeDays),
             now: Now,
-            RankingWeights.Default);
+            RankingWeights.Default,
+            antiGoalMultiplier);
 
-        // 4. The presentation rules. The salary floor is a down-weight by default (opt-in off), so only the
-        //    below-threshold rule can suppress here.
+        // 5. The presentation rules. The salary floor and the anti-goal suppression are both down-weights by
+        //    default (opt-ins off), so only the below-threshold rule can suppress here.
         var reason = SuppressionEvaluator.Evaluate(
-            result, testCase.Job.Enrichment?.EstimatedSalary, Owner, salaryFloorOptIn: false);
+            result, testCase.Job.Enrichment?.EstimatedSalary, Owner, salaryFloorOptIn: false,
+            antiGoal, antiGoalSuppressionOptIn: false);
 
         var suppressedBy = reason is null ? null : "rank:threshold";
         return new Outcome(BandOf(result.FinalScore), suppressedBy, result.FinalScore, result);

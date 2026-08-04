@@ -292,6 +292,7 @@ public sealed class MatchingPersistenceTests
         stored.Components.Alignment.ShouldBe(0.60m);
         stored.Components.Preference.ShouldBe(0.50m);
         stored.Components.Freshness.ShouldBe(0.40m);
+        stored.Components.AntiGoalMultiplier.ShouldBe(0.50m);
         // The stored total reconciles from the stored components (QG-1).
         stored.Components.Reconcile(RankingWeights.Default).ShouldBe(stored.FinalScore, tolerance: 0.01m);
     }
@@ -406,7 +407,8 @@ public sealed class MatchingPersistenceTests
 
         public Score NewScore()
         {
-            var components = new ScoreComponents(0.80m, 0.60m, 0.50m, 0.40m, 1.00m);
+            // A non-default anti-goal multiplier (0.50, T15) so the round-trip exercises the stored column.
+            var components = new ScoreComponents(0.80m, 0.60m, 0.50m, 0.40m, 1.00m, 0.50m);
             var final = components.Reconcile(RankingWeights.Default);
             return new Score(
                 JobId, RunId, final, components, RankingWeights.Default,

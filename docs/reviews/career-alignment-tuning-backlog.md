@@ -48,7 +48,7 @@ tags: [review, career-alignment, backlog, jobhunter]
   with role-family tier (Tier1=1.0, Tier2=0.7, Tier3=0.4, anti-goal=0.0). Persist it as a stored
   component like the others (QG-1 reconciliation still holds).
 
-### TUNE-02 — Down-weight anti-goal roles in the score  ·  P0 · S
+### TUNE-02 — Down-weight anti-goal roles in the score  ·  P0 · S  ·  ✅ Done (F4 T15)
 - **Target:** `ScoreCalculator` / formula (`match-schema.md:155`); post-ranking suppression table
   (`match-schema.md:167-176`).
 - **Rationale (review §8):** fit-dominant scoring promotes Senior-.NET/CRUD roles the Owner is leaving;
@@ -56,6 +56,12 @@ tags: [review, career-alignment, backlog, jobhunter]
 - **Proposed content:** when `alignment` maps to anti-goal (AiUsage None/Low AND role-family CRUD/
   traditional-enterprise), apply a multiplicative penalty (e.g. `×0.5`) or, opt-in, a reason-logged
   suppression `"Anti-goal role family: {family}"` (invariant 11 — always retrievable, counted in footer).
+- **Delivered (F4 T15):** `AntiGoalClassifier` classifies `AiUsage ∈ {None, Low, Unknown}` on
+  `EnterpriseCrud` as anti-goal, with a family-naming reason. `ScoreComponents` gained a stored
+  `AntiGoalMultiplier ∈ [0,1]` (reconcilable, QG-1) folded into the total like `confidence`.
+  `Ranking:AntiGoalPenaltyFactor` (default 0.50) drives the down-weight; `Ranking:AntiGoalSuppression`
+  (opt-in) turns it into a reason-logged suppression instead. The narrow predicate leaves the general
+  non-target-family filter to TUNE-06/T17.
 
 ## Enrichment signals
 
