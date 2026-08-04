@@ -81,6 +81,7 @@ public static class DependencyInjection
         services.AddScoped<ILiveJobCounter, LiveJobCountQuery>();
         services.AddScoped<IJobProjectionSource, JobProjectionQuery>();
         services.AddScoped<IEnrichmentScopeQuery, EnrichmentScopeQuery>();
+        services.AddScoped<IMatchScopeQuery, MatchScopeQuery>();
         services.AddScoped<IStaleJobsQuery, StaleJobsQuery>();
         services.AddScoped<IRawPostingReader, RawPostingReaderQuery>();
         services.AddScoped<IReprocessableJobsQuery, ReprocessableJobsQuery>();
