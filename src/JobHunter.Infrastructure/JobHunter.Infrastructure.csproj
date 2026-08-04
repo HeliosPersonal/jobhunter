@@ -46,6 +46,9 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <PackageReference Include="StackExchange.Redis" />
     <PackageReference Include="YamlDotNet" />
+    <!-- In-process, pure-managed PDF text extraction (F4-T03): no shell-out, no OCR — embedded text only,
+         so a scanned image-only PDF yields empty text and is refused rather than silently accepted. -->
+    <PackageReference Include="PdfPig" />
   </ItemGroup>
 
 </Project>

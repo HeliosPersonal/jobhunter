@@ -68,10 +68,10 @@ public static class DependencyInjection
         services.AddScoped<Enrichment.RunOrchestrator>();
 
         // The one spend-committing step (T10): builds the batch, prices it, ledgers the estimate before
-        // the client call and enforces the cost ceiling as a precondition (QG-2). Resolved by Wolverine
-        // for EnrichmentSubmissionDue; its collaborators (scope query, request builder, cost accountant,
-        // batch client) are registered by Infrastructure and Claude.
-        services.AddScoped<Enrichment.EnrichmentSubmitHandler>();
+        // the client call and enforces the cost ceiling as a precondition (QG-2). Discovered and
+        // constructed by Wolverine for EnrichmentSubmissionDue (like every other handler — none is
+        // eagerly registered here); its collaborators (scope query, request builder, cost accountant,
+        // batch client) are composed only by the host that runs the pipeline, alongside AddJobHunterClaude.
         services.AddOptions<Enrichment.RunOptions>()
             .Validate(o => o.CeilingUsd > 0m, "Run:CeilingUsd must be positive.")
             .Validate(o => o.InitialLookBack > TimeSpan.Zero, "Run:InitialLookBack must be positive.")
@@ -80,9 +80,8 @@ public static class DependencyInjection
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Enrichment.RunOptions>>().Value);
 
         // The batch poller (T11): a delayed job that re-enqueues itself on the backoff schedule, never a
-        // loop (S5). Resolved by Wolverine for BatchPollDue; it polls the persisted provider batch and
+        // loop (S5). Discovered by Wolverine for BatchPollDue; it polls the persisted provider batch and
         // never resubmits (AC-05), and ships partial at the deadline or the 6 h cap (AC-09).
-        services.AddScoped<Enrichment.BatchPollHandler>();
         services.AddOptions<Enrichment.PollOptions>()
             .Validate(o => o.MaxPollDuration > TimeSpan.Zero, "Poll:MaxPollDuration must be positive.")
             .ValidateOnStart();
@@ -92,9 +91,58 @@ public static class DependencyInjection
         // The result-processing step (T12): streams the ended batch's results, parses each item
         // independently through the Domain port, upserts the valid enrichments (idempotent on
         // (job_id, run_id)), records the bad ones, writes the actual-cost ledger entry and advances the Run
-        // to Matching (AC-06, AC-07, AC-10, QG-3). Resolved by Wolverine for BatchResultsReady; the parser
+        // to Matching (AC-06, AC-07, AC-10, QG-3). Discovered by Wolverine for BatchResultsReady; the parser
         // implementation is registered by Claude.
-        services.AddScoped<Enrichment.BatchResultProcessingHandler>();
+
+        // F4 CV upload (T03): the owner-scoped write path the Api endpoint drives — sniff, cap, extract,
+        // hash, version and deactivate the previous active version, discarding the binary. Its collaborators
+        // (the profile/CV repositories and the in-process text extractor) are registered by Infrastructure.
+        services.AddScoped<Profiles.CvUploadService>();
+
+        // F4 re-match on CV change (T09, ADR-F4-0002): the upload service runs this inline the moment a new
+        // version is activated — the Api host has no message bus, so re-staling and re-match scheduling are a
+        // synchronous owner-scoped write, not a published event. It re-stales older-version matches and queues
+        // the recent live jobs for cheap-tier re-match into the backlog the next Run drains. The window is a
+        // startup-validated option so the cost/coverage trade-off is tunable without a deploy.
+        services.AddScoped<Profiles.ReMatchScheduler>();
+        services.AddOptions<Profiles.ReMatchOptions>()
+            .Validate(o => o.Window > TimeSpan.Zero, "ReMatch:Window must be positive.")
+            .ValidateOnStart();
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Profiles.ReMatchOptions>>().Value);
+
+        // F4 ranking (T08): the ranking tunables (top-count, salary-floor opt-in), passed to the handler by
+        // Wolverine as a dependency, so register the validated value as a resolvable singleton. The learned
+        // preference model is F7's; until it lands the null query answers "no active model" and ranking
+        // renormalises the preference weight away, so the pipeline runs end-to-end today without F7's schema.
+        services.AddOptions<Ranking.RankingOptions>()
+            .Validate(o => o.TopJobCount > 0, "Ranking:TopJobCount must be positive.")
+            .Validate(
+                o => o.AntiGoalPenaltyFactor is >= 0m and <= 1m,
+                "Ranking:AntiGoalPenaltyFactor must be in [0, 1].")
+            .Validate(
+                o => o.NegativeFamilyPenaltyFactor is >= 0m and <= 1m,
+                "Ranking:NegativeFamilyPenaltyFactor must be in [0, 1].")
+            .ValidateOnStart();
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Ranking.RankingOptions>>().Value);
+        services.AddSingleton<IPreferenceModelQuery, Ranking.NullPreferenceModelQuery>();
+
+        // F4 pre-match filter (T12, ADR-F4-0003): the factual gate the matching submit handler applies before
+        // the deep tier. Its tunables — the Owner's seniority and the two thresholds the PRD leaves as config —
+        // are startup-validated and passed to the handler by Wolverine as a resolvable singleton. The bypass
+        // (Run:MatchAllJobs) lives on RunOptions, already registered above.
+        services.AddOptions<Matching.PreMatchOptions>()
+            .Validate(o => o.SeniorityFloorGap > 0, "PreMatch:SeniorityFloorGap must be positive.")
+            .Validate(
+                o => o.SalaryConfidenceThreshold is >= 0m and <= 1m,
+                "PreMatch:SalaryConfidenceThreshold must be in [0, 1].")
+            .Validate(
+                o => o.SeniorityFloorExemptStages is not null,
+                "PreMatch:SeniorityFloorExemptStages must not be null.")
+            .ValidateOnStart();
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Matching.PreMatchOptions>>().Value);
 
         return services;
     }

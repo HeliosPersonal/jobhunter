@@ -225,6 +225,167 @@ namespace JobHunter.Infrastructure.Persistence.Migrations
                     b.ToTable("enrichments", (string)null);
                 });
 
+            modelBuilder.Entity("JobHunter.Domain.Intelligence.Match", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CvVersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cv_version_id");
+
+                    b.Property<string>("InterviewProbability")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("interview_probability");
+
+                    b.Property<bool>("IsCurrent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_current");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_id");
+
+                    b.Property<short>("MatchScore")
+                        .HasColumnType("smallint")
+                        .HasColumnName("match_score");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profile_id");
+
+                    b.Property<string>("PromptVersion")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("prompt_version");
+
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("run_id");
+
+                    b.Property<string>("_missingSkills")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("missing_skills");
+
+                    b.Property<string>("_reasons")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("reasons");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CvVersionId")
+                        .HasDatabaseName("idx_matches_cv_version")
+                        .HasFilter("is_current");
+
+                    b.HasIndex("ProfileId");
+
+                    b.HasIndex("RunId");
+
+                    b.HasIndex("JobId", "CreatedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("idx_matches_current")
+                        .HasFilter("is_current");
+
+                    b.HasIndex("JobId", "RunId", "ProfileId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_matches_job_run_profile");
+
+                    b.ToTable("matches", (string)null);
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Intelligence.ReMatchQueueItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Consumed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("consumed");
+
+                    b.Property<Guid>("CvVersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cv_version_id");
+
+                    b.Property<DateTimeOffset>("EnqueuedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("enqueued_at");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_id");
+
+                    b.Property<string>("Tier")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CvVersionId");
+
+                    b.HasIndex("JobId")
+                        .IsUnique()
+                        .HasDatabaseName("uq_re_match_queue_open")
+                        .HasFilter("NOT consumed");
+
+                    b.ToTable("re_match_queue", (string)null);
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Intelligence.Score", b =>
+                {
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("job_id");
+
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("run_id");
+
+                    b.Property<DateTimeOffset>("ComputedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("computed_at");
+
+                    b.Property<decimal>("FinalScore")
+                        .HasColumnType("numeric(5,2)")
+                        .HasColumnName("final_score");
+
+                    b.Property<Guid?>("PreferenceModelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("preference_model_id");
+
+                    b.Property<bool>("Suppressed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("suppressed");
+
+                    b.Property<string>("SuppressionReason")
+                        .HasColumnType("text")
+                        .HasColumnName("suppression_reason");
+
+                    b.HasKey("JobId", "RunId");
+
+                    b.HasIndex("RunId")
+                        .HasDatabaseName("idx_scores_suppressed")
+                        .HasFilter("suppressed");
+
+                    b.HasIndex("RunId", "FinalScore")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("idx_scores_run_final")
+                        .HasFilter("NOT suppressed");
+
+                    b.ToTable("scores", (string)null);
+                });
+
             modelBuilder.Entity("JobHunter.Domain.Jobs.Job", b =>
                 {
                     b.Property<Guid>("Id")
@@ -699,6 +860,126 @@ namespace JobHunter.Infrastructure.Persistence.Migrations
                     b.ToTable("raw_postings", (string)null);
                 });
 
+            modelBuilder.Entity("JobHunter.Domain.Profiles.CvVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("ActivatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("activated_at");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasColumnType("char(64)")
+                        .HasColumnName("content_hash");
+
+                    b.Property<string>("ExtractedText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("extracted_text");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("file_name");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("media_type");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profile_id");
+
+                    b.Property<int>("SizeBytes")
+                        .HasColumnType("integer")
+                        .HasColumnName("size_bytes");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("uploaded_at");
+
+                    b.Property<short>("Version")
+                        .HasColumnType("smallint")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProfileId", "ContentHash")
+                        .IsUnique()
+                        .HasDatabaseName("uq_cv_versions_hash");
+
+                    b.ToTable("cv_versions", (string)null);
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Profiles.Profile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("DesiredAiUsageFloor")
+                        .HasColumnType("text")
+                        .HasColumnName("desired_ai_usage_floor");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("display_name");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<decimal?>("SalaryFloor")
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("salary_floor");
+
+                    b.Property<string>("SalaryFloorCurrency")
+                        .HasColumnType("char(3)")
+                        .HasColumnName("salary_floor_currency");
+
+                    b.Property<string>("TimezoneBand")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("timezone_band");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("_employmentTypes")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("employment_types");
+
+                    b.Property<string>("_preferredCountries")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("preferred_countries");
+
+                    b.Property<string>("_targetRoleFamilies")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("target_role_families");
+
+                    b.Property<string>("_targetTitles")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("target_titles");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("profiles", (string)null);
+                });
+
             modelBuilder.Entity("JobHunter.Domain.Sources.JobSource", b =>
                 {
                     b.Property<Guid>("Id")
@@ -925,6 +1206,134 @@ namespace JobHunter.Infrastructure.Persistence.Migrations
                     b.Navigation("Salary");
                 });
 
+            modelBuilder.Entity("JobHunter.Domain.Intelligence.Match", b =>
+                {
+                    b.HasOne("JobHunter.Domain.Profiles.CvVersion", null)
+                        .WithMany()
+                        .HasForeignKey("CvVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JobHunter.Domain.Jobs.Job", null)
+                        .WithMany()
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JobHunter.Domain.Profiles.Profile", null)
+                        .WithMany()
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JobHunter.Domain.Pipeline.Run", null)
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsOne("JobHunter.Domain.Intelligence.SalaryExpectation", "SalaryExpectation", b1 =>
+                        {
+                            b1.Property<Guid>("MatchId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("Currency")
+                                .IsRequired()
+                                .HasColumnType("char(3)")
+                                .HasColumnName("salary_expectation_currency");
+
+                            b1.Property<decimal>("Max")
+                                .HasColumnType("numeric(12,2)")
+                                .HasColumnName("salary_expectation_max");
+
+                            b1.Property<decimal>("Min")
+                                .HasColumnType("numeric(12,2)")
+                                .HasColumnName("salary_expectation_min");
+
+                            b1.HasKey("MatchId");
+
+                            b1.ToTable("matches");
+
+                            b1.WithOwner()
+                                .HasForeignKey("MatchId");
+                        });
+
+                    b.Navigation("SalaryExpectation");
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Intelligence.ReMatchQueueItem", b =>
+                {
+                    b.HasOne("JobHunter.Domain.Profiles.CvVersion", null)
+                        .WithMany()
+                        .HasForeignKey("CvVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JobHunter.Domain.Jobs.Job", null)
+                        .WithMany()
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Intelligence.Score", b =>
+                {
+                    b.HasOne("JobHunter.Domain.Jobs.Job", null)
+                        .WithMany()
+                        .HasForeignKey("JobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("JobHunter.Domain.Pipeline.Run", null)
+                        .WithMany()
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsOne("JobHunter.Domain.Intelligence.ScoreComponents", "Components", b1 =>
+                        {
+                            b1.Property<Guid>("ScoreJobId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<Guid>("ScoreRunId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<decimal>("Alignment")
+                                .HasColumnType("numeric(5,4)")
+                                .HasColumnName("alignment_component");
+
+                            b1.Property<decimal>("AntiGoalMultiplier")
+                                .HasColumnType("numeric(3,2)")
+                                .HasColumnName("anti_goal_multiplier");
+
+                            b1.Property<decimal>("ConfidenceMultiplier")
+                                .HasColumnType("numeric(3,2)")
+                                .HasColumnName("confidence_multiplier");
+
+                            b1.Property<decimal>("Freshness")
+                                .HasColumnType("numeric(5,4)")
+                                .HasColumnName("freshness_component");
+
+                            b1.Property<decimal>("Match")
+                                .HasColumnType("numeric(5,4)")
+                                .HasColumnName("match_component");
+
+                            b1.Property<decimal>("Preference")
+                                .HasColumnType("numeric(5,4)")
+                                .HasColumnName("preference_component");
+
+                            b1.HasKey("ScoreJobId", "ScoreRunId");
+
+                            b1.ToTable("scores");
+
+                            b1.WithOwner()
+                                .HasForeignKey("ScoreJobId", "ScoreRunId");
+                        });
+
+                    b.Navigation("Components")
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("JobHunter.Domain.Jobs.Job", b =>
                 {
                     b.HasOne("JobHunter.Domain.Companies.Company", null)
@@ -1040,6 +1449,15 @@ namespace JobHunter.Infrastructure.Persistence.Migrations
                     b.HasOne("JobHunter.Domain.Sources.JobSource", null)
                         .WithMany()
                         .HasForeignKey("SourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("JobHunter.Domain.Profiles.CvVersion", b =>
+                {
+                    b.HasOne("JobHunter.Domain.Profiles.Profile", null)
+                        .WithMany()
+                        .HasForeignKey("ProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

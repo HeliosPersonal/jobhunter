@@ -1,0 +1,331 @@
+# The pre-match reference corpus (F4 T12, ADR-F4-0003, test-plan §The pre-match reference corpus).
+#
+# Every case is judged by the REAL PreMatchFilter against one fixed Owner profile — EMEA, Senior, a
+# 100000 USD salary floor, seeking FullTime only — with the default settings (seniority floor gap 2,
+# salary-confidence cut 0.80). Each case states the expected verdict and, for an exclusion, the single
+# rule that must fire. The corpus doubles as a calibration check: the pass rate must land in the
+# 35–50% band the PRD calls healthy (too permissive wastes the deep tier, too strict hides good jobs).
+#
+# Job fields:
+#   seniority        — the posting's level string, or omitted for an untitled posting
+#   employment_type  — the posting's engagement string
+#   has_current_match— true if the job already carries a current match against the active CV (lifecycle)
+#   enrichment       — omitted when the job has no enrichment; otherwise band / is_remote / optional salary
+#     salary         — min / max / currency / confidence of the model's estimate
+
+# ---- Passing jobs: they clear every factual gate and go on to the deep tier -------------------------
+
+- id: 1
+  expect: pass
+  why: Senior full-time EMEA remote — the archetypal clean match.
+  seniority: Senior
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 2
+  expect: pass
+  why: One rung below the Owner is within the floor gap of 2.
+  seniority: Mid
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 3
+  expect: pass
+  why: A more senior role is never floored out.
+  seniority: Staff
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 4
+  expect: pass
+  why: Principal is above the Owner — no floor breach.
+  seniority: Principal
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 5
+  expect: pass
+  why: A Global band overlaps every region — incompatibility is not a fact.
+  seniority: Senior
+  employment_type: FullTime
+  enrichment: { band: Global, is_remote: false }
+
+- id: 6
+  expect: pass
+  why: An Unknown band is the absence of a fact, never an exclusion.
+  seniority: Senior
+  employment_type: FullTime
+  enrichment: { band: Unknown, is_remote: false }
+
+- id: 7
+  expect: pass
+  why: A remote role overrides the band entirely, even a definite incompatible one.
+  seniority: Senior
+  employment_type: FullTime
+  enrichment: { band: AMER, is_remote: true }
+
+- id: 8
+  expect: pass
+  why: Lead is off the IC ladder — it cannot be compared, so it never floors out.
+  seniority: Lead
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 9
+  expect: pass
+  why: Manager is off-ladder; the same band is compatible regardless of remote.
+  seniority: Manager
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: false }
+
+- id: 10
+  expect: pass
+  why: The estimate's top reaches the floor — the range is not wholly below it.
+  seniority: Senior
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: true, salary: { min: 90000, max: 140000, currency: USD, confidence: 0.90 } }
+
+- id: 11
+  expect: pass
+  why: A cross-currency estimate never bites — euros-versus-dollars would be a lie.
+  seniority: Senior
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: true, salary: { min: 40000, max: 60000, currency: EUR, confidence: 0.95 } }
+
+- id: 12
+  expect: pass
+  why: A low-confidence estimate below the floor is not trusted enough to exclude.
+  seniority: Senior
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: true, salary: { min: 40000, max: 60000, currency: USD, confidence: 0.50 } }
+
+- id: 13
+  expect: pass
+  why: A job with no enrichment is matched, never dropped for lacking one (AC-09).
+  seniority: Senior
+  employment_type: FullTime
+
+- id: 14
+  expect: pass
+  why: An untitled posting has no comparable level — the floor rule declines.
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 15
+  expect: pass
+  why: An unrecognised employment type is not a factual mismatch.
+  seniority: Senior
+  employment_type: Freelance-ish
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 16
+  expect: pass
+  why: The same band is compatible even when the role is not remote.
+  seniority: Senior
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: false }
+
+# ---- Timezone exclusions: a definite incompatible band on a non-remote role -------------------------
+
+- id: 17
+  expect: exclude
+  rule: timezone
+  why: APAC is a definite region incompatible with EMEA and the role is on-site.
+  seniority: Senior
+  employment_type: FullTime
+  enrichment: { band: APAC, is_remote: false }
+
+- id: 18
+  expect: exclude
+  rule: timezone
+  why: AMER on-site is incompatible with the Owner's EMEA band.
+  seniority: Senior
+  employment_type: FullTime
+  enrichment: { band: AMER, is_remote: false }
+
+- id: 19
+  expect: exclude
+  rule: timezone
+  why: A more junior-but-still-in-gap role still fails on the on-site APAC band.
+  seniority: Mid
+  employment_type: FullTime
+  enrichment: { band: APAC, is_remote: false }
+
+- id: 20
+  expect: exclude
+  rule: timezone
+  why: A senior on-site AMER role — the level is fine, the timezone is not.
+  seniority: Staff
+  employment_type: FullTime
+  enrichment: { band: AMER, is_remote: false }
+
+- id: 21
+  expect: exclude
+  rule: timezone
+  why: Principal on-site APAC — above the floor, still timezone-incompatible.
+  seniority: Principal
+  employment_type: FullTime
+  enrichment: { band: APAC, is_remote: false }
+
+# ---- Employment-type exclusions: a recognised type the Owner does not seek --------------------------
+
+- id: 22
+  expect: exclude
+  rule: employment_type
+  why: The Owner seeks FullTime only; Contract is a recognised type they do not seek.
+  seniority: Senior
+  employment_type: Contract
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 23
+  expect: exclude
+  rule: employment_type
+  why: PartTime is recognised and unsought.
+  seniority: Senior
+  employment_type: PartTime
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 24
+  expect: exclude
+  rule: employment_type
+  why: An internship is recognised and far from the Owner's sought engagement.
+  seniority: Senior
+  employment_type: Internship
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 25
+  expect: exclude
+  rule: employment_type
+  why: A Staff Contract role — the level is fine, the engagement is not sought.
+  seniority: Staff
+  employment_type: Contract
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 26
+  expect: exclude
+  rule: employment_type
+  why: A Mid PartTime role is unsought regardless of its acceptable level.
+  seniority: Mid
+  employment_type: PartTime
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 27
+  expect: exclude
+  rule: employment_type
+  why: A Principal Contract role — above the floor, wrong engagement.
+  seniority: Principal
+  employment_type: Contract
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 28
+  expect: exclude
+  rule: employment_type
+  why: A Staff PartTime role is unsought.
+  seniority: Staff
+  employment_type: PartTime
+  enrichment: { band: EMEA, is_remote: true }
+
+# ---- Seniority-floor exclusions: two or more rungs below the Owner ----------------------------------
+
+- id: 29
+  expect: exclude
+  rule: seniority_floor
+  why: Junior is two rungs below Senior — at the floor gap of 2.
+  seniority: Junior
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 30
+  expect: exclude
+  rule: seniority_floor
+  why: Junior on a remote AMER role — the band is overridden, the level still floors it out.
+  seniority: Junior
+  employment_type: FullTime
+  enrichment: { band: AMER, is_remote: true }
+
+- id: 31
+  expect: exclude
+  rule: seniority_floor
+  why: Junior on a Global band — no timezone fact, but the floor still bites.
+  seniority: Junior
+  employment_type: FullTime
+  enrichment: { band: Global, is_remote: false }
+
+# ---- Salary-floor exclusions: a high-confidence estimate wholly below the floor ---------------------
+
+- id: 32
+  expect: exclude
+  rule: salary_floor
+  why: 40–60k USD at 0.90 confidence is entirely below the 100k floor.
+  seniority: Senior
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: true, salary: { min: 40000, max: 60000, currency: USD, confidence: 0.90 } }
+
+- id: 33
+  expect: exclude
+  rule: salary_floor
+  why: 50–95k USD at 0.85 — even the top of the band misses the floor.
+  seniority: Senior
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: true, salary: { min: 50000, max: 95000, currency: USD, confidence: 0.85 } }
+
+- id: 34
+  expect: exclude
+  rule: salary_floor
+  why: A Staff role at 30–70k USD 0.95 — level is fine, pay is factually short.
+  seniority: Staff
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: true, salary: { min: 30000, max: 70000, currency: USD, confidence: 0.95 } }
+
+- id: 35
+  expect: exclude
+  rule: salary_floor
+  why: A wide 10–90k USD estimate at very high confidence still tops out below the floor.
+  seniority: Senior
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: true, salary: { min: 10000, max: 90000, currency: USD, confidence: 0.99 } }
+
+- id: 36
+  expect: exclude
+  rule: salary_floor
+  why: 20–99k USD at 0.88 — one dollar short of the floor at the top is still short.
+  seniority: Senior
+  employment_type: FullTime
+  enrichment: { band: EMEA, is_remote: true, salary: { min: 20000, max: 99000, currency: USD, confidence: 0.88 } }
+
+# ---- Lifecycle exclusions: already matched against the current CV version ---------------------------
+
+- id: 37
+  expect: exclude
+  rule: lifecycle
+  why: The job already carries a current match — re-judging repays for a reached conclusion.
+  seniority: Senior
+  employment_type: FullTime
+  has_current_match: true
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 38
+  expect: exclude
+  rule: lifecycle
+  why: A Mid role already matched against the active CV needs no second judgement.
+  seniority: Mid
+  employment_type: FullTime
+  has_current_match: true
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 39
+  expect: exclude
+  rule: lifecycle
+  why: A Staff role already matched — the level passes, the lifecycle rule ends it.
+  seniority: Staff
+  employment_type: FullTime
+  has_current_match: true
+  enrichment: { band: EMEA, is_remote: true }
+
+- id: 40
+  expect: exclude
+  rule: lifecycle
+  why: A no-enrichment job already matched is still excluded on lifecycle.
+  seniority: Senior
+  employment_type: FullTime
+  has_current_match: true

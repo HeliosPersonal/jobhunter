@@ -171,6 +171,15 @@ public sealed record AddCompanyRequest(
     string? HqCountry);
 
 /// <summary>
+/// The acknowledgement for a CV upload (<c>POST /api/cv</c>, T03). It reports the stored version's
+/// identity and number and whether a new version was actually created — <c>created</c> is false when
+/// identical content was re-uploaded (the content-hash no-op) and the existing version was returned.
+/// It carries <strong>no CV text</strong>: the extracted text crosses only the match prompt and never
+/// the API boundary (the CV-leakage invariant, QG-2).
+/// </summary>
+public sealed record CvVersionResponse(Guid Id, short Version, bool Created);
+
+/// <summary>
 /// The acknowledgement for a long-running operational action that was enqueued rather than run inline
 /// (<c>POST /api/admin/search/reindex</c>, <c>POST /api/admin/jobs/reprocess</c>). The
 /// <c>operationId</c> is the background-job id the operator can quote when checking progress; recovery

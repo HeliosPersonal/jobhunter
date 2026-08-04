@@ -235,6 +235,14 @@ Two optimisations account for the difference, both owned by
 2. **Prompt caching of the CV prefix** — the CV (~2 000 tokens) and system prompt (~400) are
    byte-identical across every item in a matching batch, roughly 47% of input. Cached tokens read at
    0.1× ([[../features/f4-cv-matching-ranking/adr/0003-pre-match-filter-and-cv-caching|ADR-F4-0003]]).
+   The `cache_control` breakpoint is placed at the end of the CV prefix by the Anthropic request
+   builder (F4 T13); the batch is priced pessimistically at the *full* input (the cache discount is a
+   retrieval-time saving, never assumed by the pre-submission ceiling), so the $0.44 figure is the
+   worst case the ceiling gates and the cached run comes in at or under it. The mechanism is asserted
+   with zero network — a byte-identical prefix carrying exactly one breakpoint on every item, and a
+   parsed `cache_read_input_tokens > 0` on every item after the first. The **empirical** cache-hit
+   rate against the live API, and the measured Run cost that confirms the $1.03 above, are verified by
+   the opt-in weekly live suite together with the regret sampler (F4 T21).
 
 **Sensitivity.** Cost scales close to linearly with jobs discovered per day: 75/day ≈ $16/month,
 300/day ≈ $62/month at the optimised configuration. Raising the deep tier to `claude-opus-5` roughly

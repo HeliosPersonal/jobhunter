@@ -85,8 +85,10 @@ public sealed class FakeLlmBatchClient : ILlmBatchClient
 
             var inputTokens = root.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
             var outputTokens = root.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
+            var cacheRead = root.TryGetProperty("cache_read_input_tokens", out var cr) ? cr.GetInt32() : 0;
 
-            items.Add(new BatchResultItem(customId, rawJson, providerError, new TokenUsage(inputTokens, outputTokens)));
+            items.Add(new BatchResultItem(
+                customId, rawJson, providerError, new TokenUsage(inputTokens, outputTokens, cacheRead)));
         }
 
         return new FakeLlmBatchClient(items, pollsBeforeEnd, terminalState);

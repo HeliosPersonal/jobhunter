@@ -64,7 +64,7 @@ the active `Profile`:
 |---|---|
 | Timezone | Job's band is incompatible **and** the role is not remote |
 | Employment type | Not in the Profile's `employment_types` |
-| Seniority floor | Two or more levels below the Profile's seniority |
+| Seniority floor | Two or more levels below the Profile's seniority, **except** at an early company stage (`{Seed, SeriesA}` by default, config `PreMatch:SeniorityFloorExemptStages`) — T18 |
 | Salary | Estimate below the floor **with `salary_confidence` ≥ 0.8** |
 | Lifecycle | Job already closed, or already has a current match for this CV version |
 

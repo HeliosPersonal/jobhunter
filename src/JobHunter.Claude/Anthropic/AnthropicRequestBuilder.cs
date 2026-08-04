@@ -58,7 +58,7 @@ internal static class AnthropicRequestBuilder
         writer.WriteStartArray("messages");
         writer.WriteStartObject();
         writer.WriteString("role", "user");
-        writer.WriteString("content", item.UserContent);
+        WriteUserContent(writer, item);
         writer.WriteEndObject();
         writer.WriteEndArray();
 
@@ -83,5 +83,38 @@ internal static class AnthropicRequestBuilder
 
         writer.WriteEndObject(); // params
         writer.WriteEndObject(); // request
+    }
+
+    /// <summary>
+    /// Writes the user message content. Without a <see cref="BatchRequestItem.CachePrefix"/> it is a plain
+    /// string — the simple shape enrichment uses. With one it is a two-block array: the stable prefix (the
+    /// system prompt is separate; this block carries the CV) marked with a <c>cache_control</c> breakpoint
+    /// of type <c>ephemeral</c>, then the per-item suffix. The breakpoint is what makes the ~2 400-token
+    /// prefix cache once and be served at 0.1× on every subsequent item in the batch (F4 T13, ADR-F4-0003).
+    /// </summary>
+    private static void WriteUserContent(Utf8JsonWriter writer, BatchRequestItem item)
+    {
+        if (item.CachePrefix is not { } prefix)
+        {
+            writer.WriteString("content", item.UserContent);
+            return;
+        }
+
+        writer.WriteStartArray("content");
+
+        writer.WriteStartObject();
+        writer.WriteString("type", "text");
+        writer.WriteString("text", prefix);
+        writer.WriteStartObject("cache_control");
+        writer.WriteString("type", "ephemeral");
+        writer.WriteEndObject();
+        writer.WriteEndObject();
+
+        writer.WriteStartObject();
+        writer.WriteString("type", "text");
+        writer.WriteString("text", item.UserContent);
+        writer.WriteEndObject();
+
+        writer.WriteEndArray();
     }
 }

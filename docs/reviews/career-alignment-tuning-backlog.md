@@ -48,7 +48,7 @@ tags: [review, career-alignment, backlog, jobhunter]
   with role-family tier (Tier1=1.0, Tier2=0.7, Tier3=0.4, anti-goal=0.0). Persist it as a stored
   component like the others (QG-1 reconciliation still holds).
 
-### TUNE-02 — Down-weight anti-goal roles in the score  ·  P0 · S
+### TUNE-02 — Down-weight anti-goal roles in the score  ·  P0 · S  ·  ✅ Done (F4 T15)
 - **Target:** `ScoreCalculator` / formula (`match-schema.md:155`); post-ranking suppression table
   (`match-schema.md:167-176`).
 - **Rationale (review §8):** fit-dominant scoring promotes Senior-.NET/CRUD roles the Owner is leaving;
@@ -56,6 +56,12 @@ tags: [review, career-alignment, backlog, jobhunter]
 - **Proposed content:** when `alignment` maps to anti-goal (AiUsage None/Low AND role-family CRUD/
   traditional-enterprise), apply a multiplicative penalty (e.g. `×0.5`) or, opt-in, a reason-logged
   suppression `"Anti-goal role family: {family}"` (invariant 11 — always retrievable, counted in footer).
+- **Delivered (F4 T15):** `AntiGoalClassifier` classifies `AiUsage ∈ {None, Low, Unknown}` on
+  `EnterpriseCrud` as anti-goal, with a family-naming reason. `ScoreComponents` gained a stored
+  `AntiGoalMultiplier ∈ [0,1]` (reconcilable, QG-1) folded into the total like `confidence`.
+  `Ranking:AntiGoalPenaltyFactor` (default 0.50) drives the down-weight; `Ranking:AntiGoalSuppression`
+  (opt-in) turns it into a reason-logged suppression instead. The narrow predicate leaves the general
+  non-target-family filter to TUNE-06/T17.
 
 ## Enrichment signals
 
@@ -95,6 +101,15 @@ tags: [review, career-alignment, backlog, jobhunter]
   {target_role_families}. Reward genuine alignment to that trajectory even where it is a stretch;
   down-weight roles that would repeat their current track."* Keep CV handling rules intact — goal fields
   are Profile facts, not CV text, so no new leakage surface.
+- **Delivered (F4 T16):** `Profile` gained `TargetRoleFamilies` (jsonb, deduped), `DesiredAiUsageFloor`
+  (nullable enum-as-text; `Unknown` — the tolerant parser's sentinel — is rejected) and `TargetTitles`
+  (jsonb, trimmed and deduped), added by migration `F4AddProfileCareerGoal` with a `[]` jsonb default so
+  existing rows deserialize as empty. `MatchPrompt` renders the goal directive plus optional
+  AI-usage-floor and title lines into the **candidate block** — before the cache breakpoint, since the
+  goal is stable per Profile — **only when a goal is stated** (an unstated goal omits the section, same
+  principle as the enrichment omission), so the shared-prefix guarantee holds. `PromptVersion` bumped to
+  `match-v2` and the golden fixtures updated (G10). Integration tests round-trip the columns through real
+  Postgres; the CV-leakage scan stays green because the fields are Profile facts, not CV text.
 
 ## Anti-false-positive filters
 
@@ -106,6 +121,13 @@ tags: [review, career-alignment, backlog, jobhunter]
 - **Proposed content:** reason-logged down-weight (default) or opt-in suppression for
   `roleFamily ∈ {MlResearch, DataScience, PromptEng, EnterpriseCrud}` — reason
   `"Not a target role family: {family}"`, retrievable via `/hidden`, counted in the footer (invariant 11).
+- **Delivered (F4 T17):** `NegativeFamilyClassifier` flags any `RoleFamily` in the configured negative
+  set (`Ranking:NegativeRoleFamilies`, default `{MlResearch, DataScience, PromptEng}` — deliberately
+  **disjoint** from T15's `EnterpriseCrud` anti-goal predicate, so the two never double-fire under
+  defaults), with reason `"Not a target role family: {family}"`. `Ranking:NegativeFamilyPenaltyFactor`
+  (default 0.50) drives the down-weight; `Ranking:NegativeFamilySuppression` (opt-in) turns it into a
+  reason-logged suppression. The penalty folds into the same stored `AntiGoalMultiplier` career-policy
+  slot as T15, so the total still reconciles from one slot (QG-1) — no new column, no migration.
 
 ## Semantic vocabulary
 
@@ -173,6 +195,10 @@ tags: [review, career-alignment, backlog, jobhunter]
   dropping Founding-Engineer / early-startup roles the Owner wants.
 - **Proposed content:** exempt `CompanyStage ∈ {Seed, SeriesA}` from the seniority-floor exclusion, or
   require an explicit parsed down-level rather than an absolute two-level gap.
+- **Delivered (F4 T18):** `PreMatchFilter` exempts any role whose enrichment `CompanyStage` is in the
+  configured `PreMatch:SeniorityFloorExemptStages` (default `{Seed, SeriesA}`) from the seniority floor
+  only — every other factual rule still applies. The exemption is evidence-driven (a job with no
+  enrichment stage cannot claim it) and turns off with an empty set, restoring the pre-T18 behaviour.
 
 ### TUNE-14 — Add a target-role-family slice to the golden ranking set  ·  P2 · M
 - **Target:** golden ranking set `docs/features/f4-cv-matching-ranking/tasks/T11-golden-ranking.md`.
@@ -180,3 +206,11 @@ tags: [review, career-alignment, backlog, jobhunter]
   (`f4…/PRD.md:167`); add cases asserting a stretch Tier-1 role out-ranks a perfect-fit CRUD role.
 - **Proposed content:** ≥10 golden cases pairing a target-family role against a high-fit anti-goal role,
   asserting relative order (bands, not exact scores) so TUNE-01/02/05 are gated by the build (G10).
+- **Delivered (F4 T19):** `tests/…/Data/golden-target-family-slice.yaml` + `GoldenTargetFamilySliceTests`.
+  Ten pairs, each coupling a stretch Tier-1 target role against a higher-raw-fit off-target role — five
+  against anti-goal enterprise-CRUD (T15), five against the off-target family set (T17). Judged by the same
+  pure chain as the golden set, with a deliberately neutral pre-match (every role Senior / FullTime /
+  EMEA-remote / enriched / just-seen), so the slice isolates alignment + career-policy. Asserts, per pair:
+  the off-target is the stronger raw fit (or the test proves nothing), both sides land their recorded band,
+  and the target lands a strictly better band *and* a higher final score. Fails the build the moment a
+  re-weighting lets a high-fit off-target role out-rank a stretch Tier-1 role.

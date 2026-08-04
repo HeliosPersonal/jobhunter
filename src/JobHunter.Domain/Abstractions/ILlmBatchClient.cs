@@ -59,12 +59,30 @@ public sealed record BatchSubmission(
 /// <summary>
 /// One item's request. <see cref="CustomId"/> is the job id verbatim, so a result maps back with no
 /// lookup table (SAD §8). The output is schema-bound via <see cref="OutputSchema"/> (ADR-0006).
+///
+/// <para><see cref="CachePrefix"/> is the optional stable, cacheable head of the user message that
+/// precedes <see cref="UserContent"/> — byte-identical across every item in a batch (F4 T13, ADR-F4-0003).
+/// When present, the adapter splits the user message into a cached prefix block (carrying the provider's
+/// <c>cache_control</c> breakpoint) and the per-item suffix, so the shared prefix — the system prompt and
+/// the CV — is served at the cache rate. When <c>null</c> the whole user message is
+/// <see cref="UserContent"/> and no breakpoint is emitted (enrichment, which shares no per-Owner prefix).
+/// The cache split is a wire concern owned entirely by the adapter; callers price and reason over
+/// <see cref="FullUserContent"/>.</para>
 /// </summary>
 public sealed record BatchRequestItem(
     string CustomId,
     string SystemPrompt,
     string UserContent,
-    JsonSchema OutputSchema);
+    JsonSchema OutputSchema,
+    string? CachePrefix = null)
+{
+    /// <summary>
+    /// The full user text the model sees — the cache prefix (if any) followed by the per-item content.
+    /// This is what the cost accountant prices and what a provider with no prompt caching (Ollama) sends,
+    /// so the cache split never changes the tokens billed pessimistically nor the text the fallback emits.
+    /// </summary>
+    public string FullUserContent => CachePrefix is null ? UserContent : CachePrefix + "\n" + UserContent;
+}
 
 /// <summary>
 /// One item's result as returned by the provider: exactly one of <see cref="RawJson"/> (the tool-use
@@ -88,8 +106,14 @@ public sealed record BatchStatus(
     int Errored,
     int Processing);
 
-/// <summary>Input/output token counts reported by the provider, used to write the actual cost ledger entry.</summary>
-public sealed record TokenUsage(int InputTokens, int OutputTokens)
+/// <summary>
+/// Input/output token counts reported by the provider, used to write the actual cost ledger entry.
+/// <see cref="CacheReadInputTokens"/> is the subset of the input that was served from the prompt cache
+/// at the reduced rate (F4 T13, ADR-F4-0003): it is the single fact the CV-cache-hit assertion reads, so
+/// a silent cache invalidation — which would quietly restore the old bill without failing anything else —
+/// is caught in CI. Providers without prompt caching (Ollama) report it as zero.
+/// </summary>
+public sealed record TokenUsage(int InputTokens, int OutputTokens, int CacheReadInputTokens = 0)
 {
     public static readonly TokenUsage Zero = new(0, 0);
 }

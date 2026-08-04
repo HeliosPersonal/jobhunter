@@ -19,4 +19,11 @@ public sealed class RunOptions
     /// skipped day is caught up rather than lost (data-model §runs).
     /// </summary>
     public TimeSpan InitialLookBack { get; init; } = TimeSpan.FromHours(24);
+
+    /// <summary>
+    /// When true, the pre-match filter (ADR-F4-0003) is bypassed and every enriched job reaches the deep tier,
+    /// for a weekly calibration Run that measures what the filter would otherwise have excluded (AC-13). Off by
+    /// default; spelt <c>Run:MatchAllJobs</c> so the calibration switch reads as a property of the day's Run.
+    /// </summary>
+    public bool MatchAllJobs { get; init; }
 }

@@ -19,6 +19,17 @@ and counted in the digest footer (invariant 11) — never silently dropped.
 - A genuine ML-research or prompt-engineering role no longer reaches the top-10 on fit alone — asserted
   (feeds T19).
 
+## Delivered
+
+`NegativeFamilyClassifier` + `NegativeFamilyVerdict` flag any `RoleFamily` in `Ranking:NegativeRoleFamilies`.
+The **default** set is `{MlResearch, DataScience, PromptEng}` — deliberately **disjoint** from T15's
+`EnterpriseCrud` anti-goal predicate, so under defaults the two down-weights never double-fire; a widened
+config set may include `EnterpriseCrud`, and then T15's more specific anti-goal reason takes precedence.
+`Ranking:NegativeFamilyPenaltyFactor` (default 0.50) drives the down-weight and folds into the same stored
+`AntiGoalMultiplier` career-policy slot as T15 (reconcilable, QG-1 — no new column, no migration);
+`Ranking:NegativeFamilySuppression` (opt-in) turns it into the reason-logged suppression. All three are
+startup-validated on `RankingOptions`.
+
 ## Links
 
 [[../../../reviews/career-alignment-tuning-backlog|career-alignment tuning backlog]] TUNE-06 ·

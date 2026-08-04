@@ -42,6 +42,13 @@ public static class DependencyInjection
         // Application result-processing handler (T12) depends on the Domain port, not on the parser here.
         services.AddSingleton<IEnrichmentResultParser, Enrichment.EnrichmentResultParser>();
 
+        // F4 matching (T05): the match request builder is the one boundary the CV crosses. It folds the
+        // active CV and Profile into the deep-tier items through the versioned match prompt, so the CV text
+        // is materialised only here and the Application submit handler depends on the Domain port, not on
+        // Anthropic. The match result parser (T06) is the return half of the same boundary.
+        services.AddSingleton<IMatchRequestBuilder, Matching.MatchRequestBuilder>();
+        services.AddSingleton<IMatchResultParser, Prompts.MatchResultParser>();
+
         // The cheap-tier provider is a configuration switch, not a fork in the pipeline: the orchestrator,
         // the cost gate and the result-processing handler all submit through the same ILlmBatchClient port
         // (SAD S6, ADR-0005). Ollama on the cluster is the fallback whose absence degrades quality, not

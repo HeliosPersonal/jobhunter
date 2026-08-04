@@ -14,6 +14,12 @@
     <PackageReference Include="YamlDotNet" />
     <None Update="Data\dedup-corpus.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Data\fingerprints.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The labelled pre-match reference corpus (T12): the filter's pass/exclude decisions and the pass-rate band. -->
+    <None Update="Data\pre-match-corpus.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The golden ranking set (T11): 50 jobs, expected score bands and top-5 order — gate G10. -->
+    <None Update="Data\golden-ranking.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The target-role-family slice (T19): stretch Tier-1 vs high-fit off-target pairs — gate G10. -->
+    <None Update="Data\golden-target-family-slice.yaml" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

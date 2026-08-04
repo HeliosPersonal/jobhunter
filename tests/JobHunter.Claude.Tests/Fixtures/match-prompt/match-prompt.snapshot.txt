@@ -1,0 +1,23 @@
+--- CANDIDATE ---
+Senior Platform Engineer with seven years of Go and Kubernetes.
+Salary floor: 90000 EUR
+Timezone: EMEA
+Open to: FullTime, Contract
+--- END CANDIDATE ---
+<<<CACHE_BREAKPOINT>>>
+--- ROLE ---
+Company: Acme AI
+Title: Senior Platform Engineer · Seniority: Senior
+Location: Remote (EMEA)
+Employment: FullTime
+Published salary: €90,000–€120,000
+Company stage: SeriesB
+Remote: True · Timezone: EMEA · Contractor friendly: False
+Estimated salary: EUR 90000-120000 (confidence 0.8)
+Technologies: Go, Kubernetes, PostgreSQL
+AI usage: High
+
+We are hiring a platform engineer.
+
+You will build internal tooling.
+--- END ROLE ---

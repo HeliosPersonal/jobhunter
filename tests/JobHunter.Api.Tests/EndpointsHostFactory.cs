@@ -42,6 +42,15 @@ public sealed class EndpointsHostFactory : WebApplicationFactory<Program>
     /// <summary>The search index the corpus-stats service counts against; failures exercise QG-3.</summary>
     public ISearchIndex Index { get; } = Substitute.For<ISearchIndex>();
 
+    /// <summary>The active-Profile lookup behind the CV upload service (T03); a substitute keeps it offline.</summary>
+    public IProfileRepository Profiles { get; } = Substitute.For<IProfileRepository>();
+
+    /// <summary>The CV version repository behind the upload service (hash lookup, versioning, activation).</summary>
+    public ICvVersionRepository CvVersions { get; } = Substitute.For<ICvVersionRepository>();
+
+    /// <summary>The in-process text extractor behind the upload service; a substitute needs no real bytes.</summary>
+    public ICvTextExtractor CvTextExtractor { get; } = Substitute.For<ICvTextExtractor>();
+
     /// <summary>A client presenting a valid Owner token with the given scope (read by default).</summary>
     public HttpClient OwnerClient(string scope = "jobhunter:read")
     {
@@ -91,6 +100,16 @@ public sealed class EndpointsHostFactory : WebApplicationFactory<Program>
             services.AddScoped(_ => LiveJobCounter);
             services.RemoveAll<ISearchIndex>();
             services.AddSingleton(Index);
+
+            // CV upload ports (T03): the profile/CV repositories and the text extractor behind the
+            // CvUploadService, so an upload sniffs, versions and activates against controllable fakes with
+            // no database or file I/O. The service itself is the real one — its logic is under test.
+            services.RemoveAll<IProfileRepository>();
+            services.AddScoped(_ => Profiles);
+            services.RemoveAll<ICvVersionRepository>();
+            services.AddScoped(_ => CvVersions);
+            services.RemoveAll<ICvTextExtractor>();
+            services.AddSingleton(CvTextExtractor);
         });
     }
 }

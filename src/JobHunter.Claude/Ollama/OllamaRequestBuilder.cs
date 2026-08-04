@@ -42,7 +42,9 @@ internal static class OllamaRequestBuilder
 
             writer.WriteStartObject();
             writer.WriteString("role", "user");
-            writer.WriteString("content", item.UserContent);
+            // Ollama has no prompt cache, so the whole user message is sent as one string: the cache prefix
+            // (if any) folded in front of the per-item content. FullUserContent is that fold (T13).
+            writer.WriteString("content", item.FullUserContent);
             writer.WriteEndObject();
             writer.WriteEndArray();
 
