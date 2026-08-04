@@ -30,7 +30,9 @@ public sealed class RankingScopeQuery(INpgsqlConnectionFactory connectionFactory
                e.salary_max        AS EstSalaryMax,
                e.salary_currency   AS EstSalaryCurrency,
                e.salary_period     AS EstSalaryPeriod,
-               e.salary_confidence AS EstSalaryConfidence
+               e.salary_confidence AS EstSalaryConfidence,
+               e.ai_usage          AS AiUsage,
+               e.role_family       AS RoleFamily
         FROM matches m
         JOIN jobs j ON j.id = m.job_id
         LEFT JOIN LATERAL (
@@ -60,9 +62,20 @@ public sealed class RankingScopeQuery(INpgsqlConnectionFactory connectionFactory
                 r.MatchScore,
                 r.FirstSeenAt,
                 r.EnrichmentId is not null,
-                ToEstimate(r)))
+                ToEstimate(r),
+                ToAiUsage(r),
+                ToRoleFamily(r)))
             .ToList();
     }
+
+    // The enrichment enums persist as text (coding-standards §5). A matched-but-unenriched job, or a stored
+    // value a newer provider added, degrades to the safe lowest-alignment defaults (None / Other) rather
+    // than throwing — the alignment component then simply scores it low.
+    private static AiUsageLevel ToAiUsage(ScopeRow r) =>
+        Enum.TryParse<AiUsageLevel>(r.AiUsage, ignoreCase: false, out var parsed) ? parsed : AiUsageLevel.None;
+
+    private static RoleFamily ToRoleFamily(ScopeRow r) =>
+        Enum.TryParse<RoleFamily>(r.RoleFamily, ignoreCase: false, out var parsed) ? parsed : RoleFamily.Other;
 
     private static SalaryEstimate? ToEstimate(ScopeRow r)
     {
@@ -91,5 +104,7 @@ public sealed class RankingScopeQuery(INpgsqlConnectionFactory connectionFactory
         decimal? EstSalaryMax,
         string? EstSalaryCurrency,
         string? EstSalaryPeriod,
-        decimal? EstSalaryConfidence);
+        decimal? EstSalaryConfidence,
+        string? AiUsage,
+        string? RoleFamily);
 }

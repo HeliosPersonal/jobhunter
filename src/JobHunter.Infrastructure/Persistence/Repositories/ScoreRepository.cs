@@ -19,11 +19,13 @@ public sealed class ScoreRepository(JobHunterDbContext context, INpgsqlConnectio
     private const string UpsertSql =
         """
         INSERT INTO scores
-            (job_id, run_id, final_score, match_component, preference_component, freshness_component,
-             confidence_multiplier, preference_model_id, suppressed, suppression_reason, computed_at)
+            (job_id, run_id, final_score, match_component, alignment_component, preference_component,
+             freshness_component, confidence_multiplier, preference_model_id, suppressed, suppression_reason,
+             computed_at)
         VALUES
-            (@job_id, @run_id, @final_score, @match_component, @preference_component, @freshness_component,
-             @confidence_multiplier, @preference_model_id, @suppressed, @suppression_reason, @computed_at)
+            (@job_id, @run_id, @final_score, @match_component, @alignment_component, @preference_component,
+             @freshness_component, @confidence_multiplier, @preference_model_id, @suppressed,
+             @suppression_reason, @computed_at)
         ON CONFLICT (job_id, run_id) DO NOTHING
         RETURNING job_id;
         """;
@@ -50,6 +52,7 @@ public sealed class ScoreRepository(JobHunterDbContext context, INpgsqlConnectio
         command.Parameters.Add(new NpgsqlParameter("run_id", NpgsqlDbType.Uuid) { Value = s.RunId });
         command.Parameters.Add(new NpgsqlParameter("final_score", NpgsqlDbType.Numeric) { Value = s.FinalScore });
         command.Parameters.Add(new NpgsqlParameter("match_component", NpgsqlDbType.Numeric) { Value = s.Components.Match });
+        command.Parameters.Add(new NpgsqlParameter("alignment_component", NpgsqlDbType.Numeric) { Value = s.Components.Alignment });
         command.Parameters.Add(new NpgsqlParameter("preference_component", NpgsqlDbType.Numeric) { Value = s.Components.Preference });
         command.Parameters.Add(new NpgsqlParameter("freshness_component", NpgsqlDbType.Numeric) { Value = s.Components.Freshness });
         command.Parameters.Add(new NpgsqlParameter("confidence_multiplier", NpgsqlDbType.Numeric) { Value = s.Components.ConfidenceMultiplier });

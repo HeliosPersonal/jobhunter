@@ -26,7 +26,7 @@ public sealed class SuppressionEvaluatorTests
     {
         // A score whose components reconcile to finalScore is not needed here — the evaluator reads FinalScore
         // only — so build a minimal, in-range ScoreResult carrying the target total.
-        var components = new ScoreComponents(0.5m, 0m, 0.5m, 1.00m);
+        var components = new ScoreComponents(0.5m, 0m, 0m, 0.5m, 1.00m);
         return new ScoreResult(Guid.Parse("00000000-0000-0000-0000-0000000000F1"), finalScore, components,
             RankingWeights.Default, PreferencePresent: false);
     }

@@ -287,6 +287,11 @@ public sealed class MatchingPersistenceTests
         var stored = await read.Set<Score>().SingleAsync();
         stored.JobId.ShouldBe(seed.JobId);
         stored.RunId.ShouldBe(seed.RunId);
+        // Every stored component round-trips, including the alignment component (T14).
+        stored.Components.Match.ShouldBe(0.80m);
+        stored.Components.Alignment.ShouldBe(0.60m);
+        stored.Components.Preference.ShouldBe(0.50m);
+        stored.Components.Freshness.ShouldBe(0.40m);
         // The stored total reconciles from the stored components (QG-1).
         stored.Components.Reconcile(RankingWeights.Default).ShouldBe(stored.FinalScore, tolerance: 0.01m);
     }
@@ -300,7 +305,7 @@ public sealed class MatchingPersistenceTests
 
         // A pre-match exclusion: a scores row with no matches row, suppressed and reasoned.
         var excluded = new Score(
-            seed.JobId, seed.RunId, 0m, new ScoreComponents(0m, 0m, 0m, 1.00m), RankingWeights.Default,
+            seed.JobId, seed.RunId, 0m, new ScoreComponents(0m, 0m, 0m, 0m, 1.00m), RankingWeights.Default,
             preferenceModelId: null, suppressed: true,
             suppressionReason: "Excluded before matching: employment type not accepted.", Now);
         (await repo.UpsertAsync(excluded)).ShouldBeTrue();
@@ -401,7 +406,7 @@ public sealed class MatchingPersistenceTests
 
         public Score NewScore()
         {
-            var components = new ScoreComponents(0.80m, 0.50m, 0.40m, 1.00m);
+            var components = new ScoreComponents(0.80m, 0.60m, 0.50m, 0.40m, 1.00m);
             var final = components.Reconcile(RankingWeights.Default);
             return new Score(
                 JobId, RunId, final, components, RankingWeights.Default,

@@ -146,24 +146,36 @@ Non-negotiable, and the subject of the QG-2 leakage suite:
 
 Computed by `ScoreCalculator`, never by the model ([[../adr/0001-explainable-linear-scoring|ADR-F4-0001]]).
 
-> **Planned change (TUNE-01/02, F4 T14/T15):** add an explainable `alignment` component and re-weight to
-> `100 × (0.45·match + 0.20·alignment + 0.20·preference + 0.15·freshness) × confidence`, where
-> `alignment ∈ [0,1]` blends `AiUsage` with the F3 `RoleFamily` tier; anti-goal roles are down-weighted
-> or opt-in suppressed. See the [[../../../reviews/career-alignment-tuning-backlog|tuning backlog]].
+> **Done (TUNE-01, F4 T14):** the explainable `alignment` component below realised the planned re-weight
+> from `0.60·match + 0.25·preference + 0.15·freshness`. The anti-goal down-weight and opt-in suppression
+> (TUNE-02, T15) remain planned — see the [[../../../reviews/career-alignment-tuning-backlog|tuning backlog]].
 
 ```
 match_component      = matchScore / 100
+alignment_component  = 0.5·aiUsageScore + 0.5·roleFamilyTierScore, in [0, 1]
 preference_component = Σ over dimensions: weight(dimension, jobValue), clamped to [0, 1]
 freshness_component  = exp(-ageDays / 7)
 confidence           = enrichment present ? 1.00 : 0.85
 
-final_score = 100 × (0.60·match + 0.25·preference + 0.15·freshness) × confidence
+final_score = 100 × (0.45·match + 0.20·alignment + 0.20·preference + 0.15·freshness) × confidence
 ```
+
+`alignment` rewards the Owner's AI-platform / platform trajectory, computed by `AlignmentCalculator` from
+the F3 enrichment signals (TUNE-03): `aiUsageScore` is a monotone map of `AiUsage`
+(None = 0, Low = 0.25, Medium = 0.60, High = 1.00) and `roleFamilyTierScore` is the `RoleFamily` tier
+(Tier-1 `{AiPlatform, Platform, AiApplications, ForwardDeployed, FoundingEng}` = 1.00; Tier-2
+`{BackendGeneric, Fullstack, DevOpsSRE}` = 0.70; Tier-3 `{Frontend, MlResearch, DataScience, PromptEng,
+Other}` = 0.40; anti-goal `EnterpriseCrud` = 0.00). The two axes are blended equally, so a Tier-1
+high-AI-usage role scores 1.00 and a no-AI anti-goal role scores 0.00 exactly. A job with no backing
+enrichment degrades to the lowest-alignment inputs (None / Other). The component carries a reason
+(invariant 4). When no preference model is active its 0.20 weight renormalises across the other three, so
+the effective weights become `0.5625·match + 0.25·alignment + 0.1875·freshness`.
 
 | Component | Weight | Rationale |
 |---|---|---|
-| Match | 0.60 | Fit dominates. Everything else is a modifier |
-| Preference | 0.25 | Enough to reorder within a band, never enough to bury a strong fit |
+| Match | 0.45 | Fit still leads, but no longer buries the Owner's trajectory on its own |
+| Alignment | 0.20 | Rewards the AI-platform / platform career goal, explainably, from structured signals |
+| Preference | 0.20 | Enough to reorder within a band, never enough to bury a strong fit |
 | Freshness | 0.15 | Recency matters — an ATS-first product's whole advantage is being early — but it must not outrank fit |
 
 Freshness decay: a job seen today scores 1.00, three days old 0.65, a week old 0.37, two weeks 0.14.

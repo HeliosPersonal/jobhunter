@@ -330,7 +330,8 @@ public sealed class MatchingSubmitHandler(
     private async Task RecordExclusionAsync(
         Run run, Guid jobId, PreMatchVerdict verdict, CancellationToken cancellationToken)
     {
-        var components = new ScoreComponents(match: 0m, preference: 0m, freshness: 0m, confidenceMultiplier: 1m);
+        var components = new ScoreComponents(
+            match: 0m, alignment: 0m, preference: 0m, freshness: 0m, confidenceMultiplier: 1m);
         var score = new Score(
             jobId, run.Id, finalScore: 0m, components, RankingWeights.Default,
             preferenceModelId: null, suppressed: true, verdict.Reason, _clock.UtcNow);

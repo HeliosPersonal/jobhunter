@@ -71,8 +71,9 @@ public sealed class RankingHandlerTests
         _scope.InScopeAsync(RunId, Arg.Any<CancellationToken>()).Returns(jobs);
 
     private static RankingJob Job(Guid id, int matchScore, bool enriched = true, DateTimeOffset? firstSeen = null,
-        SalaryEstimate? estimate = null) =>
-        new(id, matchScore, firstSeen ?? Now, enriched, estimate);
+        SalaryEstimate? estimate = null,
+        AiUsageLevel aiUsage = AiUsageLevel.None, RoleFamily roleFamily = RoleFamily.Other) =>
+        new(id, matchScore, firstSeen ?? Now, enriched, estimate, aiUsage, roleFamily);
 
     private static SalaryEstimate Estimate(decimal min, decimal max, string currency, decimal confidence) =>
         SalaryEstimate.TryCreate(min, max, currency, SalaryPeriod.Year, confidence).Value;
@@ -330,6 +331,33 @@ public sealed class RankingHandlerTests
         await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
 
         _scores.Stored.Single().Components.ConfidenceMultiplier.ShouldBe(0.85m);
+    }
+
+    // ---- T14: the alignment component flows from the enrichment signals into the stored score --------
+
+    [Fact]
+    public async Task A_tier_one_ai_role_outranks_an_anti_goal_role_of_the_same_fit()
+    {
+        var run = RankingRun();
+        GivenRun(run);
+        var aligned = Guid.CreateVersion7();
+        var antiGoal = Guid.CreateVersion7();
+        // Identical fit, freshness and confidence: the only difference is career alignment.
+        GivenJobs(
+            Job(aligned, 80, aiUsage: AiUsageLevel.High, roleFamily: RoleFamily.AiPlatform),
+            Job(antiGoal, 80, aiUsage: AiUsageLevel.None, roleFamily: RoleFamily.EnterpriseCrud));
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        var alignedScore = _scores.Stored.Single(s => s.JobId == aligned);
+        var antiGoalScore = _scores.Stored.Single(s => s.JobId == antiGoal);
+
+        alignedScore.Components.Alignment.ShouldBe(1.0m);
+        antiGoalScore.Components.Alignment.ShouldBe(0.0m);
+        alignedScore.FinalScore.ShouldBeGreaterThan(antiGoalScore.FinalScore);
+
+        var completed = Publishes().OfType<RankingCompleted>().ShouldHaveSingleItem();
+        completed.TopJobIds[0].ShouldBe(aligned);
     }
 
     /// <summary>Models the idempotent upsert on the unique <c>(job_id, run_id)</c> key of the scores table.</summary>

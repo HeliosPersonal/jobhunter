@@ -6,10 +6,11 @@ namespace JobHunter.Application.Ranking;
 /// The transparent linear ranking function (ADR-F4-0001, SAD §8, T07). A <strong>static, pure</strong>
 /// function of explicit values — no clock, no repository, no options object, no ambient culture — which is
 /// precisely what makes its determinism provable rather than asserted (QG-3). Given the model's fit
-/// judgement, an optional preference component, whether an enrichment is present, and the timestamps, it
-/// produces the 0–100 ordering key and the named components that rebuild it (QG-1):
+/// judgement, the career-alignment component, an optional preference component, whether an enrichment is
+/// present, and the timestamps, it produces the 0–100 ordering key and the named components that rebuild
+/// it (QG-1):
 ///
-/// <code>final = 100 × (w_m·match + w_p·preference + w_f·freshness) × confidence</code>
+/// <code>final = 100 × (w_m·match + w_a·alignment + w_p·preference + w_f·freshness) × confidence</code>
 ///
 /// <para>When no preference model is active the preference weight is redistributed across the remaining
 /// weights in proportion, so the effective weights still sum to 1 and the preference term contributes
@@ -27,12 +28,15 @@ public static class ScoreCalculator
     private const decimal ConfidenceWithoutEnrichment = 0.85m;
 
     /// <summary>
-    /// Scores one job. <paramref name="preference"/> is null when no preference model is active, in which
-    /// case its weight is renormalised away rather than counted as zero fit. Every argument is a value:
-    /// the same arguments always produce the same result, on any thread, in any culture, in any order.
+    /// Scores one job. <paramref name="alignment"/> is the career-alignment component in <c>[0,1]</c>
+    /// (from <see cref="AlignmentCalculator"/>). <paramref name="preference"/> is null when no preference
+    /// model is active, in which case its weight is renormalised away rather than counted as zero fit.
+    /// Every argument is a value: the same arguments always produce the same result, on any thread, in
+    /// any culture, in any order.
     /// </summary>
     public static ScoreResult Calculate(
         MatchFacts match,
+        decimal alignment,
         decimal? preference,
         bool hasEnrichment,
         DateTimeOffset firstSeenAt,
@@ -50,7 +54,7 @@ public static class ScoreCalculator
         var effectiveWeights = preferencePresent ? weights : Renormalise(weights);
 
         var components = new ScoreComponents(
-            matchComponent, preferenceComponent, freshnessComponent, confidence);
+            matchComponent, alignment, preferenceComponent, freshnessComponent, confidence);
 
         // Derive the total from the very components and weights that are stored, so reconciliation is exact
         // by construction (QG-1): there is no second, drifting copy of the arithmetic.
@@ -87,11 +91,11 @@ public static class ScoreCalculator
 
     private static RankingWeights Renormalise(RankingWeights weights)
     {
-        // Redistribute the preference weight across match and freshness in proportion to their shares, so
-        // the effective weights still sum to 1. If neither remains (a degenerate all-preference config),
-        // there is nothing to renormalise onto — keep the weights; the zero preference component means the
-        // preference term contributes nothing regardless.
-        var remaining = weights.Match + weights.Freshness;
+        // Redistribute the preference weight across match, alignment and freshness in proportion to their
+        // shares, so the effective weights still sum to 1. If none remains (a degenerate all-preference
+        // config), there is nothing to renormalise onto — keep the weights; the zero preference component
+        // means the preference term contributes nothing regardless.
+        var remaining = weights.Match + weights.Alignment + weights.Freshness;
         if (remaining <= 0m)
         {
             return weights;
@@ -99,6 +103,7 @@ public static class ScoreCalculator
 
         return new RankingWeights(
             match: weights.Match / remaining,
+            alignment: weights.Alignment / remaining,
             preference: 0m,
             freshness: weights.Freshness / remaining);
     }

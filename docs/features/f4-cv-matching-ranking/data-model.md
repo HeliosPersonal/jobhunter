@@ -72,6 +72,7 @@ erDiagram
     uuid run_id FK
     numeric final_score
     numeric match_component
+    numeric alignment_component
     numeric preference_component
     numeric freshness_component
     numeric confidence_multiplier
@@ -160,6 +161,7 @@ The output of arithmetic, not of a model. Every component is stored (QG-1).
 | `job_id` / `run_id` | uuid | PK together |
 | `final_score` | numeric(5,2) | 0–100, the digest's ordering key |
 | `match_component` | numeric(5,4) | normalised `match_score`, before weighting |
+| `alignment_component` | numeric(5,4) | career alignment from `AiUsage` × `RoleFamily` tier (TUNE-01, T14) |
 | `preference_component` | numeric(5,4) | from the active preference model |
 | `freshness_component` | numeric(5,4) | exponential decay on age |
 | `confidence_multiplier` | numeric(3,2) | 1.00 with an enrichment, 0.85 without (AC-09) |
@@ -168,7 +170,7 @@ The output of arithmetic, not of a model. Every component is stored (QG-1).
 | `suppression_reason` | text | NULL unless suppressed — invariant 11, AC-05 |
 | `computed_at` | timestamptz | |
 
-**Reconciliation is asserted, not assumed:** a test recomputes `final_score` from the four stored
+**Reconciliation is asserted, not assumed:** a test recomputes `final_score` from the five stored
 components and the recorded weights, and fails if it does not match. A score that cannot be
 reconstructed from its own components is a bug, not a rounding difference.
 

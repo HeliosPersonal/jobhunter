@@ -2,15 +2,24 @@
 #
 # 50 jobs judged against one fixed CV/Owner — EMEA, Senior, a 100000 USD salary floor, seeking FullTime
 # and Contract — by the REAL, pure ranking chain with no LLM in the loop: PreMatchFilter (the factual
-# gate, T12) then ScoreCalculator + SuppressionEvaluator (the linear scorer and the presentation rules,
-# T07/T08). Each case records the deep tier's fit judgement (`model_score`, the number the batch would
-# have returned) plus the job's facts, and states the band the whole chain must reconcile to.
+# gate, T12) then AlignmentCalculator + ScoreCalculator + SuppressionEvaluator (the career-alignment
+# component, the linear scorer and the presentation rules, T07/T08/T14). Each case records the deep tier's
+# fit judgement (`model_score`) and the enrichment's recorded classifications (`ai_usage`, `role_family`)
+# — the numbers/labels the batch would have returned — plus the job's facts, and states the band the whole
+# chain must reconcile to.
 #
 # The assertions are on BANDS and RELATIVE ORDER, never exact scores — the model is not deterministic and
 # a test pretending otherwise is a flaky test that gets disabled within a month. The bands (final score):
 #   excellent >= 75 · good 55-75 · marginal 40-55 · reject < 40
 # A `reject` job is below the 40-point presentation threshold, so it is also suppressed with a threshold
 # reason; a `na` band is a job the factual filter excluded before scoring, labelled with the rule.
+#
+# T14 reweight (stated reason, gate G10): the scorer moved from (0.60 match, 0.25 preference, 0.15
+# freshness) to (0.45 match, 0.20 ALIGNMENT, 0.20 preference, 0.15 freshness). With no preference model the
+# preference weight renormalises away, so the effective weights are now 0.5625 match, 0.25 alignment,
+# 0.1875 freshness (they were 0.80 match, 0.20 freshness). Career alignment now carries a quarter of the
+# effective score, so every case records the ai_usage/role_family that produces its alignment, and the
+# whole set was recalibrated in this PR — see the T14 task doc.
 #
 # This file IS gate G10: a change to the match prompt, the schema or the ranking weights that moves a case
 # out of its band, or reorders the top five, fails the build — or is updated here in the same PR with a
@@ -22,6 +31,8 @@
 #   top5_rank     — for the five highest-scoring jobs only, their expected relative order (1 = highest)
 #   hard_case     — the test-plan §The golden ranking set row this case pins, when it is one of the ten
 #   model_score   — the deep tier's recorded 0-100 fit judgement, the scorer's match input
+#   ai_usage      — the enrichment's recorded AI-usage level (None|Low|Medium|High); an alignment input (T14)
+#   role_family   — the enrichment's recorded role family; an alignment input (T14). Omitted => Other
 #   seniority     — the posting's level string (omitted for an untitled posting)
 #   employment_type — the posting's engagement string
 #   age_days      — days since first seen, for the freshness component (0 = just seen)
@@ -32,8 +43,10 @@
 - id: 1
   band: excellent
   top5_rank: 1
-  why: The archetypal match — near-perfect fit, fresh, remote, in band. Ranks first.
+  why: The archetypal match — near-perfect fit, fresh, remote, Tier-1 AI-platform role at high AI usage.
   model_score: 98
+  ai_usage: High
+  role_family: AiPlatform
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -42,8 +55,10 @@
 - id: 2
   band: excellent
   top5_rank: 2
-  why: An excellent fit a shade below the leader — second by score alone.
+  why: An excellent fit a shade below the leader — second by score alone, same Tier-1 alignment.
   model_score: 95
+  ai_usage: High
+  role_family: AiPlatform
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -52,8 +67,10 @@
 - id: 3
   band: excellent
   top5_rank: 3
-  why: Excellent and fresh; the relative order is what this case fixes.
+  why: Excellent and fresh; a Tier-1 platform role. The relative order is what this case fixes.
   model_score: 92
+  ai_usage: High
+  role_family: Platform
   seniority: Staff
   employment_type: FullTime
   age_days: 0
@@ -62,8 +79,10 @@
 - id: 4
   band: excellent
   top5_rank: 4
-  why: Excellent fit; fourth on the model's judgement.
+  why: Excellent fit; fourth on the model's judgement, Tier-1 AI-applications work.
   model_score: 90
+  ai_usage: High
+  role_family: AiApplications
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -74,6 +93,8 @@
   top5_rank: 5
   why: The fifth card — the last of the ordered head of the digest.
   model_score: 88
+  ai_usage: High
+  role_family: AiPlatform
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -83,8 +104,10 @@
 
 - id: 6
   band: excellent
-  why: A strong fit outside the ordered head.
+  why: A strong fit outside the ordered head; Tier-1 AI platform.
   model_score: 85
+  ai_usage: High
+  role_family: AiPlatform
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -92,8 +115,10 @@
 
 - id: 7
   band: excellent
-  why: Excellent fit, contractor-friendly EMEA remote.
+  why: Excellent fit, Tier-1 platform, EMEA remote.
   model_score: 82
+  ai_usage: High
+  role_family: Platform
   seniority: Staff
   employment_type: FullTime
   age_days: 0
@@ -101,8 +126,10 @@
 
 - id: 8
   band: excellent
-  why: Excellent fit; on-site but in the Owner's own band, so timezone never bites.
+  why: Excellent fit; on-site but in the Owner's own band, so timezone never bites. Tier-1 at medium AI use.
   model_score: 80
+  ai_usage: Medium
+  role_family: AiPlatform
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -110,8 +137,10 @@
 
 - id: 9
   band: excellent
-  why: The lowest of the clearly-excellent jobs, still comfortably above 75.
+  why: The lowest of the clearly-excellent jobs, still comfortably above 75; Tier-1 platform, medium AI use.
   model_score: 78
+  ai_usage: Medium
+  role_family: Platform
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -119,8 +148,10 @@
 
 - id: 10
   band: excellent
-  why: A boundary excellent (~76) — over the 75 line but below the strong head, so not in the top ten.
+  why: A 70-fit lifted over the 75 line by a strong Tier-2 backend role at high AI usage — alignment earns it.
   model_score: 70
+  ai_usage: High
+  role_family: BackendGeneric
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -130,8 +161,10 @@
 
 - id: 11
   band: good
-  why: A solid fit at the top of the good band.
+  why: A solid fit at the top of the good band; Tier-3 frontend but high AI usage keeps alignment moderate.
   model_score: 68
+  ai_usage: High
+  role_family: Frontend
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -139,8 +172,10 @@
 
 - id: 12
   band: good
-  why: Good fit, mid band.
+  why: Good fit, mid band; Tier-2 backend at medium AI use.
   model_score: 64
+  ai_usage: Medium
+  role_family: BackendGeneric
   seniority: Mid
   employment_type: FullTime
   age_days: 0
@@ -148,8 +183,10 @@
 
 - id: 13
   band: good
-  why: Good fit, remote, in band.
+  why: Good fit, remote, in band; Tier-1 platform tempers a middling model score upward.
   model_score: 60
+  ai_usage: Medium
+  role_family: Platform
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -157,8 +194,10 @@
 
 - id: 14
   band: good
-  why: A middling-good fit.
+  why: A middling-good fit; Tier-2 backend at medium AI use.
   model_score: 55
+  ai_usage: Medium
+  role_family: BackendGeneric
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -166,8 +205,10 @@
 
 - id: 15
   band: good
-  why: Good, lower half of the band.
+  why: Good, lower half of the band; a modest fit lifted by high AI usage on a Tier-3 family.
   model_score: 50
+  ai_usage: High
+  role_family: Frontend
   seniority: Mid
   employment_type: FullTime
   age_days: 0
@@ -175,8 +216,10 @@
 
 - id: 16
   band: good
-  why: Near the good/marginal seam but still good.
+  why: Near the good/marginal seam but a Tier-1 platform alignment keeps it good.
   model_score: 46
+  ai_usage: Medium
+  role_family: Platform
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -184,8 +227,10 @@
 
 - id: 17
   band: good
-  why: The lowest good job — just over the 55 line.
+  why: The lowest good job — a weak 44-fit that a perfect Tier-1 high-AI alignment lifts over the 55 line.
   model_score: 44
+  ai_usage: High
+  role_family: Platform
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -195,8 +240,10 @@
 
 - id: 18
   band: marginal
-  why: Just under the good line — the first marginal.
+  why: Just under the good line — the first marginal; a Tier-3 frontend at low AI use.
   model_score: 43
+  ai_usage: Low
+  role_family: Frontend
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -204,8 +251,10 @@
 
 - id: 19
   band: marginal
-  why: A marginal fit, mid band.
+  why: A marginal fit, mid band; low AI usage on a Tier-3 family keeps alignment low.
   model_score: 38
+  ai_usage: Low
+  role_family: Frontend
   seniority: Mid
   employment_type: FullTime
   age_days: 0
@@ -213,8 +262,10 @@
 
 - id: 20
   band: marginal
-  why: Marginal.
+  why: Marginal; a Tier-2 backend at medium AI use cannot lift a weak fit past the good line.
   model_score: 32
+  ai_usage: Medium
+  role_family: BackendGeneric
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -222,8 +273,10 @@
 
 - id: 21
   band: marginal
-  why: A weak-but-shown fit near the presentation threshold.
+  why: A weak-but-shown fit near the presentation threshold; Tier-2 backend, medium AI use.
   model_score: 28
+  ai_usage: Medium
+  role_family: BackendGeneric
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -231,8 +284,10 @@
 
 - id: 22
   band: marginal
-  why: The lowest marginal — exactly on the 40-point presentation threshold, so still shown.
+  why: The lowest marginal — a poor fit that a Tier-2 medium-AI alignment holds just over the 40 threshold.
   model_score: 25
+  ai_usage: Medium
+  role_family: BackendGeneric
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -243,8 +298,10 @@
 - id: 23
   band: reject
   suppressed_by: rank:threshold
-  why: One point under the threshold — rejected and suppressed.
+  why: A poor fit with a weak Tier-3 alignment (no AI usage) — rejected and suppressed.
   model_score: 24
+  ai_usage: None
+  role_family: Other
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -253,8 +310,10 @@
 - id: 24
   band: reject
   suppressed_by: rank:threshold
-  why: A poor fit, well below the bar.
+  why: A poor fit, well below the bar; low AI usage on a Tier-3 family.
   model_score: 18
+  ai_usage: Low
+  role_family: Frontend
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -265,6 +324,8 @@
   suppressed_by: rank:threshold
   why: A bad fit.
   model_score: 10
+  ai_usage: Low
+  role_family: Frontend
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -273,8 +334,10 @@
 - id: 26
   band: reject
   suppressed_by: rank:threshold
-  why: The worst fit in the set.
+  why: The worst fit in the set — an anti-goal enterprise-CRUD role with no AI usage; zero alignment.
   model_score: 5
+  ai_usage: None
+  role_family: EnterpriseCrud
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -346,8 +409,10 @@
 
 - id: 33
   band: good
-  why: A 90-fit that would be excellent fresh sits in the good band two weeks on — age tempers fit.
+  why: A 90-fit that would be excellent fresh sits in the good band two weeks on — age tempers fit. Tier-2 backend.
   model_score: 90
+  ai_usage: Medium
+  role_family: BackendGeneric
   seniority: Senior
   employment_type: FullTime
   age_days: 14
@@ -355,8 +420,10 @@
 
 - id: 34
   band: good
-  why: A strong fit a month old — still good, because fit dominates a nearly-spent freshness term.
+  why: A strong fit a month old — still good, because fit and a Tier-1 alignment dominate a spent freshness term.
   model_score: 85
+  ai_usage: High
+  role_family: Platform
   seniority: Senior
   employment_type: FullTime
   age_days: 30
@@ -364,8 +431,10 @@
 
 - id: 35
   band: good
-  why: A week-old excellent-when-fresh fit, decayed into good.
+  why: A week-old excellent-when-fresh fit, decayed into good; Tier-2 backend at medium AI use.
   model_score: 78
+  ai_usage: Medium
+  role_family: BackendGeneric
   seniority: Mid
   employment_type: FullTime
   age_days: 7
@@ -380,8 +449,11 @@
   why: >-
     Perfect stack, wrong seniority. A one-rung-junior Mid role clears the factual floor (the filter only
     catches two rungs down), so it reaches the deep tier — which rejects it on the seniority mismatch the
-    filter cannot see. Rejected, and below the threshold, so suppressed.
+    filter cannot see. An anti-goal enterprise-CRUD classification gives it zero alignment; rejected, and
+    below the threshold, so suppressed.
   model_score: 20
+  ai_usage: None
+  role_family: EnterpriseCrud
   seniority: Mid
   employment_type: FullTime
   age_days: 0
@@ -390,8 +462,10 @@
 - id: 37
   band: good
   hard_case: perfect-stack-stretch-seniority
-  why: Perfect stack, one level up. A stretch is worth an application, so it lands good, not rejected.
+  why: Perfect stack, one level up. A stretch is worth an application; a Tier-1 platform alignment lands it good.
   model_score: 60
+  ai_usage: Medium
+  role_family: Platform
   seniority: Staff
   employment_type: FullTime
   age_days: 0
@@ -400,8 +474,10 @@
 - id: 38
   band: marginal
   hard_case: adjacent-stack-same-domain
-  why: Adjacent stack (Java rather than .NET), same domain — a marginal fit, not a good one.
+  why: Adjacent stack (Java rather than .NET), same domain — a marginal fit, not a good one; low AI usage.
   model_score: 38
+  ai_usage: Low
+  role_family: Frontend
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -424,8 +500,10 @@
   why: >-
     An ideal role whose estimated pay is below the floor, but at low confidence (0.50) — not certain
     enough for the factual filter to bite, and the floor is a down-weight not a filter by default, so it
-    is shown as good rather than suppressed.
+    is shown as good rather than suppressed. Tier-1 platform, medium AI use.
   model_score: 60
+  ai_usage: Medium
+  role_family: Platform
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -434,8 +512,10 @@
 - id: 41
   band: excellent
   hard_case: contract-role-owner-open
-  why: A contract role, and the Owner is open to contract — no penalty; it rides on its fit.
+  why: A contract role, and the Owner is open to contract — no penalty; a Tier-1 platform alignment rides its fit.
   model_score: 70
+  ai_usage: Medium
+  role_family: Platform
   seniority: Senior
   employment_type: Contract
   age_days: 0
@@ -459,9 +539,11 @@
   band: excellent
   hard_case: excellent-fit-aged-still-top-ten
   why: >-
-    An excellent fit posted 20 days ago. Freshness must not bury fit: it stays excellent and inside the
-    top ten, below only the fresh strong head.
+    An excellent fit posted 20 days ago, a Tier-1 platform role at high AI usage. Freshness must not bury
+    fit: it stays excellent and inside the top ten, below only the fresh strong head.
   model_score: 95
+  ai_usage: High
+  role_family: Platform
   seniority: Senior
   employment_type: FullTime
   age_days: 20
@@ -471,9 +553,12 @@
   band: marginal
   hard_case: vague-posting
   why: >-
-    A vague posting with almost no detail — the deep tier scores it marginal. (The reason naming the
-    vagueness lives on the match record, which the ranking arithmetic trusts rather than re-derives.)
+    A vague posting with almost no detail — the deep tier scores it marginal, and a Tier-2 backend medium-AI
+    alignment cannot lift it. (The reason naming the vagueness lives on the match record, which the ranking
+    arithmetic trusts rather than re-derives.)
   model_score: 30
+  ai_usage: Medium
+  role_family: BackendGeneric
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -483,8 +568,9 @@
   band: good
   hard_case: no-enrichment-confidence-multiplier
   why: >-
-    No enrichment available — matched all the same, with the 0.85 confidence multiplier applied, which
-    drops a would-be-excellent 80-fit into the good band. Uncertainty lowers a score, never excludes.
+    No enrichment available — matched all the same, with the 0.85 confidence multiplier applied, and no
+    enrichment means the lowest-alignment defaults (None / Other), which together drop a would-be-excellent
+    80-fit into the good band. Uncertainty lowers a score, never excludes.
   model_score: 80
   seniority: Senior
   employment_type: FullTime
@@ -494,8 +580,10 @@
 
 - id: 46
   band: good
-  why: A mid-good remote fit.
+  why: A mid-good remote fit; Tier-1 platform, medium AI use.
   model_score: 52
+  ai_usage: Medium
+  role_family: Platform
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -503,8 +591,10 @@
 
 - id: 47
   band: marginal
-  why: A marginal fit with a Global band that overlaps every region.
+  why: A marginal fit with a Global band that overlaps every region; Tier-2 backend, medium AI use.
   model_score: 30
+  ai_usage: Medium
+  role_family: BackendGeneric
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -513,8 +603,10 @@
 - id: 48
   band: reject
   suppressed_by: rank:threshold
-  why: A poor fit, suppressed below the threshold.
+  why: A poor fit, suppressed below the threshold; low AI usage on a Tier-3 family.
   model_score: 15
+  ai_usage: Low
+  role_family: Frontend
   seniority: Senior
   employment_type: FullTime
   age_days: 0
@@ -522,8 +614,10 @@
 
 - id: 49
   band: good
-  why: A good contract fit — the Owner is open to contract, so it is scored, not suppressed.
+  why: A good contract fit — the Owner is open to contract, so it is scored, not suppressed. Tier-2 backend.
   model_score: 58
+  ai_usage: Medium
+  role_family: BackendGeneric
   seniority: Senior
   employment_type: Contract
   age_days: 0
@@ -531,8 +625,10 @@
 
 - id: 50
   band: good
-  why: A good fit with an Unknown band — the absence of a timezone fact never excludes.
+  why: A good fit with an Unknown band — the absence of a timezone fact never excludes. Tier-2, high AI use.
   model_score: 48
+  ai_usage: High
+  role_family: BackendGeneric
   seniority: Senior
   employment_type: FullTime
   age_days: 0

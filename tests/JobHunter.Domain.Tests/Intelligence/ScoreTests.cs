@@ -21,7 +21,7 @@ public sealed class ScoreTests
     {
         var clock = new FakeClock();
         var w = weights ?? RankingWeights.Default;
-        var c = components ?? new ScoreComponents(0.80m, 0.50m, 0.40m, 1.00m);
+        var c = components ?? new ScoreComponents(0.80m, 0.60m, 0.50m, 0.40m, 1.00m);
         var total = finalScore ?? c.Reconcile(w);
         return new Score(
             JobId,
@@ -38,7 +38,7 @@ public sealed class ScoreTests
     [Fact]
     public void A_valid_score_reconciles_and_exposes_its_fields()
     {
-        var components = new ScoreComponents(0.80m, 0.50m, 0.40m, 1.00m);
+        var components = new ScoreComponents(0.80m, 0.60m, 0.50m, 0.40m, 1.00m);
         var expected = components.Reconcile(RankingWeights.Default);
 
         var score = NewScore(components: components, preferenceModelId: PreferenceModelId);
@@ -62,7 +62,7 @@ public sealed class ScoreTests
     [Fact]
     public void A_total_within_rounding_tolerance_reconciles()
     {
-        var components = new ScoreComponents(0.80m, 0.50m, 0.40m, 1.00m);
+        var components = new ScoreComponents(0.80m, 0.60m, 0.50m, 0.40m, 1.00m);
         var exact = components.Reconcile(RankingWeights.Default);
 
         // A hundredth of a point of drift is a rounding difference, not a bug.
@@ -96,7 +96,7 @@ public sealed class ScoreTests
     public void An_empty_job_or_run_id_is_rejected()
     {
         var clock = new FakeClock();
-        var c = new ScoreComponents(0.80m, 0.50m, 0.40m, 1.00m);
+        var c = new ScoreComponents(0.80m, 0.60m, 0.50m, 0.40m, 1.00m);
         var total = c.Reconcile(RankingWeights.Default);
 
         Should.Throw<ArgumentException>(() => new Score(
@@ -111,7 +111,7 @@ public sealed class ScoreTests
     public void An_out_of_range_final_score_is_rejected(decimal finalScore)
     {
         var clock = new FakeClock();
-        var c = new ScoreComponents(0.80m, 0.50m, 0.40m, 1.00m);
+        var c = new ScoreComponents(0.80m, 0.60m, 0.50m, 0.40m, 1.00m);
 
         Should.Throw<ArgumentOutOfRangeException>(() => new Score(
             JobId, RunId, finalScore, c, RankingWeights.Default, null, false, null, clock.UtcNow));
@@ -121,7 +121,7 @@ public sealed class ScoreTests
     public void A_pre_match_excluded_job_may_be_scored_zero_and_suppressed()
     {
         // A scores row may exist with no matches row: a pre-match exclusion is scored, suppressed, reasoned.
-        var components = new ScoreComponents(0m, 0m, 0m, 1.00m);
+        var components = new ScoreComponents(0m, 0m, 0m, 0m, 1.00m);
 
         var score = NewScore(
             components: components,

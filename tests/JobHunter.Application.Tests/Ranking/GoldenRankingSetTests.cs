@@ -162,16 +162,21 @@ public sealed class GoldenRankingSetTests
             return new Outcome(Band.Na, $"prematch:{RuleSlug(verdict.Rule!.Value)}", FinalScore: 0m, Result: null);
         }
 
-        // 2. The pure linear scorer, with no preference model active (its weight renormalises away).
+        // 2. The career-alignment component, computed by the same pure function the handler uses (T14). An
+        //    unenriched job has no recorded classifications, so it degrades to the lowest-alignment defaults.
+        var alignment = AlignmentCalculator.Calculate(testCase.AiUsage, testCase.RoleFamily);
+
+        // 3. The pure linear scorer, with no preference model active (its weight renormalises away).
         var result = ScoreCalculator.Calculate(
             new MatchFacts(testCase.Job.JobId, testCase.ModelScore),
+            alignment.Value,
             preference: null,
             testCase.Job.Enrichment is not null,
             firstSeenAt: Now.AddDays(-testCase.AgeDays),
             now: Now,
             RankingWeights.Default);
 
-        // 3. The presentation rules. The salary floor is a down-weight by default (opt-in off), so only the
+        // 4. The presentation rules. The salary floor is a down-weight by default (opt-in off), so only the
         //    below-threshold rule can suppress here.
         var reason = SuppressionEvaluator.Evaluate(
             result, testCase.Job.Enrichment?.EstimatedSalary, Owner, salaryFloorOptIn: false);
@@ -221,16 +226,26 @@ public sealed class GoldenRankingSetTests
         var modelScore = int.Parse(Scalar(node, "model_score"), CultureInfo.InvariantCulture);
         var ageDays = int.Parse(Scalar(node, "age_days"), CultureInfo.InvariantCulture);
 
+        // The enrichment's recorded classifications, the alignment inputs (T14). Absent — as for an
+        // unenriched job — they degrade to the lowest-alignment defaults, exactly as the scope query does.
+        var aiUsage = Optional(node, "ai_usage") is { } ai
+            ? Enum.Parse<AiUsageLevel>(ai)
+            : AiUsageLevel.None;
+        var roleFamily = Optional(node, "role_family") is { } role
+            ? Enum.Parse<RoleFamily>(role)
+            : RoleFamily.Other;
+
         var job = new MatchJobContent(
             Guid.Parse(string.Create(CultureInfo.InvariantCulture, $"00000000-0000-0000-0000-{id:D12}")),
             "Acme", "acme.com", "Backend Engineer",
             Optional(node, "seniority"), "Remote", "USD 120000-160000 / Year",
-            Scalar(node, "employment_type"), "We build things.", ParseEnrichment(node));
+            Scalar(node, "employment_type"), "We build things.", ParseEnrichment(node, aiUsage, roleFamily));
 
-        return new GoldenCase(id, band, suppressedBy, top5, hardCase, modelScore, ageDays, job);
+        return new GoldenCase(id, band, suppressedBy, top5, hardCase, modelScore, ageDays, aiUsage, roleFamily, job);
     }
 
-    private static MatchEnrichmentContent? ParseEnrichment(YamlMappingNode node)
+    private static MatchEnrichmentContent? ParseEnrichment(
+        YamlMappingNode node, AiUsageLevel aiUsage, RoleFamily roleFamily)
     {
         if (!node.Children.TryGetValue(new YamlScalarNode("enrichment"), out var raw)
             || raw is not YamlMappingNode enrichment)
@@ -250,6 +265,9 @@ public sealed class GoldenRankingSetTests
                 decimal.Parse(Scalar(salaryNode, "confidence"), CultureInfo.InvariantCulture)).Value;
         }
 
+        // RoleFamily is not part of the match prompt's enrichment block, so it rides on the case, not here;
+        // AiUsage is, so it is set from the case's recorded classification for prompt-shape fidelity.
+        _ = roleFamily;
         return new MatchEnrichmentContent(
             CompanyStage.SeriesB,
             IsRemote: bool.Parse(Scalar(enrichment, "is_remote")),
@@ -257,7 +275,7 @@ public sealed class GoldenRankingSetTests
             IsContractorFriendly: false,
             EstimatedSalary: salary,
             Technologies: ["C#", ".NET"],
-            AiUsage: AiUsageLevel.Medium);
+            AiUsage: aiUsage);
     }
 
     private static Band ParseBand(string value) => value switch
@@ -291,5 +309,5 @@ public sealed class GoldenRankingSetTests
 
     private sealed record GoldenCase(
         int Id, Band Band, string? SuppressedBy, int? Top5Rank, string? HardCase,
-        int ModelScore, int AgeDays, MatchJobContent Job);
+        int ModelScore, int AgeDays, AiUsageLevel AiUsage, RoleFamily RoleFamily, MatchJobContent Job);
 }

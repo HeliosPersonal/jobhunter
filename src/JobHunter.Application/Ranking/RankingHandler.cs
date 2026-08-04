@@ -127,8 +127,11 @@ public sealed class RankingHandler(
                 ? component
                 : null;
 
+            var alignment = AlignmentCalculator.Calculate(job.AiUsage, job.RoleFamily);
+
             var result = ScoreCalculator.Calculate(
                 new MatchFacts(job.JobId, job.MatchScore),
+                alignment.Value,
                 preferenceComponent,
                 job.HasEnrichment,
                 job.FirstSeenAt,
