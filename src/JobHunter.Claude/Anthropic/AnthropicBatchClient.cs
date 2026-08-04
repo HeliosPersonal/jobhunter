@@ -157,9 +157,12 @@ public sealed class AnthropicBatchClient : ILlmBatchClient
 /// <summary>
 /// An infrastructure fault talking to the Anthropic API. It carries the HTTP status so a caller can tell a
 /// client error (4xx, not retried) from a server error (5xx, retried by the resilience handler). It never
-/// carries the request body, the API key or any prompt content (invariant 12).
+/// carries the request body, the API key or any prompt content (invariant 12). It derives from the
+/// provider-agnostic <see cref="LlmBatchClientException"/> so a caller can catch the port's declared fault
+/// without depending on this adapter (F5 T05's inline narrative fallback).
 /// </summary>
-public sealed class AnthropicApiException(string message, HttpStatusCode statusCode) : Exception(message)
+public sealed class AnthropicApiException(string message, HttpStatusCode statusCode)
+    : LlmBatchClientException(message)
 {
     public HttpStatusCode StatusCode { get; } = statusCode;
 }

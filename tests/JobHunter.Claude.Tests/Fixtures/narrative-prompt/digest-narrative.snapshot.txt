@@ -1,0 +1,10 @@
+Today's digest facts:
+- New roles discovered: 42
+- Strong matches (shown): 6
+- Cards presented: 5
+- Average advertised salary: $145000 USD
+- Scores suppressed with a reason: 11
+- Items carried over from a missed batch: 3
+- Sources degraded or quarantined: 1
+
+Write the market note.

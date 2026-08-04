@@ -33,9 +33,11 @@ namespace JobHunter.Application.Reporting;
 ///
 /// <para>Idempotent: one digest per Run is a database constraint (<c>uq_digests_run</c>), so a replayed
 /// <see cref="RankingCompleted"/> finds the existing digest, re-emits <see cref="DigestReady"/> for it and
-/// writes nothing new. The narrative is a template placeholder here; F5-T05 replaces it with a synthesised
-/// market note and a template fallback. No CV text is anywhere near this handler — it reads scores of a fit
-/// already judged, never the CV itself (F4 invariant: the CV crosses exactly one boundary).</para>
+/// writes nothing new. The market note comes from the bounded, best-effort <see cref="INarrativeSynthesizer"/>
+/// (F5-T05): a synthesised note when one lands within budget, a deterministic template otherwise — either
+/// way the digest ships. No CV text is anywhere near this handler — it reads scores of a fit already judged,
+/// and the synthesiser sees only aggregate counts, never the CV itself (F4 invariant: the CV crosses exactly
+/// one boundary).</para>
 /// </summary>
 public sealed class DigestAssembler(
     IRunRepository runs,
@@ -43,6 +45,7 @@ public sealed class DigestAssembler(
     IDegradedCoverageQuery degraded,
     IDigestRepository digests,
     IApplyLinkVerifier applyLinkVerifier,
+    INarrativeSynthesizer narrativeSynthesizer,
     IIdGenerator ids,
     DigestOptions options,
     ApplyVerificationOptions applyVerification,
@@ -55,6 +58,8 @@ public sealed class DigestAssembler(
     private readonly IDigestRepository _digests = digests ?? throw new ArgumentNullException(nameof(digests));
     private readonly IApplyLinkVerifier _applyLinkVerifier = applyLinkVerifier
         ?? throw new ArgumentNullException(nameof(applyLinkVerifier));
+    private readonly INarrativeSynthesizer _narrativeSynthesizer = narrativeSynthesizer
+        ?? throw new ArgumentNullException(nameof(narrativeSynthesizer));
     private readonly IIdGenerator _ids = ids ?? throw new ArgumentNullException(nameof(ids));
     private readonly DigestOptions _options = options ?? throw new ArgumentNullException(nameof(options));
     private readonly ApplyVerificationOptions _applyVerification = applyVerification
@@ -106,7 +111,9 @@ public sealed class DigestAssembler(
             .Select(v => v.Candidate.JobId)
             .ToList();
 
-        var digest = Assemble(digestId, run.Id, run.JobsInScope, run.JobsCarriedOver, candidates, cards, degradedSources);
+        var digest = await Assemble(
+            digestId, run.Id, run.JobsInScope, run.JobsCarriedOver, candidates, cards, degradedSources, cancellationToken)
+            .ConfigureAwait(false);
 
         // Persist the whole digest before anything is sent (S2): delivery replays stored state.
         _digests.Add(digest);
@@ -178,14 +185,15 @@ public sealed class DigestAssembler(
             .ToList();
     }
 
-    private Digest Assemble(
+    private async Task<Digest> Assemble(
         Guid digestId,
         Guid runId,
         int totalNewJobs,
         int carriedOverCount,
         IReadOnlyList<DigestCandidate> candidates,
-        IReadOnlyList<DigestCard> cards,
-        IReadOnlyList<DegradedSource> degradedSources)
+        List<DigestCard> cards,
+        IReadOnlyList<DegradedSource> degradedSources,
+        CancellationToken cancellationToken)
     {
         var strongMatches = candidates.Count(c => !c.Suppressed && c.FinalScore >= _options.CardScoreThreshold);
 
@@ -198,6 +206,16 @@ public sealed class DigestAssembler(
             .Select(s => $"{s.CompanyName} ({s.AtsKind})")
             .ToList();
 
+        // The market note is synthesised from the same aggregate numbers the header and footer already carry —
+        // never the CV, never a card reason (F4 invariant). The synthesiser is bounded and best-effort: it
+        // returns a model note if one lands in time, otherwise a deterministic template, so a provider outage
+        // or an exhausted budget never delays the digest (F5 T05, ADR-F5-0001).
+        var narrativeInput = new NarrativeInput(
+            totalNewJobs, strongMatches, cards.Count, avgSalaryUsd, suppressed.Count, carriedOverCount, degradedLabels.Count);
+        var narrative = await _narrativeSynthesizer
+            .SynthesizeAsync(runId, narrativeInput, cancellationToken)
+            .ConfigureAwait(false);
+
         return new Digest(
             digestId,
             runId,
@@ -208,9 +226,9 @@ public sealed class DigestAssembler(
             breakdown,
             carriedOverCount,
             degradedLabels,
-            narrative: null,
-            NarrativeSource.Template,
-            promptVersion: null,
+            narrative.Narrative,
+            narrative.Source,
+            narrative.PromptVersion,
             cards,
             _clock.UtcNow);
     }

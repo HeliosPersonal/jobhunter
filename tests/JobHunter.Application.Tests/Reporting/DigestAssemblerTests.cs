@@ -40,6 +40,7 @@ public sealed class DigestAssemblerTests
     private readonly IDegradedCoverageQuery _degraded = Substitute.For<IDegradedCoverageQuery>();
     private readonly FakeDigestRepository _digests = new();
     private readonly IApplyLinkVerifier _verifier = Substitute.For<IApplyLinkVerifier>();
+    private readonly INarrativeSynthesizer _narrative = Substitute.For<INarrativeSynthesizer>();
     private readonly SequentialIdGenerator _ids = new();
     private readonly FakeClock _clock = new(Now);
     private readonly IMessageBus _bus = Substitute.For<IMessageBus>();
@@ -55,6 +56,13 @@ public sealed class DigestAssemblerTests
 
         _degraded.DegradedSourcesAsync(Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
             .Returns(Array.Empty<DegradedSource>());
+
+        // By default the synthesiser returns a template note — the T03/T04 tests are indifferent to its
+        // provenance; the T05 tests exercise the synthesiser itself directly. A template result keeps the
+        // assembler's own tests a pure unit with no batch machinery in scope.
+        _narrative.SynthesizeAsync(Arg.Any<Guid>(), Arg.Any<NarrativeInput>(), Arg.Any<CancellationToken>())
+            .Returns(call => NarrativeResult.Template(
+                NarrativeTemplate.Render((NarrativeInput)call[1]!)));
 
         // The moment the first message is published, the digest must already be committed (S2). Capture the
         // repository state at that instant so the persist-before-publish property is observed, not assumed.
@@ -77,7 +85,7 @@ public sealed class DigestAssemblerTests
     }
 
     private DigestAssembler CreateHandler(DigestOptions? options = null) =>
-        new(_runs, _scope, _degraded, _digests, _verifier, _ids, options ?? new DigestOptions(),
+        new(_runs, _scope, _degraded, _digests, _verifier, _narrative, _ids, options ?? new DigestOptions(),
             new ApplyVerificationOptions(), _clock, NullLogger<DigestAssembler>.Instance);
 
     private static Run RankingCompletedRun(int jobsInScope = 20, int carriedOver = 0)

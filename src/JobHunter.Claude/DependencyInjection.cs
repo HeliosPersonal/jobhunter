@@ -49,6 +49,13 @@ public static class DependencyInjection
         services.AddSingleton<IMatchRequestBuilder, Matching.MatchRequestBuilder>();
         services.AddSingleton<IMatchResultParser, Prompts.MatchResultParser>();
 
+        // F5 narrative synthesis (T05): the same request-builder/result-parser boundary for the digest's
+        // market note. It carries only aggregate counts and one salary statistic (no CV, no card reason), so
+        // the versioned narrative prompt and its schema live here and the Application synthesiser depends on
+        // the Domain ports, not on Anthropic.
+        services.AddSingleton<INarrativeRequestBuilder, Prompts.NarrativeRequestBuilder>();
+        services.AddSingleton<INarrativeResultParser, Prompts.NarrativeResultParser>();
+
         // The cheap-tier provider is a configuration switch, not a fork in the pipeline: the orchestrator,
         // the cost gate and the result-processing handler all submit through the same ILlmBatchClient port
         // (SAD S6, ADR-0005). Ollama on the cluster is the fallback whose absence degrades quality, not

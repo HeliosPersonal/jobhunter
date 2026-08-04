@@ -168,6 +168,18 @@ public static class DependencyInjection
         services.AddSingleton(sp =>
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Reporting.ApplyVerificationOptions>>().Value);
 
+        // F5 narrative synthesis (T05, ADR-F5-0001): the assembler asks the synthesiser for a market note; the
+        // synthesiser makes one bounded deep-tier call, ceiling-checked and ledgered like every other batch,
+        // and falls back to a deterministic template on a breach, an outage or an exhausted budget — so the
+        // digest always ships. Its two time bounds are startup-validated so the call can never delay the digest.
+        services.AddOptions<Reporting.NarrativeSynthesisOptions>()
+            .Validate(o => o.Timeout > TimeSpan.Zero, "NarrativeSynthesis:Timeout must be positive.")
+            .Validate(o => o.PollInterval > TimeSpan.Zero, "NarrativeSynthesis:PollInterval must be positive.")
+            .ValidateOnStart();
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Reporting.NarrativeSynthesisOptions>>().Value);
+        services.AddScoped<Reporting.INarrativeSynthesizer, Reporting.NarrativeSynthesizer>();
+
         return services;
     }
 }
