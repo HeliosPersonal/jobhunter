@@ -345,7 +345,8 @@ public sealed class CvLeakageScanTests
         private Task SubmitAsync() => InScopeAsync<MatchingSubmitHandler>(logger =>
             new MatchingSubmitHandler(
                     Runs(), new MatchScopeQuery(_factory), _reMatchBacklog, new MatchRequestBuilder(),
-                    Profiles(), CvVersions(), Accountant(), _client, _clock, _ids, logger)
+                    Profiles(), CvVersions(), new CurrentMatchQuery(_factory), Scores(), Accountant(),
+                    _client, _clock, _ids, new RunOptions { MatchAllJobs = true }, new PreMatchOptions(), logger)
                 .Handle(new EnrichmentCompleted(_runId, JobCount, 0, Now), _bus, CancellationToken.None));
 
         private Task PollAsync() => InScopeAsync<MatchingPollHandler>(logger =>

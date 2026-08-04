@@ -1,6 +1,8 @@
 using System.Globalization;
+using JobHunter.Application.Enrichment;
 using JobHunter.Contracts.Pipeline;
 using JobHunter.Domain.Abstractions;
+using JobHunter.Domain.Intelligence;
 using JobHunter.Domain.Jobs;
 using JobHunter.Domain.Pipeline;
 using JobHunter.Domain.Profiles;
@@ -43,10 +45,14 @@ public sealed class MatchingSubmitHandler(
     IMatchRequestBuilder requestBuilder,
     IProfileRepository profiles,
     ICvVersionRepository cvVersions,
+    ICurrentMatchQuery currentMatches,
+    IScoreRepository scores,
     ICostAccountant accountant,
     ILlmBatchClient client,
     IClock clock,
     IIdGenerator ids,
+    RunOptions runOptions,
+    PreMatchOptions preMatchOptions,
     ILogger<MatchingSubmitHandler> logger)
 {
     private const BatchStage Stage = BatchStage.Matching;
@@ -58,10 +64,14 @@ public sealed class MatchingSubmitHandler(
     private readonly IMatchRequestBuilder _requestBuilder = requestBuilder ?? throw new ArgumentNullException(nameof(requestBuilder));
     private readonly IProfileRepository _profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
     private readonly ICvVersionRepository _cvVersions = cvVersions ?? throw new ArgumentNullException(nameof(cvVersions));
+    private readonly ICurrentMatchQuery _currentMatches = currentMatches ?? throw new ArgumentNullException(nameof(currentMatches));
+    private readonly IScoreRepository _scores = scores ?? throw new ArgumentNullException(nameof(scores));
     private readonly ICostAccountant _accountant = accountant ?? throw new ArgumentNullException(nameof(accountant));
     private readonly ILlmBatchClient _client = client ?? throw new ArgumentNullException(nameof(client));
     private readonly IClock _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     private readonly IIdGenerator _ids = ids ?? throw new ArgumentNullException(nameof(ids));
+    private readonly RunOptions _runOptions = runOptions ?? throw new ArgumentNullException(nameof(runOptions));
+    private readonly PreMatchOptions _preMatchOptions = preMatchOptions ?? throw new ArgumentNullException(nameof(preMatchOptions));
     private readonly ILogger<MatchingSubmitHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public async Task Handle(
@@ -129,7 +139,24 @@ public sealed class MatchingSubmitHandler(
             return;
         }
 
-        var request = _requestBuilder.Build(jobs, profile, cvVersion);
+        // The pre-match filter (ADR-F4-0003, T12): the factual gate before the expensive deep tier. Each
+        // excluded job gets a suppressed score row naming the rule that ruled it out, so it stays retrievable
+        // and is counted in the digest footer (invariant 11, AC-12); only the survivors are priced and matched,
+        // which is what keeps the ceiling headroom rather than a constraint (invariant 6). A calibration Run
+        // bypasses the gate entirely so we can measure what it would have hidden (AC-13).
+        var survivors = await ApplyPreMatchFilterAsync(run, jobs, profile, cvVersion, cancellationToken)
+            .ConfigureAwait(false);
+        if (survivors.Count == 0)
+        {
+            // Every job was factually excluded: nothing to judge, but the scores are already recorded, so
+            // complete to Ranking without spending rather than stall (brief §9). Ranking will find the
+            // suppressed rows and the digest footer will report them.
+            await CompleteWithoutSubmittingAsync(
+                run, bus, "every scoped job excluded by the pre-match filter", cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        var request = _requestBuilder.Build(survivors, profile, cvVersion);
         var renderedPrompts = request.Items.Select(i => i.UserContent).ToList();
         var estimate = _accountant.Estimate(Tier, renderedPrompts, request.MaxOutputTokensPerItem);
 
@@ -235,6 +262,77 @@ public sealed class MatchingSubmitHandler(
         return await _scope
             .InScopeAsync(run.CutoffFrom, run.CutoffTo, scopeIds, cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Runs the pure <see cref="PreMatchFilter"/> over the scope and returns the jobs that clear the factual
+    /// gate. Excluded jobs get a suppressed <see cref="Score"/> row keyed on <c>(job_id, run_id)</c> — the
+    /// same idempotent upsert ranking uses, so a redelivered submission writes each exactly once — carrying the
+    /// rule reason and zero components (a pre-match exclusion is never a model number). The bypass short-circuits
+    /// the whole gate so a calibration Run matches everything (AC-13).
+    /// </summary>
+    private async Task<IReadOnlyList<MatchJobContent>> ApplyPreMatchFilterAsync(
+        Run run,
+        IReadOnlyList<MatchJobContent> jobs,
+        Profile profile,
+        CvVersion cvVersion,
+        CancellationToken cancellationToken)
+    {
+        if (_runOptions.MatchAllJobs)
+        {
+            _logger.LogInformation(
+                "Run {RunId} is a MatchAllJobs calibration pass; the pre-match filter is bypassed for all {Count} jobs.",
+                run.Id, jobs.Count);
+            return jobs;
+        }
+
+        // The lifecycle rule's one fact is read here, once, so the pure filter never touches the matches table.
+        var alreadyMatched = await _currentMatches
+            .WithCurrentMatchAsync(cvVersion.Id, jobs.Select(j => j.JobId).ToList(), cancellationToken)
+            .ConfigureAwait(false);
+        var settings = _preMatchOptions.ToSettings();
+
+        var survivors = new List<MatchJobContent>(jobs.Count);
+        var excluded = 0;
+        foreach (var job in jobs)
+        {
+            var verdict = PreMatchFilter.Evaluate(
+                job, profile, alreadyMatched.Contains(job.JobId), settings);
+            if (!verdict.Excluded)
+            {
+                survivors.Add(job);
+                continue;
+            }
+
+            excluded++;
+            await RecordExclusionAsync(run, job.JobId, verdict, cancellationToken).ConfigureAwait(false);
+        }
+
+        if (excluded > 0)
+        {
+            await _runs.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation(
+                "Run {RunId} pre-match filter excluded {Excluded} of {Total} jobs; {Survivors} proceed to the deep tier.",
+                run.Id, excluded, jobs.Count, survivors.Count);
+        }
+
+        return survivors;
+    }
+
+    /// <summary>
+    /// Writes the suppressed <see cref="Score"/> row for a pre-match exclusion (invariant 11, AC-12): zero
+    /// components — no model produced them — reconciling to a zero total, flagged suppressed with the rule
+    /// reason. The upsert is idempotent, so a redelivery is a no-op on the existing row.
+    /// </summary>
+    private async Task RecordExclusionAsync(
+        Run run, Guid jobId, PreMatchVerdict verdict, CancellationToken cancellationToken)
+    {
+        var components = new ScoreComponents(match: 0m, preference: 0m, freshness: 0m, confidenceMultiplier: 1m);
+        var score = new Score(
+            jobId, run.Id, finalScore: 0m, components, RankingWeights.Default,
+            preferenceModelId: null, suppressed: true, verdict.Reason, _clock.UtcNow);
+
+        await _scores.UpsertAsync(score, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task CompleteWithoutSubmittingAsync(

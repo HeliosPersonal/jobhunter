@@ -2,7 +2,7 @@
 status: Draft
 owner: "Viacheslav Melnichenko"
 reviewers: ["Tech Lead (Viacheslav)"]
-updated_at: "2026-08-02"
+updated_at: "2026-08-04"
 feature_size: "M"
 stage: "13"
 ticket: ""
@@ -32,7 +32,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T09 | [[T09-cv-restaling\|CV activation, re-staling and re-match scheduling]] | app | T03, T06 | M | done |
 | T10 | [[T10-leakage-suite\|CV leakage scan suite]] | tests | T06, T08 | L | done |
 | T11 | [[T11-golden-ranking\|Golden ranking set and precision tracking]] | tests | T08 | L | pending |
-| T12 | [[T12-pre-match-filter\|Pre-match filter]] | app | T05 | M | pending |
+| T12 | [[T12-pre-match-filter\|Pre-match filter]] | app | T05 | M | done |
 | T13 | [[T13-cv-prompt-caching\|CV prompt caching and regret sampler]] | claude/app | T04, T12 | M | pending |
 | T14 | [[T14-alignment-score-component\|Add an alignment score component]] | app | T07 | M | pending |
 | T15 | [[T15-anti-goal-downweight\|Down-weight anti-goal roles in the score]] | app | T14 | S | pending |

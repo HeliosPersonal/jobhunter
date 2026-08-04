@@ -86,6 +86,7 @@ public static class DependencyInjection
         services.AddScoped<IEnrichmentScopeQuery, EnrichmentScopeQuery>();
         services.AddScoped<IMatchScopeQuery, MatchScopeQuery>();
         services.AddScoped<IRankingScopeQuery, RankingScopeQuery>();
+        services.AddScoped<ICurrentMatchQuery, CurrentMatchQuery>();
         services.AddScoped<IStaleJobsQuery, StaleJobsQuery>();
         services.AddScoped<IRawPostingReader, RawPostingReaderQuery>();
         services.AddScoped<IReprocessableJobsQuery, ReprocessableJobsQuery>();

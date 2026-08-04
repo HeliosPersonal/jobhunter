@@ -122,6 +122,19 @@ public static class DependencyInjection
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Ranking.RankingOptions>>().Value);
         services.AddSingleton<IPreferenceModelQuery, Ranking.NullPreferenceModelQuery>();
 
+        // F4 pre-match filter (T12, ADR-F4-0003): the factual gate the matching submit handler applies before
+        // the deep tier. Its tunables — the Owner's seniority and the two thresholds the PRD leaves as config —
+        // are startup-validated and passed to the handler by Wolverine as a resolvable singleton. The bypass
+        // (Run:MatchAllJobs) lives on RunOptions, already registered above.
+        services.AddOptions<Matching.PreMatchOptions>()
+            .Validate(o => o.SeniorityFloorGap > 0, "PreMatch:SeniorityFloorGap must be positive.")
+            .Validate(
+                o => o.SalaryConfidenceThreshold is >= 0m and <= 1m,
+                "PreMatch:SalaryConfidenceThreshold must be in [0, 1].")
+            .ValidateOnStart();
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Matching.PreMatchOptions>>().Value);
+
         return services;
     }
 }

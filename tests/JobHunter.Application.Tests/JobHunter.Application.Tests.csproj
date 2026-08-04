@@ -14,6 +14,8 @@
     <PackageReference Include="YamlDotNet" />
     <None Update="Data\dedup-corpus.yaml" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Data\fingerprints.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The labelled pre-match reference corpus (T12): the filter's pass/exclude decisions and the pass-rate band. -->
+    <None Update="Data\pre-match-corpus.yaml" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

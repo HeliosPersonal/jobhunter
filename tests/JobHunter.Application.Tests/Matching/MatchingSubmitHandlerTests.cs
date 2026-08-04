@@ -1,3 +1,4 @@
+using JobHunter.Application.Enrichment;
 using JobHunter.Application.Matching;
 using JobHunter.Contracts.Pipeline;
 using JobHunter.Domain.Abstractions;
@@ -22,8 +23,10 @@ namespace JobHunter.Application.Tests.Matching;
 /// redelivery neither resubmits nor re-estimates; and — unlike enrichment — the submit path does <em>not</em>
 /// transition the Run, because the matching poller advances <c>Matching → Ranking</c> once results arrive.
 /// The repository, scope query, request builder and the CV/Profile repositories are substituted, so these are
-/// zero-database unit tests. One test prices the batch against the <em>real</em>
-/// <see cref="CostAccountant"/> and the deep-tier pricing table to hold the NFR (matching &lt; $0.60).
+/// zero-database unit tests. The cost NFR (matching &lt; $0.60) is held one layer down, where the batch is
+/// actually rendered and priced: <c>MatchRequestBuilderTests</c> prices a real <c>CostAccountant</c> against
+/// the deep-tier table — the Application layer cannot reference <c>JobHunter.Claude</c> (architecture rule 3),
+/// so it asserts the ceiling gate against a substituted <see cref="ICostAccountant"/> instead.
 /// </summary>
 public sealed class MatchingSubmitHandlerTests
 {
@@ -38,11 +41,15 @@ public sealed class MatchingSubmitHandlerTests
     private readonly IMatchRequestBuilder _builder = Substitute.For<IMatchRequestBuilder>();
     private readonly IProfileRepository _profiles = Substitute.For<IProfileRepository>();
     private readonly ICvVersionRepository _cvVersions = Substitute.For<ICvVersionRepository>();
+    private readonly ICurrentMatchQuery _currentMatches = Substitute.For<ICurrentMatchQuery>();
+    private readonly IScoreRepository _scores = Substitute.For<IScoreRepository>();
     private readonly ICostAccountant _accountant = Substitute.For<ICostAccountant>();
     private readonly FakeLlmBatchClient _client = new();
     private readonly FakeClock _clock = new(Now);
     private readonly SequentialIdGenerator _ids = new();
     private readonly IMessageBus _bus = Substitute.For<IMessageBus>();
+    private readonly RunOptions _runOptions = new();
+    private readonly PreMatchOptions _preMatchOptions = new();
 
     public MatchingSubmitHandlerTests()
     {
@@ -55,11 +62,23 @@ public sealed class MatchingSubmitHandlerTests
         // the drain populate it explicitly.
         _reMatchBacklog.PendingJobIdsAsync(Arg.Any<CancellationToken>())
             .Returns(Array.Empty<Guid>());
+
+        // By default no scoped job already carries a current match, so the pre-match filter's lifecycle rule
+        // never bites and every job the scope returns reaches the deep tier. Tests that probe the filter
+        // populate a Profile/enrichment that trips a rule, or seed a current match explicitly.
+        _currentMatches.WithCurrentMatchAsync(
+                Arg.Any<Guid>(), Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<CancellationToken>())
+            .Returns(new HashSet<Guid>());
     }
 
-    private MatchingSubmitHandler CreateHandler(ICostAccountant? accountant = null, ILlmBatchClient? client = null) =>
-        new(_runs, _scope, _reMatchBacklog, _builder, _profiles, _cvVersions, accountant ?? _accountant,
-            client ?? _client, _clock, _ids, NullLogger<MatchingSubmitHandler>.Instance);
+    private MatchingSubmitHandler CreateHandler(
+        ICostAccountant? accountant = null,
+        ILlmBatchClient? client = null,
+        RunOptions? runOptions = null,
+        PreMatchOptions? preMatchOptions = null) =>
+        new(_runs, _scope, _reMatchBacklog, _builder, _profiles, _cvVersions, _currentMatches, _scores,
+            accountant ?? _accountant, client ?? _client, _clock, _ids, runOptions ?? _runOptions,
+            preMatchOptions ?? _preMatchOptions, NullLogger<MatchingSubmitHandler>.Instance);
 
     private List<object> Published() =>
         _bus.ReceivedCalls()
@@ -108,12 +127,18 @@ public sealed class MatchingSubmitHandlerTests
                 Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<CancellationToken>())
             .Returns(jobs.ToList());
 
-        var items = jobs
-            .Select(j => new BatchRequestItem(j.JobId.ToString(), "system", $"content-{j.Title}",
-                new JsonSchema("record_match", "{}")))
-            .ToList();
+        // The builder renders one item per job it is actually handed — so the batch reflects the survivors
+        // the pre-match filter passed through, not the full scope.
         _builder.Build(Arg.Any<IReadOnlyList<MatchJobContent>>(), Arg.Any<Profile>(), Arg.Any<CvVersion>())
-            .Returns(new MatchBatchRequest("match-v1", items, 550));
+            .Returns(ci =>
+            {
+                var survivors = ci.Arg<IReadOnlyList<MatchJobContent>>() ?? [];
+                var items = survivors
+                    .Select(j => new BatchRequestItem(j.JobId.ToString(), "system", $"content-{j.Title}",
+                        new JsonSchema("record_match", "{}")))
+                    .ToList();
+                return new MatchBatchRequest("match-v1", items, 550);
+            });
 
         _runs.FindRetriableJobIdsAsync(Arg.Any<CancellationToken>()).Returns(Array.Empty<Guid>());
     }
@@ -121,6 +146,19 @@ public sealed class MatchingSubmitHandlerTests
     private void GivenEstimate(decimal costUsd, int inputTokens = 1000, int outputTokens = 700) =>
         _accountant.Estimate(Arg.Any<ModelTier>(), Arg.Any<IReadOnlyList<string>>(), Arg.Any<int>())
             .Returns(new CostEstimate(costUsd, inputTokens, outputTokens));
+
+    /// <summary>
+    /// A job the default Profile factually excludes: a Contract role, an employment type the Owner
+    /// (<see cref="ActiveProfile"/> seeks only <see cref="EmploymentType.FullTime"/>) does not seek. It is a
+    /// recognised type, so the employment-type rule bites — the cleanest single-rule exclusion for wiring tests.
+    /// </summary>
+    private static MatchJobContent ExcludedJob(string title = "Contract Engineer") =>
+        new(
+            Guid.CreateVersion7(), "Acme", "acme.com", title, "Senior", "Remote — EMEA",
+            "USD 120000-160000 / Year", "Contract", "We build things.",
+            new MatchEnrichmentContent(
+                CompanyStage.SeriesB, IsRemote: true, TimezoneBand.EMEA, IsContractorFriendly: true,
+                EstimatedSalary: null, Technologies: ["C#", ".NET"], AiUsage: AiUsageLevel.Medium));
 
     // ---- QG-2: the ceiling is a precondition, the client is never called on a breach ----------
 
@@ -316,6 +354,111 @@ public sealed class MatchingSubmitHandlerTests
         _client.SubmitCallCount.ShouldBe(0);
         run.State.ShouldBe(RunState.Ranking);
         Published().OfType<MatchingCompleted>().ShouldHaveSingleItem();
+    }
+
+    // ---- T12 / ADR-F4-0003: the pre-match filter gates the deep tier ---------------------------
+
+    [Fact]
+    public async Task A_factually_excluded_job_is_recorded_suppressed_and_not_deep_matched()
+    {
+        var run = MatchingRun();
+        _runs.FindAsync(RunId, Arg.Any<CancellationToken>()).Returns(run);
+        var kept = Job();
+        var dropped = ExcludedJob();
+        GivenScope(kept, dropped);
+        GivenEstimate(0.44m);
+
+        Score? suppressed = null;
+        await _scores.UpsertAsync(Arg.Do<Score>(s => suppressed = s), Arg.Any<CancellationToken>());
+
+        await CreateHandler().Handle(new EnrichmentCompleted(RunId, 2, 0, Now), _bus, CancellationToken.None);
+
+        // Only the survivor is priced and matched — the excluded job never reaches the deep tier.
+        _client.SubmitCallCount.ShouldBe(1);
+        _client.LastSubmission.ShouldNotBeNull().Items.Count.ShouldBe(1);
+
+        // ...and the excluded job gets exactly one suppressed, reasoned, zero-total score row (invariant 11, AC-12).
+        await _scores.Received(1).UpsertAsync(Arg.Any<Score>(), Arg.Any<CancellationToken>());
+        var row = suppressed.ShouldNotBeNull();
+        row.JobId.ShouldBe(dropped.JobId);
+        row.RunId.ShouldBe(RunId);
+        row.Suppressed.ShouldBeTrue();
+        row.FinalScore.ShouldBe(0m);
+        row.SuppressionReason.ShouldNotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task Every_scoped_job_excluded_completes_to_ranking_without_spending()
+    {
+        var run = MatchingRun();
+        _runs.FindAsync(RunId, Arg.Any<CancellationToken>()).Returns(run);
+        GivenScope(ExcludedJob("Contract Engineer"), ExcludedJob("Contract Architect"));
+        _client.ThrowOnSubmit = true;
+
+        await CreateHandler().Handle(new EnrichmentCompleted(RunId, 2, 0, Now), _bus, CancellationToken.None);
+
+        // Both jobs suppressed, nothing to judge: complete to Ranking without paying the provider (brief §9).
+        _client.SubmitCallCount.ShouldBe(0);
+        await _scores.Received(2).UpsertAsync(Arg.Any<Score>(), Arg.Any<CancellationToken>());
+        run.State.ShouldBe(RunState.Ranking);
+        Published().OfType<MatchingCompleted>().ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task A_job_already_matched_against_the_current_cv_is_excluded_on_lifecycle()
+    {
+        var run = MatchingRun();
+        _runs.FindAsync(RunId, Arg.Any<CancellationToken>()).Returns(run);
+        var kept = Job();
+        var alreadyMatched = Job("Staff Engineer");
+        GivenScope(kept, alreadyMatched);
+        GivenEstimate(0.44m);
+        _currentMatches.WithCurrentMatchAsync(
+                CvVersionId, Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<CancellationToken>())
+            .Returns(new HashSet<Guid> { alreadyMatched.JobId });
+
+        Score? suppressed = null;
+        await _scores.UpsertAsync(Arg.Do<Score>(s => suppressed = s), Arg.Any<CancellationToken>());
+
+        await CreateHandler().Handle(new EnrichmentCompleted(RunId, 2, 0, Now), _bus, CancellationToken.None);
+
+        _client.LastSubmission.ShouldNotBeNull().Items.Count.ShouldBe(1);
+        suppressed.ShouldNotBeNull().JobId.ShouldBe(alreadyMatched.JobId);
+    }
+
+    [Fact]
+    public async Task MatchAllJobs_calibration_pass_bypasses_the_filter_and_matches_everything()
+    {
+        var run = MatchingRun();
+        _runs.FindAsync(RunId, Arg.Any<CancellationToken>()).Returns(run);
+        GivenScope(Job(), ExcludedJob());
+        GivenEstimate(0.44m);
+
+        var calibration = new RunOptions { MatchAllJobs = true };
+        await CreateHandler(runOptions: calibration)
+            .Handle(new EnrichmentCompleted(RunId, 2, 0, Now), _bus, CancellationToken.None);
+
+        // The would-be-excluded job is matched anyway, and no suppression is recorded (AC-13): the bypass
+        // measures what the filter would have hidden.
+        _client.SubmitCallCount.ShouldBe(1);
+        _client.LastSubmission.ShouldNotBeNull().Items.Count.ShouldBe(2);
+        await _scores.DidNotReceive().UpsertAsync(Arg.Any<Score>(), Arg.Any<CancellationToken>());
+        await _currentMatches.DidNotReceiveWithAnyArgs()
+            .WithCurrentMatchAsync(default, default!, default);
+    }
+
+    [Fact]
+    public async Task No_exclusions_writes_no_suppressed_rows()
+    {
+        var run = MatchingRun();
+        _runs.FindAsync(RunId, Arg.Any<CancellationToken>()).Returns(run);
+        GivenScope(Job(), Job("Platform Engineer"));
+        GivenEstimate(0.44m);
+
+        await CreateHandler().Handle(new EnrichmentCompleted(RunId, 2, 0, Now), _bus, CancellationToken.None);
+
+        _client.LastSubmission.ShouldNotBeNull().Items.Count.ShouldBe(2);
+        await _scores.DidNotReceive().UpsertAsync(Arg.Any<Score>(), Arg.Any<CancellationToken>());
     }
 
     // ---- AC-08: the previous Run's failed items retry once -------------------------------------
