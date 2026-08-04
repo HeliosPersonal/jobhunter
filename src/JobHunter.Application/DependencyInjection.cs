@@ -99,6 +99,17 @@ public static class DependencyInjection
         // (the profile/CV repositories and the in-process text extractor) are registered by Infrastructure.
         services.AddScoped<Profiles.CvUploadService>();
 
+        // F4 ranking (T08): the ranking tunables (top-count, salary-floor opt-in), passed to the handler by
+        // Wolverine as a dependency, so register the validated value as a resolvable singleton. The learned
+        // preference model is F7's; until it lands the null query answers "no active model" and ranking
+        // renormalises the preference weight away, so the pipeline runs end-to-end today without F7's schema.
+        services.AddOptions<Ranking.RankingOptions>()
+            .Validate(o => o.TopJobCount > 0, "Ranking:TopJobCount must be positive.")
+            .ValidateOnStart();
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Ranking.RankingOptions>>().Value);
+        services.AddSingleton<IPreferenceModelQuery, Ranking.NullPreferenceModelQuery>();
+
         return services;
     }
 }

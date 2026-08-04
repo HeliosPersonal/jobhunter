@@ -72,6 +72,23 @@ public sealed record MatchingCompleted(
     DateTimeOffset OccurredAt) : IIntegrationEvent;
 
 /// <summary>
+/// The ranking stage finished — every matched job has exactly one score for the Run and the Run advanced to
+/// <c>Researching</c> (event-catalog §3, F4 SAD §6.2). Consumed by F5 reporting, F8 research and F9 indexing.
+/// Carries the counts the digest footer needs — how many were ranked and how many suppressed — and the top
+/// job ids in digest order, so a downstream consumer need not re-query to know the shape of the day. A Run
+/// with nothing to rank (no active Profile, empty scope, or every job suppressed) emits it with a zero
+/// <see cref="RankedCount"/> and an empty <see cref="TopJobIds"/> so a reduced digest still ships rather than
+/// silence (brief §9, invariant 11). Idempotency key is the <see cref="RunId"/> — re-ranking a Run converges
+/// on the same scores and the same completion.
+/// </summary>
+public sealed record RankingCompleted(
+    Guid RunId,
+    int RankedCount,
+    int SuppressedCount,
+    IReadOnlyList<Guid> TopJobIds,
+    DateTimeOffset OccurredAt) : IIntegrationEvent;
+
+/// <summary>
 /// A Run ended in <c>Failed</c> from an unrecoverable fault (event-catalog §3, F3 SAD §6.1). Consumed by
 /// the Telegram notifier and the digest footer so a broken night is visible, not silent. Idempotency key
 /// is the <see cref="RunId"/> — an already-terminal Run keeps its first reason (Run.Abort is idempotent).

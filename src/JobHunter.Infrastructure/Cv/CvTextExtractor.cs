@@ -14,7 +14,7 @@ namespace JobHunter.Infrastructure.Cv;
 /// UTF-8. Both paths return a <see cref="Result{T}"/>: a text-less file is an expected business outcome,
 /// not an exception. The extracted text is handed straight back and never logged (the CV-leakage rule).
 /// </summary>
-public sealed class CvTextExtractor : ICvTextExtractor
+internal sealed class CvTextExtractor : ICvTextExtractor
 {
     /// <summary>The failure code for a file that carried no extractable text (a scan, or empty text).</summary>
     public const string NoTextCode = "cv.no_extractable_text";

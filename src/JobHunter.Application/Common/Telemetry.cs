@@ -5,7 +5,7 @@ namespace JobHunter.Application.Common;
 
 /// <summary>
 /// The single <see cref="ActivitySource"/> and <see cref="Meter"/> for the whole pipeline, plus the
-/// nine domain instruments declared once here (observability §2). No other file creates a meter or
+/// domain instruments declared once here (observability §2). No other file creates a meter or
 /// an activity source. Label discipline is enforced by <see cref="TelemetryLabels"/> and asserted in T11.
 /// </summary>
 public static class Telemetry
@@ -60,4 +60,11 @@ public static class Telemetry
     // value is what matters, and drift that does not self-heal after a re-index is what an alert watches for.
     public static readonly Gauge<double> IndexDrift =
         Meter.CreateGauge<double>("jobhunter.index.drift", "ratio", "|live jobs - indexed documents| / live jobs");
+
+    // Ranking (F4 SAD §7): the distribution of final scores a Run produces, and how many jobs it suppressed.
+    public static readonly Histogram<double> MatchScoreDistribution =
+        Meter.CreateHistogram<double>("jobhunter.match.score_distribution", "score", "Final ranking scores per Run");
+
+    public static readonly Counter<long> RankingSuppressed =
+        Meter.CreateCounter<long>("jobhunter.ranking.suppressed", "jobs", "Matched jobs suppressed with a reason");
 }
