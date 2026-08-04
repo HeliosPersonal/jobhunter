@@ -39,7 +39,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T16 | [[T16-owner-career-goal\|Encode the Owner's career goal in the Profile + match prompt]] | app | T01, T04 | M | pending |
 | T17 | [[T17-negative-role-family-filter\|Negative role-family filter (ML-Researcher / Data-Scientist / Prompt-Engineer / CRUD)]] | app | T08, T14 | S | done |
 | T18 | [[T18-founding-role-seniority-floor\|Soften the seniority-floor pre-match rule for early-stage/founding roles]] | app | T12 | S | done |
-| T19 | [[T19-golden-target-family-slice\|Add a target-role-family slice to the golden ranking set]] | tests | T11, T14, T15 | M | pending |
+| T19 | [[T19-golden-target-family-slice\|Add a target-role-family slice to the golden ranking set]] | tests | T11, T14, T15 | M | done |
 | T20 | [[T20-precision-at-10-loop\|Weekly precision@10 rating loop]] | app | T11, F5, F7-T03, F10 | M | pending |
 | T21 | [[T21-regret-sampler\|Regret sampler, matching metrics and live cost measurement]] | app | T12, T13, F5 | M | pending |
 

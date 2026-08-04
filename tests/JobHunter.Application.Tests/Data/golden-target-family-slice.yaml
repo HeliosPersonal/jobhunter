@@ -1,0 +1,87 @@
+# The target-role-family slice of the golden ranking set (F4 T19, test-plan §KPI Precision@10, gate G10).
+#
+# TUNE-01 / TUNE-02 / TUNE-05 / TUNE-06 are the reason the alignment work exists: fit-to-CV must not bury
+# aspiration. A perfect-stack Senior-.NET enterprise-CRUD role, or a high-fit ML-research role, would — on
+# the model's fit judgement alone — float into the top ten ahead of the AI-platform / staff / founding
+# trajectory the Owner is actually aiming at. This slice pins the fix as a build gate: every pair couples one
+# genuine TARGET-family (Tier-1) role that is only a *stretch* on fit against one OFF-TARGET role the model
+# scores much higher on fit, and asserts the target still out-ranks the off-target — by band and by score.
+#
+# Judged by the same REAL, pure chain as golden-ranking.yaml — PreMatchFilter (a no-op here: every role is
+# Senior / FullTime / EMEA-remote / enriched / just-seen, so nothing is factually excluded and the slice
+# isolates alignment + career-policy) then AlignmentCalculator + AntiGoalClassifier + NegativeFamilyClassifier
+# + ScoreCalculator, with the default options (both penalty factors 0.50, both suppression opt-ins off).
+#
+# The premise of every pair: off_target.model_score > target.model_score (the off-target is the better raw
+# fit), yet band(target) is strictly better than band(off_target) AND score(target) > score(off_target).
+# That is the only thing that makes the slice mean anything — a slice where the target were also the better
+# fit would prove nothing. The assertions are on BANDS and RELATIVE ORDER, never exact scores, so the slice
+# survives weight tuning: it fails the build only if a re-weighting lets a high-fit off-target role out-rank
+# a stretch Tier-1 role, which is precisely the regression TUNE-01/02/05/06 must never reintroduce.
+#
+# Bands (final score): excellent >= 75 · good 55-75 · marginal 40-55 · reject < 40.
+# off_target.kind: anti_goal (T15: low-AI EnterpriseCrud, ×0.50) | negative_family (T17: off-target set, ×0.50).
+
+# ---- perfect-fit enterprise-CRUD (anti-goal) demoted below a stretch Tier-1 role -----------------------
+
+- id: 1
+  scenario: perfect-fit-crud-vs-stretch-ai-platform
+  why: The archetype — a perfect-stack CRUD role at no AI usage must never out-rank a mid-fit AI-platform role.
+  target:     { role_family: AiPlatform,     ai_usage: Medium, model_score: 55,  band: good }
+  off_target: { role_family: EnterpriseCrud, ai_usage: None,   model_score: 100, band: reject, kind: anti_goal }
+
+- id: 2
+  scenario: near-perfect-crud-low-ai-vs-stretch-platform
+  why: Incidental AI tooling does not rescue an enterprise-CRUD role from the anti-goal down-weight.
+  target:     { role_family: Platform,       ai_usage: Medium, model_score: 60, band: good }
+  off_target: { role_family: EnterpriseCrud, ai_usage: Low,    model_score: 98, band: reject, kind: anti_goal }
+
+- id: 6
+  scenario: perfect-fit-crud-vs-low-ai-platform-stretch
+  why: Even a low-AI Tier-1 platform stretch clears a high-fit anti-goal role.
+  target:     { role_family: Platform,       ai_usage: Low,  model_score: 60, band: good }
+  off_target: { role_family: EnterpriseCrud, ai_usage: None, model_score: 96, band: reject, kind: anti_goal }
+
+- id: 7
+  scenario: perfect-fit-crud-vs-no-ai-platform-stretch
+  why: The floor case — a no-AI Tier-1 platform stretch still out-ranks a perfect-fit low-AI CRUD role.
+  target:     { role_family: AiPlatform,     ai_usage: None, model_score: 55,  band: good }
+  off_target: { role_family: EnterpriseCrud, ai_usage: Low,  model_score: 100, band: reject, kind: anti_goal }
+
+- id: 9
+  scenario: perfect-fit-crud-vs-excellent-ai-platform
+  why: An excellent AI-platform fit is untouched; the perfect-fit CRUD role sits far below it.
+  target:     { role_family: AiPlatform,     ai_usage: High, model_score: 80,  band: excellent }
+  off_target: { role_family: EnterpriseCrud, ai_usage: None, model_score: 100, band: reject, kind: anti_goal }
+
+# ---- high-fit off-target family (negative-family) demoted below a stretch Tier-1 role ------------------
+
+- id: 3
+  scenario: high-fit-ml-research-vs-stretch-ai-applications
+  why: A high-fit ML-research role is off the trajectory; a mid-fit AI-applications stretch out-ranks it.
+  target:     { role_family: AiApplications, ai_usage: Medium, model_score: 58,  band: good }
+  off_target: { role_family: MlResearch,     ai_usage: High,   model_score: 100, band: marginal, kind: negative_family }
+
+- id: 4
+  scenario: high-fit-data-science-vs-stretch-forward-deployed
+  why: A near-perfect data-science fit still loses to a low-AI forward-deployed stretch.
+  target:     { role_family: ForwardDeployed, ai_usage: Low,  model_score: 62, band: good }
+  off_target: { role_family: DataScience,     ai_usage: High, model_score: 95, band: marginal, kind: negative_family }
+
+- id: 5
+  scenario: high-fit-prompt-eng-vs-stretch-founding-eng
+  why: A high-fit prompt-engineering role loses to a mid-fit founding-engineer stretch — the trajectory wins.
+  target:     { role_family: FoundingEng, ai_usage: Medium, model_score: 56, band: good }
+  off_target: { role_family: PromptEng,   ai_usage: High,   model_score: 92, band: marginal, kind: negative_family }
+
+- id: 8
+  scenario: high-fit-ml-research-vs-perfect-alignment-platform
+  why: A perfect-alignment platform stretch (high AI) comfortably clears a high-fit ML-research role.
+  target:     { role_family: Platform,   ai_usage: High,   model_score: 52, band: good }
+  off_target: { role_family: MlResearch, ai_usage: Medium, model_score: 98, band: marginal, kind: negative_family }
+
+- id: 10
+  scenario: high-fit-data-science-vs-excellent-platform
+  why: An excellent platform fit is untouched; a perfect-fit high-AI data-science role sits a band below it.
+  target:     { role_family: Platform,    ai_usage: High, model_score: 78,  band: excellent }
+  off_target: { role_family: DataScience, ai_usage: High, model_score: 100, band: marginal, kind: negative_family }

@@ -197,3 +197,11 @@ tags: [review, career-alignment, backlog, jobhunter]
   (`f4…/PRD.md:167`); add cases asserting a stretch Tier-1 role out-ranks a perfect-fit CRUD role.
 - **Proposed content:** ≥10 golden cases pairing a target-family role against a high-fit anti-goal role,
   asserting relative order (bands, not exact scores) so TUNE-01/02/05 are gated by the build (G10).
+- **Delivered (F4 T19):** `tests/…/Data/golden-target-family-slice.yaml` + `GoldenTargetFamilySliceTests`.
+  Ten pairs, each coupling a stretch Tier-1 target role against a higher-raw-fit off-target role — five
+  against anti-goal enterprise-CRUD (T15), five against the off-target family set (T17). Judged by the same
+  pure chain as the golden set, with a deliberately neutral pre-match (every role Senior / FullTime /
+  EMEA-remote / enriched / just-seen), so the slice isolates alignment + career-policy. Asserts, per pair:
+  the off-target is the stronger raw fit (or the test proves nothing), both sides land their recorded band,
+  and the target lands a strictly better band *and* a higher final score. Fails the build the moment a
+  re-weighting lets a high-fit off-target role out-rank a stretch Tier-1 role.
