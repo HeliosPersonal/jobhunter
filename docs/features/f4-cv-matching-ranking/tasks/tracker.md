@@ -27,7 +27,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T04 | [[T04-match-prompt-schema\|Match prompt, schema and parser]] | claude | T01 | L | done |
 | T05 | [[T05-matching-submit\|Matching submission through the F3 Run machinery]] | app | T04, T02 | M | done |
 | T06 | [[T06-match-result-processing\|Match result processing]] | app | T05 | M | done |
-| T07 | [[T07-score-calculator\|ScoreCalculator]] | app | T01 | M | pending |
+| T07 | [[T07-score-calculator\|ScoreCalculator]] | app | T01 | M | done |
 | T08 | [[T08-ranking-suppression\|Ranking handler and suppression]] | app | T07, T06 | M | pending |
 | T09 | [[T09-cv-restaling\|CV activation, re-staling and re-match scheduling]] | app | T03, T06 | M | pending |
 | T10 | [[T10-leakage-suite\|CV leakage scan suite]] | tests | T06, T08 | L | pending |
