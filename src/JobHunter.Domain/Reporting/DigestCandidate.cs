@@ -18,10 +18,16 @@ namespace JobHunter.Domain.Reporting;
 /// <param name="SuppressionReason">Why it was withheld, or null when it was shown.</param>
 /// <param name="Reasons">The current match's reasons; a card without at least one is excluded (AC-02).</param>
 /// <param name="SalaryUsd">The USD midpoint of the match's salary expectation, or null.</param>
+/// <param name="ApplyUrl">
+/// The job's apply destination, verified at assembly before the card is presented (AC-11). It is the one URL
+/// the card links to, not the CV or anything about the Owner — the CV crosses exactly one boundary, and it is
+/// not this one (F4 invariant).
+/// </param>
 public sealed record DigestCandidate(
     Guid JobId,
     decimal FinalScore,
     bool Suppressed,
     string? SuppressionReason,
     IReadOnlyList<string> Reasons,
-    decimal? SalaryUsd);
+    decimal? SalaryUsd,
+    string ApplyUrl);

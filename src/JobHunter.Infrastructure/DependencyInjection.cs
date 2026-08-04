@@ -78,6 +78,10 @@ public static class DependencyInjection
         // F5 digest assembly (T03): the read side the assembler draws its cards and suppression breakdown from
         // — every score in the Run joined to its current match's reasons and USD salary, ordered best-first.
         services.AddScoped<IDigestScopeQuery, DigestScopeQuery>();
+        // F5 apply-link verification (T04): probes each card's apply destination through the shared
+        // politeness-gated client (QG-2), so a confirmed-dead link drops its card without ever owning an
+        // HttpClient of its own — robots, SSRF and the rate budget all apply to the probe (AC-11).
+        services.AddScoped<IApplyLinkVerifier, ApplyLinkVerifier>();
         // F4 re-match backlog (T09): the durable seam between the bus-less Api activation write and the
         // Worker's next Run. Enqueue is idempotent per open job; the Run drains pending ids and consumes them.
         services.AddScoped<IReMatchBacklog, ReMatchBacklogRepository>();

@@ -10,7 +10,8 @@ namespace JobHunter.Infrastructure.Persistence.Queries;
 /// Implements <see cref="IDigestScopeQuery"/> with Dapper, read-only (architecture rule 4 forbids a write
 /// here): one row per <c>scores</c> row in the Run — shown or suppressed — joined with a
 /// <c>LEFT JOIN LATERAL</c> to the job's current match for the reasons the card explains itself with and the
-/// salary expectation the header averages.
+/// salary expectation the header averages, and joined to <c>jobs</c> for the apply URL the card links to and
+/// verifies before it is shown (AC-11).
 ///
 /// <para>It returns <em>every</em> score, because the suppression breakdown is built from the suppressed ones
 /// (invariant 11, AC-07): dropping them here would make the footer a silent lie. Ordered by
@@ -35,8 +36,10 @@ public sealed class DigestScopeQuery(INpgsqlConnectionFactory connectionFactory)
                         AND m.salary_expectation_max IS NOT NULL
                    THEN (m.salary_expectation_min + m.salary_expectation_max) / 2
                    ELSE NULL
-               END                AS SalaryUsd
+               END                AS SalaryUsd,
+               j.apply_url        AS ApplyUrl
         FROM scores s
+        JOIN jobs j ON j.id = s.job_id
         LEFT JOIN LATERAL (
             SELECT mm.reasons,
                    mm.salary_expectation_currency,
@@ -68,7 +71,8 @@ public sealed class DigestScopeQuery(INpgsqlConnectionFactory connectionFactory)
                 r.Suppressed,
                 r.SuppressionReason,
                 StringListJson.Deserialize(r.ReasonsJson),
-                r.SalaryUsd))
+                r.SalaryUsd,
+                r.ApplyUrl))
             .ToList();
     }
 
@@ -78,5 +82,6 @@ public sealed class DigestScopeQuery(INpgsqlConnectionFactory connectionFactory)
         bool Suppressed,
         string? SuppressionReason,
         string? ReasonsJson,
-        decimal? SalaryUsd);
+        decimal? SalaryUsd,
+        string ApplyUrl);
 }

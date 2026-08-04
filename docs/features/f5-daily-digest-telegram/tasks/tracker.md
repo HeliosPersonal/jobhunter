@@ -22,7 +22,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T01 | [[T01-domain-digest\|Domain: Digest, DigestCard, CardKey]] | domain | — | S | done |
 | T02 | [[T02-digest-persistence\|Migration and repositories for digests and delivery log]] | infra/db | T01 | S | done |
 | T03 | [[T03-digest-assembler\|Digest assembler and suppression summary]] | app | T02 | M | done |
-| T04 | [[T04-apply-link-verification\|Apply-link verification]] | app | T03 | S | pending |
+| T04 | [[T04-apply-link-verification\|Apply-link verification]] | app | T03 | S | done |
 | T05 | [[T05-narrative-synthesis\|Narrative synthesis with template fallback]] | claude | T03 | M | pending |
 | T06 | [[T06-formatting-escaping\|MarkdownV2 escaping and formatters]] | telegram | T01 | M | pending |
 | T07 | [[T07-telegram-host-auth\|Telegram host, allowlist and long polling]] | telegram | — | M | pending |

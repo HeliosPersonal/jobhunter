@@ -23,6 +23,11 @@ namespace JobHunter.Application.Tests.Reporting;
 /// count (invariant 11, AC-07); the average salary is <em>null</em> below a few salaried jobs; and the digest
 /// is <em>persisted before</em> the event is published (S2). Every collaborator is substituted or faked, so
 /// these are zero-database unit tests.
+///
+/// <para>T04 adds apply-link verification: a confirmed-unreachable link drops its card and flags the job for
+/// closure (<see cref="ApplyDestinationUnreachable"/>), a timeout or robots refusal keeps the card but marks
+/// it unverified, ranks stay contiguous after a drop, and only the selected cards — never every score — are
+/// probed. The verifier is substituted, so these stay zero-network.</para>
 /// </summary>
 public sealed class DigestAssemblerTests
 {
@@ -34,6 +39,7 @@ public sealed class DigestAssemblerTests
     private readonly IDigestScopeQuery _scope = Substitute.For<IDigestScopeQuery>();
     private readonly IDegradedCoverageQuery _degraded = Substitute.For<IDegradedCoverageQuery>();
     private readonly FakeDigestRepository _digests = new();
+    private readonly IApplyLinkVerifier _verifier = Substitute.For<IApplyLinkVerifier>();
     private readonly SequentialIdGenerator _ids = new();
     private readonly FakeClock _clock = new(Now);
     private readonly IMessageBus _bus = Substitute.For<IMessageBus>();
@@ -42,6 +48,11 @@ public sealed class DigestAssemblerTests
 
     public DigestAssemblerTests()
     {
+        // By default every apply link is reachable — the T04 tests override this per URL to exercise the
+        // confirmed-unreachable and unverified paths; the T03 tests are indifferent to verification.
+        _verifier.VerifyAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(ApplyLinkStatus.Reachable);
+
         _degraded.DegradedSourcesAsync(Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
             .Returns(Array.Empty<DegradedSource>());
 
@@ -66,8 +77,8 @@ public sealed class DigestAssemblerTests
     }
 
     private DigestAssembler CreateHandler(DigestOptions? options = null) =>
-        new(_runs, _scope, _degraded, _digests, _ids, options ?? new DigestOptions(), _clock,
-            NullLogger<DigestAssembler>.Instance);
+        new(_runs, _scope, _degraded, _digests, _verifier, _ids, options ?? new DigestOptions(),
+            new ApplyVerificationOptions(), _clock, NullLogger<DigestAssembler>.Instance);
 
     private static Run RankingCompletedRun(int jobsInScope = 20, int carriedOver = 0)
     {
@@ -89,10 +100,13 @@ public sealed class DigestAssemblerTests
 
     private static DigestCandidate Shown(Guid id, decimal score, decimal? salaryUsd = null, params string[] reasons) =>
         new(id, score, Suppressed: false, SuppressionReason: null,
-            reasons.Length == 0 ? ["Strong fit"] : reasons, salaryUsd);
+            reasons.Length == 0 ? ["Strong fit"] : reasons, salaryUsd, ApplyUrlFor(id));
 
     private static DigestCandidate Suppressed(Guid id, string reason, decimal score = 20m) =>
-        new(id, score, Suppressed: true, reason, ["Below the bar"], SalaryUsd: null);
+        new(id, score, Suppressed: true, reason, ["Below the bar"], SalaryUsd: null, ApplyUrlFor(id));
+
+    // A deterministic, unique apply URL per candidate: the T04 tests key the verifier's verdict on it.
+    private static string ApplyUrlFor(Guid id) => $"https://apply.example.com/{id:N}";
 
     private static RankingCompleted Message() =>
         new(RunId, RankedCount: 3, SuppressedCount: 0, TopJobIds: [], Now);
@@ -182,7 +196,8 @@ public sealed class DigestAssemblerTests
         var unexplained = Guid.CreateVersion7();
         GivenCandidates(
             Shown(explained, 90m, null, "Strong fit"),
-            new DigestCandidate(unexplained, 95m, Suppressed: false, null, [], SalaryUsd: null));
+            new DigestCandidate(unexplained, 95m, Suppressed: false, null, [], SalaryUsd: null,
+                ApplyUrlFor(unexplained)));
 
         await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
 
@@ -196,7 +211,8 @@ public sealed class DigestAssemblerTests
     {
         GivenRun(RankingCompletedRun());
         var blank = Guid.CreateVersion7();
-        GivenCandidates(new DigestCandidate(blank, 95m, Suppressed: false, null, ["   ", ""], SalaryUsd: null));
+        GivenCandidates(new DigestCandidate(blank, 95m, Suppressed: false, null, ["   ", ""], SalaryUsd: null,
+            ApplyUrlFor(blank)));
 
         await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
 
@@ -338,6 +354,109 @@ public sealed class DigestAssemblerTests
         digest.SuppressedCount.ShouldBe(0);
         digest.SuppressionBreakdown.ShouldBeEmpty();
         Publishes().OfType<DigestReady>().ShouldHaveSingleItem().CardCount.ShouldBe(0);
+    }
+
+    // ---- T04: apply-link verification ---------------------------------------------------------
+
+    private void GivenApplyLink(Guid jobId, ApplyLinkStatus status) =>
+        _verifier.VerifyAsync(ApplyUrlFor(jobId), Arg.Any<CancellationToken>()).Returns(status);
+
+    [Fact]
+    public async Task A_confirmed_unreachable_apply_destination_drops_the_card()
+    {
+        GivenRun(RankingCompletedRun());
+        var reachable = Guid.CreateVersion7();
+        var dead = Guid.CreateVersion7();
+        GivenCandidates(Shown(reachable, 90m), Shown(dead, 85m));
+        GivenApplyLink(dead, ApplyLinkStatus.ConfirmedUnreachable);
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        // The dead link is not presented as an actionable card (AC-11); the reachable one is.
+        var digest = _digests.Saved.ShouldHaveSingleItem();
+        digest.Cards.Select(c => c.JobId).ShouldBe([reachable]);
+    }
+
+    [Fact]
+    public async Task A_confirmed_unreachable_link_flags_its_job_for_the_lifecycle_sweep()
+    {
+        GivenRun(RankingCompletedRun());
+        var dead = Guid.CreateVersion7();
+        GivenCandidates(Shown(dead, 90m));
+        GivenApplyLink(dead, ApplyLinkStatus.ConfirmedUnreachable);
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        // The read path never closes the job itself — it publishes so F2's lifecycle handler can (AC-11).
+        var flagged = Publishes().OfType<ApplyDestinationUnreachable>().ShouldHaveSingleItem();
+        flagged.JobId.ShouldBe(dead);
+        flagged.ConfirmedAt.ShouldBe(Now);
+    }
+
+    [Fact]
+    public async Task A_reachable_card_is_marked_verified_and_raises_no_flag()
+    {
+        GivenRun(RankingCompletedRun());
+        var reachable = Guid.CreateVersion7();
+        GivenCandidates(Shown(reachable, 90m));
+        GivenApplyLink(reachable, ApplyLinkStatus.Reachable);
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        var card = _digests.Saved.ShouldHaveSingleItem().Cards.ShouldHaveSingleItem();
+        card.ApplyUrlVerified.ShouldBeTrue();
+        Publishes().OfType<ApplyDestinationUnreachable>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task An_unverified_link_keeps_the_card_but_marks_it_unverified()
+    {
+        GivenRun(RankingCompletedRun());
+        var slow = Guid.CreateVersion7();
+        GivenCandidates(Shown(slow, 90m));
+        GivenApplyLink(slow, ApplyLinkStatus.Unverified);
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        // A timeout or a robots refusal is not a closed job: the card stays, flagged "link unverified" (D3).
+        var card = _digests.Saved.ShouldHaveSingleItem().Cards.ShouldHaveSingleItem();
+        card.JobId.ShouldBe(slow);
+        card.ApplyUrlVerified.ShouldBeFalse();
+        Publishes().OfType<ApplyDestinationUnreachable>().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Ranks_are_contiguous_after_a_dropped_card()
+    {
+        GivenRun(RankingCompletedRun());
+        var top = Guid.CreateVersion7();
+        var dead = Guid.CreateVersion7();
+        var third = Guid.CreateVersion7();
+        GivenCandidates(Shown(top, 95m), Shown(dead, 90m), Shown(third, 85m));
+        GivenApplyLink(dead, ApplyLinkStatus.ConfirmedUnreachable);
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        // Dropping the middle card must not leave a rank gap: the survivors are 1 then 2, in score order.
+        var cards = _digests.Saved.ShouldHaveSingleItem().Cards;
+        cards.Select(c => (c.JobId, c.Rank)).ShouldBe([(top, 1), (third, 2)]);
+    }
+
+    [Fact]
+    public async Task Only_selected_cards_are_verified_not_every_score()
+    {
+        GivenRun(RankingCompletedRun());
+        var carded = Guid.CreateVersion7();
+        var belowBar = Guid.CreateVersion7();
+        var suppressed = Guid.CreateVersion7();
+        GivenCandidates(Shown(carded, 90m), Shown(belowBar, 50m), Suppressed(suppressed, "Below the bar"));
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        // Verification is a network probe: it runs only on the cards worth showing, never on the whole Run.
+        await _verifier.Received(1).VerifyAsync(ApplyUrlFor(carded), Arg.Any<CancellationToken>());
+        await _verifier.DidNotReceive().VerifyAsync(ApplyUrlFor(belowBar), Arg.Any<CancellationToken>());
+        await _verifier.DidNotReceive().VerifyAsync(ApplyUrlFor(suppressed), Arg.Any<CancellationToken>());
     }
 
     // ---- idempotence: one digest per Run ------------------------------------------------------

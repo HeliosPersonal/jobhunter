@@ -15,10 +15,12 @@ namespace JobHunter.Application.Tests.Reporting;
 public sealed class SuppressionSummarizerTests
 {
     private static DigestCandidate Shown(decimal score = 90m) =>
-        new(Guid.CreateVersion7(), score, Suppressed: false, SuppressionReason: null, ["A fit"], SalaryUsd: null);
+        new(Guid.CreateVersion7(), score, Suppressed: false, SuppressionReason: null, ["A fit"], SalaryUsd: null,
+            "https://apply.example.com/shown");
 
     private static DigestCandidate Suppressed(string? reason) =>
-        new(Guid.CreateVersion7(), 20m, Suppressed: true, reason, ["Below the bar"], SalaryUsd: null);
+        new(Guid.CreateVersion7(), 20m, Suppressed: true, reason, ["Below the bar"], SalaryUsd: null,
+            "https://apply.example.com/suppressed");
 
     [Fact]
     public void It_ignores_shown_candidates()

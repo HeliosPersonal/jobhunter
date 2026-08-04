@@ -158,6 +158,16 @@ public static class DependencyInjection
         services.AddSingleton(sp =>
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Reporting.DigestOptions>>().Value);
 
+        // F5 apply-link verification (T04): the assembler probes each selected card's apply destination and
+        // drops a confirmed-unreachable one (AC-11). Its two bounds — the per-probe timeout and the fan-out
+        // width — are startup-validated so an assembly pass can never wait unboundedly on a slow host.
+        services.AddOptions<Reporting.ApplyVerificationOptions>()
+            .Validate(o => o.Timeout > TimeSpan.Zero, "ApplyVerification:Timeout must be positive.")
+            .Validate(o => o.MaxParallelism > 0, "ApplyVerification:MaxParallelism must be positive.")
+            .ValidateOnStart();
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Reporting.ApplyVerificationOptions>>().Value);
+
         return services;
     }
 }
