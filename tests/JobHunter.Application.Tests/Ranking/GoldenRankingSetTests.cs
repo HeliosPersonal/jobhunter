@@ -38,6 +38,13 @@ public sealed class GoldenRankingSetTests
     // chain down-weights anti-goal roles exactly as the handler does with default options.
     private const decimal DefaultAntiGoalPenaltyFactor = 0.5m;
 
+    // The default negative-family penalty factor (T17), matching RankingOptions.NegativeFamilyPenaltyFactor, and
+    // the default negative set, so the golden chain applies the general off-target down-weight exactly as the
+    // handler does with default options. No golden case currently uses a default-negative family, so this changes
+    // no band today; it keeps the chain faithful so a future target-role-family slice (T19) inherits it for free.
+    private const decimal DefaultNegativeFamilyPenaltyFactor = 0.5m;
+    private static readonly IReadOnlySet<RoleFamily> NegativeRoleFamilies = RankingOptions.DefaultNegativeRoleFamilies;
+
     private static readonly DateTimeOffset Now = new(2026, 8, 3, 6, 0, 0, TimeSpan.Zero);
 
     // The one fixed reference Owner the whole set is judged against: EMEA, Senior, a 100000 USD floor, open to
@@ -170,11 +177,17 @@ public sealed class GoldenRankingSetTests
         //    unenriched job has no recorded classifications, so it degrades to the lowest-alignment defaults.
         var alignment = AlignmentCalculator.Calculate(testCase.AiUsage, testCase.RoleFamily);
 
-        // 3. The anti-goal down-weight (T15), classified and applied exactly as the handler does with the
-        //    default options: penalty factor 0.50, suppression off. A role the Owner is deliberately leaving
-        //    (low AI on the enterprise-CRUD family) is halved, stored reconcilably (QG-1).
+        // 3. The career-policy down-weights, classified and applied exactly as the handler does with the default
+        //    options: both penalty factors 0.50, both suppression opt-ins off. The anti-goal rule (T15) halves a
+        //    role the Owner is deliberately leaving (low AI on the enterprise-CRUD family); the negative-family
+        //    rule (T17) halves a role in the Owner's off-target set (research-adjacent / prompt-only by default).
+        //    The two factors fold multiplicatively into one reconcilable career-policy multiplier (QG-1), and
+        //    under the disjoint defaults at most one ever fires on a given role.
         var antiGoal = AntiGoalClassifier.Classify(testCase.AiUsage, testCase.RoleFamily);
-        var antiGoalMultiplier = antiGoal.IsAntiGoal ? DefaultAntiGoalPenaltyFactor : 1.00m;
+        var negativeFamily = NegativeFamilyClassifier.Classify(testCase.RoleFamily, NegativeRoleFamilies);
+        var careerPolicyMultiplier =
+            (antiGoal.IsAntiGoal ? DefaultAntiGoalPenaltyFactor : 1.00m)
+            * (negativeFamily.IsNegative ? DefaultNegativeFamilyPenaltyFactor : 1.00m);
 
         // 4. The pure linear scorer, with no preference model active (its weight renormalises away).
         var result = ScoreCalculator.Calculate(
@@ -185,13 +198,14 @@ public sealed class GoldenRankingSetTests
             firstSeenAt: Now.AddDays(-testCase.AgeDays),
             now: Now,
             RankingWeights.Default,
-            antiGoalMultiplier);
+            careerPolicyMultiplier);
 
-        // 5. The presentation rules. The salary floor and the anti-goal suppression are both down-weights by
-        //    default (opt-ins off), so only the below-threshold rule can suppress here.
+        // 5. The presentation rules. The salary floor, the anti-goal and the negative-family suppressions are all
+        //    down-weights by default (opt-ins off), so only the below-threshold rule can suppress here.
         var reason = SuppressionEvaluator.Evaluate(
             result, testCase.Job.Enrichment?.EstimatedSalary, Owner, salaryFloorOptIn: false,
-            antiGoal, antiGoalSuppressionOptIn: false);
+            antiGoal, antiGoalSuppressionOptIn: false,
+            negativeFamily, negativeFamilySuppressionOptIn: false);
 
         var suppressedBy = reason is null ? null : "rank:threshold";
         return new Outcome(BandOf(result.FinalScore), suppressedBy, result.FinalScore, result);

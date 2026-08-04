@@ -202,4 +202,74 @@ public sealed class SuppressionEvaluatorTests
 
         reason.ShouldBe("Anti-goal role family: EnterpriseCrud");
     }
+
+    [Fact]
+    public void A_negative_family_role_is_not_suppressed_by_default()
+    {
+        // T17: the negative-family down-weight is a penalty, not a filter, until explicitly opted in. A verdict
+        // alone must never hide the job — it stays visible (merely down-weighted) so it is not a silent filter.
+        var negativeFamily = new NegativeFamilyVerdict(true, "Not a target role family: MlResearch");
+
+        var reason = SuppressionEvaluator.Evaluate(
+            ScoreOf(80m), null, ProfileWithFloor(), salaryFloorOptIn: false,
+            AntiGoalVerdict.None, antiGoalSuppressionOptIn: false,
+            negativeFamily, negativeFamilySuppressionOptIn: false);
+
+        reason.ShouldBeNull();
+    }
+
+    [Fact]
+    public void An_opted_in_negative_family_role_is_suppressed_with_the_verdict_reason()
+    {
+        var negativeFamily = new NegativeFamilyVerdict(true, "Not a target role family: MlResearch");
+
+        var reason = SuppressionEvaluator.Evaluate(
+            ScoreOf(80m), null, ProfileWithFloor(), salaryFloorOptIn: false,
+            AntiGoalVerdict.None, antiGoalSuppressionOptIn: false,
+            negativeFamily, negativeFamilySuppressionOptIn: true);
+
+        reason.ShouldBe("Not a target role family: MlResearch");
+    }
+
+    [Fact]
+    public void A_non_negative_family_role_is_unaffected_by_the_opt_in()
+    {
+        var reason = SuppressionEvaluator.Evaluate(
+            ScoreOf(80m), null, ProfileWithFloor(), salaryFloorOptIn: false,
+            AntiGoalVerdict.None, antiGoalSuppressionOptIn: false,
+            NegativeFamilyVerdict.None, negativeFamilySuppressionOptIn: true);
+
+        reason.ShouldBeNull();
+    }
+
+    [Fact]
+    public void The_negative_family_reason_takes_precedence_over_the_threshold_reason()
+    {
+        // An opted-in negative-family role also below the threshold reports the specific family reason — the
+        // deliberate policy the Owner set up is more informative than the generic threshold.
+        var negativeFamily = new NegativeFamilyVerdict(true, "Not a target role family: PromptEng");
+
+        var reason = SuppressionEvaluator.Evaluate(
+            ScoreOf(20m), null, ProfileWithFloor(), salaryFloorOptIn: false,
+            AntiGoalVerdict.None, antiGoalSuppressionOptIn: false,
+            negativeFamily, negativeFamilySuppressionOptIn: true);
+
+        reason.ShouldBe("Not a target role family: PromptEng");
+    }
+
+    [Fact]
+    public void The_anti_goal_reason_takes_precedence_over_the_negative_family_reason()
+    {
+        // Should a widened negative set ever overlap the anti-goal predicate, the narrower, more specific
+        // deliberate-leave reason is reported — it names the more precise policy.
+        var antiGoal = new AntiGoalVerdict(true, "Anti-goal role family: EnterpriseCrud");
+        var negativeFamily = new NegativeFamilyVerdict(true, "Not a target role family: EnterpriseCrud");
+
+        var reason = SuppressionEvaluator.Evaluate(
+            ScoreOf(80m), null, ProfileWithFloor(), salaryFloorOptIn: false,
+            antiGoal, antiGoalSuppressionOptIn: true,
+            negativeFamily, negativeFamilySuppressionOptIn: true);
+
+        reason.ShouldBe("Anti-goal role family: EnterpriseCrud");
+    }
 }

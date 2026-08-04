@@ -456,6 +456,99 @@ public sealed class RankingHandlerTests
         Publishes().OfType<RankingCompleted>().ShouldHaveSingleItem().SuppressedCount.ShouldBe(1);
     }
 
+    // ---- T17: the negative role-family down-weight and its opt-in suppression ------------------
+
+    [Fact]
+    public async Task A_negative_family_role_is_down_weighted_by_the_configured_penalty_factor()
+    {
+        var run = RankingRun();
+        GivenRun(run);
+        var research = Guid.CreateVersion7();
+        // A high-fit ML-research role: off-target by default. A mild penalty (0.9) isolates the stored
+        // down-weight from the presentation threshold, so we can see the multiplier without it also being
+        // suppressed for being below 40.
+        GivenJobs(Job(research, 100, aiUsage: AiUsageLevel.High, roleFamily: RoleFamily.MlResearch));
+
+        await CreateHandler(new RankingOptions { NegativeFamilyPenaltyFactor = 0.9m })
+            .Handle(Message(), _bus, CancellationToken.None);
+
+        var score = _scores.Stored.Single(s => s.JobId == research);
+        // The penalty is folded into the stored career-policy multiplier (reconcilable, QG-1); the job stays visible.
+        score.Components.AntiGoalMultiplier.ShouldBe(0.9m);
+        score.Suppressed.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task A_target_family_role_carries_a_neutral_career_policy_multiplier()
+    {
+        var run = RankingRun();
+        GivenRun(run);
+        var ordinary = Guid.CreateVersion7();
+        GivenJobs(Job(ordinary, 80, aiUsage: AiUsageLevel.High, roleFamily: RoleFamily.AiPlatform));
+
+        await CreateHandler(new RankingOptions { NegativeFamilyPenaltyFactor = 0.5m })
+            .Handle(Message(), _bus, CancellationToken.None);
+
+        _scores.Stored.Single().Components.AntiGoalMultiplier.ShouldBe(1.00m);
+    }
+
+    [Fact]
+    public async Task A_high_fit_negative_family_role_no_longer_out_ranks_a_tier_one_alignment_role()
+    {
+        var run = RankingRun();
+        GivenRun(run);
+        var aligned = Guid.CreateVersion7();
+        var research = Guid.CreateVersion7();
+        // The research role has the higher raw fit (100 vs 70) and high AI usage; the down-weight must stop it
+        // out-ranking the genuinely aligned Tier-1 role (feeds T19). A mild 0.6 penalty keeps both visible so the
+        // relative order is the property under test, not suppression.
+        GivenJobs(
+            Job(aligned, 70, aiUsage: AiUsageLevel.High, roleFamily: RoleFamily.AiPlatform),
+            Job(research, 100, aiUsage: AiUsageLevel.High, roleFamily: RoleFamily.MlResearch));
+
+        await CreateHandler(new RankingOptions { NegativeFamilyPenaltyFactor = 0.6m })
+            .Handle(Message(), _bus, CancellationToken.None);
+
+        var alignedScore = _scores.Stored.Single(s => s.JobId == aligned);
+        var researchScore = _scores.Stored.Single(s => s.JobId == research);
+        alignedScore.FinalScore.ShouldBeGreaterThan(researchScore.FinalScore);
+
+        Publishes().OfType<RankingCompleted>().ShouldHaveSingleItem().TopJobIds[0].ShouldBe(aligned);
+    }
+
+    [Fact]
+    public async Task An_opted_in_negative_family_role_is_suppressed_with_the_family_reason()
+    {
+        var run = RankingRun();
+        GivenRun(run);
+        var research = Guid.CreateVersion7();
+        GivenJobs(Job(research, 100, aiUsage: AiUsageLevel.High, roleFamily: RoleFamily.MlResearch));
+
+        await CreateHandler(new RankingOptions { NegativeFamilySuppression = true })
+            .Handle(Message(), _bus, CancellationToken.None);
+
+        var score = _scores.Stored.Single();
+        // A suppressed off-target job stays retrievable and carries the specific reason (invariant 11).
+        score.Suppressed.ShouldBeTrue();
+        score.SuppressionReason.ShouldBe("Not a target role family: MlResearch");
+        Publishes().OfType<RankingCompleted>().ShouldHaveSingleItem().SuppressedCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task A_negative_family_role_is_not_penalised_when_the_configured_set_is_empty()
+    {
+        var run = RankingRun();
+        GivenRun(run);
+        var research = Guid.CreateVersion7();
+        // The Owner has turned the filter off entirely: an ML-research role rides its fit at a neutral multiplier.
+        GivenJobs(Job(research, 90, aiUsage: AiUsageLevel.High, roleFamily: RoleFamily.MlResearch));
+
+        await CreateHandler(new RankingOptions { NegativeRoleFamilies = new HashSet<RoleFamily>() })
+            .Handle(Message(), _bus, CancellationToken.None);
+
+        _scores.Stored.Single().Components.AntiGoalMultiplier.ShouldBe(1.00m);
+    }
+
     /// <summary>Models the idempotent upsert on the unique <c>(job_id, run_id)</c> key of the scores table.</summary>
     private sealed class FakeScoreRepository : IScoreRepository
     {

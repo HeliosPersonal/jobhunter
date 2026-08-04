@@ -112,6 +112,13 @@ tags: [review, career-alignment, backlog, jobhunter]
 - **Proposed content:** reason-logged down-weight (default) or opt-in suppression for
   `roleFamily ∈ {MlResearch, DataScience, PromptEng, EnterpriseCrud}` — reason
   `"Not a target role family: {family}"`, retrievable via `/hidden`, counted in the footer (invariant 11).
+- **Delivered (F4 T17):** `NegativeFamilyClassifier` flags any `RoleFamily` in the configured negative
+  set (`Ranking:NegativeRoleFamilies`, default `{MlResearch, DataScience, PromptEng}` — deliberately
+  **disjoint** from T15's `EnterpriseCrud` anti-goal predicate, so the two never double-fire under
+  defaults), with reason `"Not a target role family: {family}"`. `Ranking:NegativeFamilyPenaltyFactor`
+  (default 0.50) drives the down-weight; `Ranking:NegativeFamilySuppression` (opt-in) turns it into a
+  reason-logged suppression. The penalty folds into the same stored `AntiGoalMultiplier` career-policy
+  slot as T15, so the total still reconciles from one slot (QG-1) — no new column, no migration.
 
 ## Semantic vocabulary
 

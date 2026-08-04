@@ -120,6 +120,9 @@ public static class DependencyInjection
             .Validate(
                 o => o.AntiGoalPenaltyFactor is >= 0m and <= 1m,
                 "Ranking:AntiGoalPenaltyFactor must be in [0, 1].")
+            .Validate(
+                o => o.NegativeFamilyPenaltyFactor is >= 0m and <= 1m,
+                "Ranking:NegativeFamilyPenaltyFactor must be in [0, 1].")
             .ValidateOnStart();
         services.AddSingleton(sp =>
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Ranking.RankingOptions>>().Value);

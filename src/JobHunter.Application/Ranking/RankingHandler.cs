@@ -133,7 +133,16 @@ public sealed class RankingHandler(
             // down-weighted by the configured penalty factor — stored as a multiplier so the total stays
             // reconcilable (QG-1) — or, when the Owner opts in, suppressed with the classifier's reason.
             var antiGoal = AntiGoalClassifier.Classify(job.AiUsage, job.RoleFamily);
-            var antiGoalMultiplier = antiGoal.IsAntiGoal ? _options.AntiGoalPenaltyFactor : 1.00m;
+
+            // T17: a role in the Owner's general negative role-family set (research-adjacent / prompt-only by
+            // default) gets the same treatment. Its penalty folds multiplicatively into the same stored
+            // career-policy multiplier as the anti-goal factor, so the total still reconciles from one slot (QG-1)
+            // — and, under the disjoint defaults, at most one of the two ever fires on a given role.
+            var negativeFamily = NegativeFamilyClassifier.Classify(job.RoleFamily, _options.NegativeRoleFamilies);
+
+            var careerPolicyMultiplier =
+                (antiGoal.IsAntiGoal ? _options.AntiGoalPenaltyFactor : 1.00m)
+                * (negativeFamily.IsNegative ? _options.NegativeFamilyPenaltyFactor : 1.00m);
 
             var result = ScoreCalculator.Calculate(
                 new MatchFacts(job.JobId, job.MatchScore),
@@ -143,13 +152,14 @@ public sealed class RankingHandler(
                 job.FirstSeenAt,
                 _clock.UtcNow,
                 RankingWeights.Default,
-                antiGoalMultiplier);
+                careerPolicyMultiplier);
 
             // Suppression is evaluated once, here, and the reason carried alongside the result, so the
             // persisted flag and the top-jobs projection never disagree.
             var reason = SuppressionEvaluator.Evaluate(
                 result, job.EstimatedSalary, profile, _options.SalaryFloorSuppression,
-                antiGoal, _options.AntiGoalSuppression);
+                antiGoal, _options.AntiGoalSuppression,
+                negativeFamily, _options.NegativeFamilySuppression);
             results.Add(new ScoredJob(result, reason));
         }
 

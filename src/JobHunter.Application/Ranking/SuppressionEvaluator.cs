@@ -19,6 +19,11 @@ namespace JobHunter.Application.Ranking;
 /// has opted anti-goal suppression in → the verdict's reason (<c>Anti-goal role family: {family}</c>). Off by
 /// default: the anti-goal signal is a down-weight, not a filter, until explicitly opted in (T15). Reported first
 /// because it names the deliberate policy, which is more informative than the generic threshold below.</description></item>
+/// <item><description>The role is in the Owner's negative role-family set (<see cref="NegativeFamilyClassifier"/>)
+/// <em>and</em> the Owner has opted negative-family suppression in → the verdict's reason
+/// (<c>Not a target role family: {family}</c>). Off by default, for the same reason as the anti-goal rule (T17).
+/// Reported after the anti-goal rule — the narrow deliberate-leave case is the more specific policy — but before
+/// the generic threshold.</description></item>
 /// <item><description><c>final_score &lt; 40</c> → <c>Below presentation threshold</c>. A job preferences pushed
 /// below the bar the digest will show.</description></item>
 /// <item><description>Salary estimate below the Owner's floor, at high confidence, <em>and</em> the Owner has
@@ -40,8 +45,10 @@ public static class SuppressionEvaluator
     /// opt-in that turns the salary floor from a down-weight into a hard suppression rule (O5); it is false by
     /// default. <paramref name="antiGoal"/> is the anti-goal verdict for the role (T15); <paramref name="antiGoalSuppressionOptIn"/>
     /// is the Owner's opt-in that turns it into a hard suppression rule rather than a mere down-weight, also
-    /// false by default. Returns the reason string when the job is suppressed, or <c>null</c> when it should be
-    /// shown.
+    /// false by default. <paramref name="negativeFamily"/> is the negative role-family verdict for the role (T17);
+    /// <paramref name="negativeFamilySuppressionOptIn"/> is the Owner's opt-in that turns it into a hard
+    /// suppression rule, also false by default. Returns the reason string when the job is suppressed, or
+    /// <c>null</c> when it should be shown.
     /// </summary>
     public static string? Evaluate(
         ScoreResult score,
@@ -49,7 +56,9 @@ public static class SuppressionEvaluator
         Profile profile,
         bool salaryFloorOptIn,
         AntiGoalVerdict antiGoal = default,
-        bool antiGoalSuppressionOptIn = false)
+        bool antiGoalSuppressionOptIn = false,
+        NegativeFamilyVerdict negativeFamily = default,
+        bool negativeFamilySuppressionOptIn = false)
     {
         ArgumentNullException.ThrowIfNull(profile);
 
@@ -58,6 +67,13 @@ public static class SuppressionEvaluator
         if (antiGoalSuppressionOptIn && antiGoal.IsAntiGoal)
         {
             return antiGoal.Reason;
+        }
+
+        // Then the general negative-family policy: an opted-in off-target family names why the job is hidden, again
+        // more informative than the generic threshold. After the anti-goal rule, which is the more specific case.
+        if (negativeFamilySuppressionOptIn && negativeFamily.IsNegative)
+        {
+            return negativeFamily.Reason;
         }
 
         if (score.FinalScore < PresentationThreshold)
