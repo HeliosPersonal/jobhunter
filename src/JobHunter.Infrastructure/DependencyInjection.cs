@@ -69,6 +69,12 @@ public static class DependencyInjection
         services.AddScoped<ICvVersionRepository, CvVersionRepository>();
         services.AddScoped<IMatchRepository, MatchRepository>();
         services.AddScoped<IScoreRepository, ScoreRepository>();
+
+        // F5 digest & delivery (T02): the digest aggregate goes through EF (assembled and persisted before
+        // any send, SAD S2); the append-only delivery log is a raw ON CONFLICT DO NOTHING upsert whose unique
+        // (run_id, chat_id, card_key) constraint is invariant 8 (ADR-F5-0002).
+        services.AddScoped<IDigestRepository, DigestRepository>();
+        services.AddScoped<IDeliveryLog, DeliveryLog>();
         // F4 re-match backlog (T09): the durable seam between the bus-less Api activation write and the
         // Worker's next Run. Enqueue is idempotent per open job; the Run drains pending ids and consumes them.
         services.AddScoped<IReMatchBacklog, ReMatchBacklogRepository>();
