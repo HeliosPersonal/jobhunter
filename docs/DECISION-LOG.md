@@ -2,7 +2,7 @@
 status: Living
 owner: "Viacheslav Melnichenko"
 reviewers: ["Tech Lead (Viacheslav)"]
-updated_at: "2026-08-02"
+updated_at: "2026-08-04"
 stage: "00"
 ticket: ""
 tags: [decision-log, jobhunter]
@@ -177,6 +177,39 @@ tags: [decision-log, jobhunter]
   remain English-only.
 - [ ] ⚖️ Ukrainian summaries alongside English, as `sentra` does. *Why not:* doubles the doc
   maintenance surface for an audience of one who reads English fine.
+
+---
+
+### D12 · Telegram Mini App
+
+> → **Decision (2026-08-04):** No Mini App for the digest; a candidate for M5 as an optional
+> read-only "detail console" over the F9 API, never the delivery surface ✅
+
+- [x] ✅ **Keep the digest push-and-glanceable; no Mini App in M4.**
+  *Why:* the digest is a 07:00 push read half-awake, one-thumb, decided in three seconds
+  ([[features/f5-daily-digest-telegram/PRD|F5 PRD]] §1). A Mini App is a *pull* surface — open,
+  scroll, browse — which is exactly the app-checking habit the product exists to remove ([[#D2]]).
+  It would also add a third auth mechanism (`initData` HMAC alongside Keycloak and the chat-id
+  allowlist, [[00-overview/adr/0014-keycloak-api-telegram-allowlist|ADR-0014]]) and a new inbound
+  HTTP surface on the bot, whose *absence* is stated as a security property
+  ([[features/f5-daily-digest-telegram/sad|F5 SAD]]: "long polling is outbound only"). For a single
+  Owner ([[#D1]]) the format's multi-user, shareable value barely applies.
+- [x] ✅ **In-place card editing is the sanctioned "interactivity" for M4 instead.**
+  *Why:* editing a card in place on action (`Applied ✓` + Undo, state reflected on the message)
+  directly serves US-04 "trust that my tap registered" and stays inside the thesis. It is currently
+  listed as accepted debt in [[features/f5-daily-digest-telegram/sad|F5 SAD]] ("no message editing
+  beyond the keyboard"); lifting just that debt is the cheapest real gain.
+- [ ] ⚖️ **A Mini App as a secondary detail console in M5**, narrowly over 1–2 data-dense, pull-shaped
+  views (company research F8, `/hidden`, search F9) built on the **existing** F9 API — the only
+  deployment with an ingress, already behind Keycloak. *Why parked, not chosen:* it needs a new ADR
+  revisiting [[#D2]] and ADR-0014, plus a JS/TS front-end outside the xUnit/.NET coverage gate
+  ([[#D9]]); it earns its place only after M4 ships, and explicitly **not** as the digest.
+- [ ] ⚖️ **Weekly summary as a server-rendered chart image** in a message. *Why parked:* gives a
+  "rich analytics" feel without a web surface; fits the open F5 §8 question on a Monday summary.
+  A candidate for M5, not a commitment.
+- [ ] ❌ **Wrap the daily digest itself in a Mini App.** *Why not:* it fights the core UX thesis —
+  it trades a zero-friction glance for an app to open, recreating the interruption/attention pattern
+  the whole product is designed to eliminate.
 
 ---
 
