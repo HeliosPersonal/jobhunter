@@ -16,6 +16,8 @@
     <None Update="Data\fingerprints.json" CopyToOutputDirectory="PreserveNewest" />
     <!-- The labelled pre-match reference corpus (T12): the filter's pass/exclude decisions and the pass-rate band. -->
     <None Update="Data\pre-match-corpus.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The golden ranking set (T11): 50 jobs, expected score bands and top-5 order — gate G10. -->
+    <None Update="Data\golden-ranking.yaml" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

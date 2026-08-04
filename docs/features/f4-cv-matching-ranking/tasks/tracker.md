@@ -31,7 +31,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T08 | [[T08-ranking-suppression\|Ranking handler and suppression]] | app | T07, T06 | M | done |
 | T09 | [[T09-cv-restaling\|CV activation, re-staling and re-match scheduling]] | app | T03, T06 | M | done |
 | T10 | [[T10-leakage-suite\|CV leakage scan suite]] | tests | T06, T08 | L | done |
-| T11 | [[T11-golden-ranking\|Golden ranking set and precision tracking]] | tests | T08 | L | pending |
+| T11 | [[T11-golden-ranking\|Golden ranking set (gate G10)]] | tests | T08 | L | done |
 | T12 | [[T12-pre-match-filter\|Pre-match filter]] | app | T05 | M | done |
 | T13 | [[T13-cv-prompt-caching\|CV prompt caching and regret sampler]] | claude/app | T04, T12 | M | pending |
 | T14 | [[T14-alignment-score-component\|Add an alignment score component]] | app | T07 | M | pending |
@@ -40,8 +40,11 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T17 | [[T17-negative-role-family-filter\|Negative role-family filter (ML-Researcher / Data-Scientist / Prompt-Engineer / CRUD)]] | app | T08, T14 | S | pending |
 | T18 | [[T18-founding-role-seniority-floor\|Soften the seniority-floor pre-match rule for early-stage/founding roles]] | app | T12 | S | pending |
 | T19 | [[T19-golden-target-family-slice\|Add a target-role-family slice to the golden ranking set]] | tests | T11, T14, T15 | M | pending |
+| T20 | [[T20-precision-at-10-loop\|Weekly precision@10 rating loop]] | app | T11, F5, F7-T03, F10 | M | pending |
 
-**13 tasks · 10×M + 3×L ≈ 8 person-days.**
+**14 tasks · 11×M + 3×L ≈ 8.5 person-days.** T20 was split from T11: the golden set (the deterministic
+gate) ships in T11; the weekly `precision@10` rating loop is T20, blocked on the `signals` table (F7 T03),
+the digest (F5) and the Telegram command surface (F10).
 
 **Career-alignment tuning tasks (T14–T19): 3×M + 3×S ≈ 2.25 person-days.** Added from the
 [[../../../reviews/career-alignment-tuning-backlog|career-alignment tuning backlog]] (TUNE-01, TUNE-02,
@@ -65,6 +68,7 @@ graph LR
   T06 --> T10
   T08 --> T10
   T08 --> T11
+  T11 --> T20
   T07 --> T14 --> T15
   T14 --> T17
   T08 --> T17
