@@ -30,4 +30,9 @@
     <PackageReference Include="PdfPig" />
   </ItemGroup>
 
+  <!-- The sentinel CV the leakage scan suite (T10) drives the whole pipeline against. -->
+  <ItemGroup>
+    <Content Include="Data\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

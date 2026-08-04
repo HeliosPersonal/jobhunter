@@ -30,7 +30,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T07 | [[T07-score-calculator\|ScoreCalculator]] | app | T01 | M | done |
 | T08 | [[T08-ranking-suppression\|Ranking handler and suppression]] | app | T07, T06 | M | done |
 | T09 | [[T09-cv-restaling\|CV activation, re-staling and re-match scheduling]] | app | T03, T06 | M | done |
-| T10 | [[T10-leakage-suite\|CV leakage scan suite]] | tests | T06, T08 | L | pending |
+| T10 | [[T10-leakage-suite\|CV leakage scan suite]] | tests | T06, T08 | L | done |
 | T11 | [[T11-golden-ranking\|Golden ranking set and precision tracking]] | tests | T08 | L | pending |
 | T12 | [[T12-pre-match-filter\|Pre-match filter]] | app | T05 | M | pending |
 | T13 | [[T13-cv-prompt-caching\|CV prompt caching and regret sampler]] | claude/app | T04, T12 | M | pending |
