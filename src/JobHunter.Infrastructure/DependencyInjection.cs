@@ -75,6 +75,9 @@ public static class DependencyInjection
         // (run_id, chat_id, card_key) constraint is invariant 8 (ADR-F5-0002).
         services.AddScoped<IDigestRepository, DigestRepository>();
         services.AddScoped<IDeliveryLog, DeliveryLog>();
+        // F5 digest assembly (T03): the read side the assembler draws its cards and suppression breakdown from
+        // — every score in the Run joined to its current match's reasons and USD salary, ordered best-first.
+        services.AddScoped<IDigestScopeQuery, DigestScopeQuery>();
         // F4 re-match backlog (T09): the durable seam between the bus-less Api activation write and the
         // Worker's next Run. Enqueue is idempotent per open job; the Run drains pending ids and consumes them.
         services.AddScoped<IReMatchBacklog, ReMatchBacklogRepository>();

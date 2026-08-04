@@ -144,6 +144,20 @@ public static class DependencyInjection
         services.AddSingleton(sp =>
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Matching.PreMatchOptions>>().Value);
 
+        // F5 digest assembly (T03): the assembler consumes RankingCompleted, selects and snapshots the cards,
+        // builds the reconciling suppression breakdown and persists the digest before any send (S2). It is
+        // discovered and constructed by Wolverine like every other handler; only its tunables — the card
+        // threshold and cap — need registering, as a startup-validated resolvable singleton.
+        services.AddOptions<Reporting.DigestOptions>()
+            .Validate(
+                o => o.CardScoreThreshold is >= 0m and <= 100m,
+                "Digest:CardScoreThreshold must be in [0, 100].")
+            .Validate(o => o.MaxCards > 0, "Digest:MaxCards must be positive.")
+            .Validate(o => o.MinSalariesForAverage > 0, "Digest:MinSalariesForAverage must be positive.")
+            .ValidateOnStart();
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Reporting.DigestOptions>>().Value);
+
         return services;
     }
 }
