@@ -101,6 +101,15 @@ tags: [review, career-alignment, backlog, jobhunter]
   {target_role_families}. Reward genuine alignment to that trajectory even where it is a stretch;
   down-weight roles that would repeat their current track."* Keep CV handling rules intact — goal fields
   are Profile facts, not CV text, so no new leakage surface.
+- **Delivered (F4 T16):** `Profile` gained `TargetRoleFamilies` (jsonb, deduped), `DesiredAiUsageFloor`
+  (nullable enum-as-text; `Unknown` — the tolerant parser's sentinel — is rejected) and `TargetTitles`
+  (jsonb, trimmed and deduped), added by migration `F4AddProfileCareerGoal` with a `[]` jsonb default so
+  existing rows deserialize as empty. `MatchPrompt` renders the goal directive plus optional
+  AI-usage-floor and title lines into the **candidate block** — before the cache breakpoint, since the
+  goal is stable per Profile — **only when a goal is stated** (an unstated goal omits the section, same
+  principle as the enrichment omission), so the shared-prefix guarantee holds. `PromptVersion` bumped to
+  `match-v2` and the golden fixtures updated (G10). Integration tests round-trip the columns through real
+  Postgres; the CV-leakage scan stays green because the fields are Profile facts, not CV text.
 
 ## Anti-false-positive filters
 

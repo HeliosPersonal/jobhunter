@@ -54,7 +54,7 @@ available, and can be calibrated against outcomes later (SAD §11 D4).
 
 ## Prompt
 
-`JobHunter.Claude/Prompts/MatchPrompt.cs`, `PromptVersion = "match-v1"`.
+`JobHunter.Claude/Prompts/MatchPrompt.cs`, `PromptVersion = "match-v2"`.
 **This file is the only place in the codebase where CV text is rendered into a string.**
 
 **System**
@@ -86,6 +86,11 @@ Rules:
 Salary floor: {salaryFloor} {currency}
 Timezone: {ownerTimezoneBand}
 Open to: {employmentTypes}
+
+Career goal: the candidate is deliberately targeting {targetRoleFamilies}. Reward genuine alignment to that
+trajectory even where it is a stretch; down-weight roles that would repeat their current track.
+Desired AI-usage floor: {desiredAiUsageFloor}
+Target titles: {targetTitles}
 --- END CANDIDATE ---
 
 --- ROLE ---
@@ -105,6 +110,16 @@ AI usage: {aiUsage}
 When the enrichment is missing (AC-09) the enrichment-derived lines are omitted entirely rather than
 filled with `Unknown`, and the resulting score is multiplied by a 0.85 confidence factor. A prompt
 padded with "Unknown" invites the model to reason about the unknowns; omitting the lines does not.
+
+The **career-goal** section (TUNE-05, T16) is a set of Profile facts — the Owner's target role
+families, an optional desired AI-usage floor and optional target titles — not CV text, so it crosses
+no new boundary. It renders into the candidate block **only when a goal is stated**; an unstated goal
+omits the whole section (same principle as the enrichment omission). Because it is stable per Profile
+it sits before the cache breakpoint and does not disturb the shared prefix. When a floor or titles are
+given without a family the directive falls back to a generic trajectory rather than naming a family.
+The goal directive tells the model to reward a genuine stretch toward the trajectory and down-weight a
+role that merely repeats the current track — the prompt-side complement to the ranking chain's
+alignment component and career-policy multiplier (T14–T17).
 
 ## Prompt caching (contract constraint)
 

@@ -18,7 +18,10 @@ public sealed class ProfileTests
         string? salaryFloorCurrency = null,
         TimezoneBand timezoneBand = TimezoneBand.EMEA,
         IReadOnlyList<string>? preferredCountries = null,
-        IReadOnlyList<EmploymentType>? employmentTypes = null)
+        IReadOnlyList<EmploymentType>? employmentTypes = null,
+        IReadOnlyList<RoleFamily>? targetRoleFamilies = null,
+        AiUsageLevel? desiredAiUsageFloor = null,
+        IReadOnlyList<string>? targetTitles = null)
     {
         var clock = new FakeClock();
         return new Profile(
@@ -30,7 +33,10 @@ public sealed class ProfileTests
             timezoneBand,
             preferredCountries ?? ["Ukraine", "Poland"],
             employmentTypes ?? [EmploymentType.FullTime, EmploymentType.Contract],
-            clock.UtcNow);
+            clock.UtcNow,
+            targetRoleFamilies,
+            desiredAiUsageFloor,
+            targetTitles);
     }
 
     [Fact]
@@ -120,5 +126,56 @@ public sealed class ProfileTests
 
         profile.PreferredCountries.ShouldBeAssignableTo<IReadOnlyList<string>>();
         profile.EmploymentTypes.ShouldBeAssignableTo<IReadOnlyList<EmploymentType>>();
+    }
+
+    // ---- T16: the Owner's career goal (target families, desired AI-usage floor, target titles) ----
+
+    [Fact]
+    public void A_profile_without_a_stated_goal_defaults_to_no_goal()
+    {
+        var profile = NewProfile();
+
+        profile.TargetRoleFamilies.ShouldBeEmpty();
+        profile.DesiredAiUsageFloor.ShouldBeNull();
+        profile.TargetTitles.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void A_stated_goal_is_exposed()
+    {
+        var profile = NewProfile(
+            targetRoleFamilies: [RoleFamily.AiPlatform, RoleFamily.Platform],
+            desiredAiUsageFloor: AiUsageLevel.Medium,
+            targetTitles: ["Staff Platform Engineer", "AI Platform Engineer"]);
+
+        profile.TargetRoleFamilies.ShouldBe([RoleFamily.AiPlatform, RoleFamily.Platform]);
+        profile.DesiredAiUsageFloor.ShouldBe(AiUsageLevel.Medium);
+        profile.TargetTitles.ShouldBe(["Staff Platform Engineer", "AI Platform Engineer"]);
+    }
+
+    [Fact]
+    public void Duplicate_target_role_families_are_collapsed()
+    {
+        var profile = NewProfile(
+            targetRoleFamilies: [RoleFamily.AiPlatform, RoleFamily.AiPlatform, RoleFamily.Platform]);
+
+        profile.TargetRoleFamilies.ShouldBe([RoleFamily.AiPlatform, RoleFamily.Platform]);
+    }
+
+    [Fact]
+    public void Target_titles_are_trimmed_deblanked_and_deduplicated()
+    {
+        var profile = NewProfile(targetTitles: ["  Staff Engineer ", "", "staff engineer", "Platform Lead"]);
+
+        profile.TargetTitles.Count.ShouldBe(2);
+        profile.TargetTitles.ShouldContain("Staff Engineer");
+        profile.TargetTitles.ShouldContain("Platform Lead");
+    }
+
+    [Fact]
+    public void An_unknown_desired_ai_usage_floor_is_rejected()
+    {
+        // Unknown is the tolerant parser's sentinel, never a level the Owner would deliberately target.
+        Should.Throw<ArgumentException>(() => NewProfile(desiredAiUsageFloor: AiUsageLevel.Unknown));
     }
 }

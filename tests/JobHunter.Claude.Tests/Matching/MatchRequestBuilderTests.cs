@@ -117,6 +117,35 @@ public sealed class MatchRequestBuilderTests
     }
 
     [Fact]
+    public void Build_folds_a_stated_career_goal_into_the_cache_prefix_not_the_role_block()
+    {
+        // T16: the goal is a Profile fact, stable per Profile, so it rides the same cacheable prefix as the CV.
+        var profile = new Profile(
+            ProfileId, isActive: true, "Owner", 120000m, "USD", TimezoneBand.EMEA,
+            ["Portugal"], [EmploymentType.FullTime], Now,
+            targetRoleFamilies: [RoleFamily.AiPlatform, RoleFamily.Platform],
+            desiredAiUsageFloor: AiUsageLevel.Medium,
+            targetTitles: ["Staff Platform Engineer"]);
+
+        var item = new MatchRequestBuilder().Build([Job(Guid.CreateVersion7())], profile, Cv()).Items.Single();
+
+        item.CachePrefix.ShouldNotBeNull();
+        item.CachePrefix.ShouldContain("Career goal: the candidate is deliberately targeting AiPlatform, Platform.");
+        item.CachePrefix.ShouldContain("Desired AI-usage floor: Medium");
+        item.CachePrefix.ShouldContain("Target titles: Staff Platform Engineer");
+        item.UserContent.ShouldNotContain("Career goal:");
+    }
+
+    [Fact]
+    public void Build_of_a_goal_less_profile_omits_the_goal_section()
+    {
+        var item = new MatchRequestBuilder().Build([Job(Guid.CreateVersion7())], OwnerProfile(), Cv()).Items.Single();
+
+        item.CachePrefix.ShouldNotBeNull();
+        item.CachePrefix.ShouldNotContain("Career goal:");
+    }
+
+    [Fact]
     public void Build_of_an_empty_scope_produces_no_items()
     {
         var request = new MatchRequestBuilder().Build([], OwnerProfile(), Cv());

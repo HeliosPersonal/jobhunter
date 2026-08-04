@@ -121,6 +121,45 @@ public sealed class MatchingPersistenceTests
     }
 
     [RequiresDockerFact]
+    public async Task A_career_goal_round_trips_through_its_jsonb_and_text_columns()
+    {
+        // T16: the goal columns (target_role_families jsonb, desired_ai_usage_floor text, target_titles jsonb)
+        // map through the aggregate's private backing fields; this proves the mapping against real Postgres.
+        await using var database = await TestDatabase.CreateAsync();
+        var profile = new Profile(
+            Guid.CreateVersion7(), isActive: true, "Owner",
+            salaryFloor: null, salaryFloorCurrency: null, TimezoneBand.EMEA,
+            preferredCountries: ["Germany"], employmentTypes: [EmploymentType.FullTime], Now,
+            targetRoleFamilies: [RoleFamily.AiPlatform, RoleFamily.Platform],
+            desiredAiUsageFloor: AiUsageLevel.Medium,
+            targetTitles: ["Staff Platform Engineer"]);
+        var repo = new ProfileRepository(database.CreateContext());
+        repo.Add(profile);
+        await repo.SaveChangesAsync();
+
+        await using var read = database.CreateContext();
+        var loaded = await read.Set<Profile>().SingleAsync();
+        loaded.TargetRoleFamilies.ShouldBe([RoleFamily.AiPlatform, RoleFamily.Platform]);
+        loaded.DesiredAiUsageFloor.ShouldBe(AiUsageLevel.Medium);
+        loaded.TargetTitles.ShouldBe(["Staff Platform Engineer"]);
+    }
+
+    [RequiresDockerFact]
+    public async Task A_goal_less_profile_round_trips_as_empty_lists_and_a_null_floor()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        var repo = new ProfileRepository(database.CreateContext());
+        repo.Add(NewProfile(isActive: true));
+        await repo.SaveChangesAsync();
+
+        await using var read = database.CreateContext();
+        var loaded = await read.Set<Profile>().SingleAsync();
+        loaded.TargetRoleFamilies.ShouldBeEmpty();
+        loaded.DesiredAiUsageFloor.ShouldBeNull();
+        loaded.TargetTitles.ShouldBeEmpty();
+    }
+
+    [RequiresDockerFact]
     public async Task A_second_active_cv_for_a_profile_is_rejected_by_the_partial_unique_index()
     {
         await using var database = await TestDatabase.CreateAsync();

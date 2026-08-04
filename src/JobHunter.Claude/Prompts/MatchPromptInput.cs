@@ -23,6 +23,10 @@ public sealed record MatchPromptInput(
     string? SalaryFloorCurrency,
     string OwnerTimezoneBand,
     string EmploymentTypesOpenTo,
+    // --- Career goal (T16; stable per Profile, rendered into the candidate block) ---
+    string? TargetRoleFamilies,
+    string? DesiredAiUsageFloor,
+    string? TargetTitles,
     // --- Role (per item; rendered after the cache breakpoint) ---
     string CompanyName,
     string Title,

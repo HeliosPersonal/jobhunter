@@ -21,7 +21,9 @@ namespace JobHunter.Claude.Prompts;
 public static class MatchPrompt
 {
     /// <summary>Bump whenever the system prompt, either user template, the schema or a parsing rule changes.</summary>
-    public const string PromptVersion = "match-v1";
+    // match-v2 (T16): the candidate block gained the Owner's career-goal section (target families, desired
+    // AI-usage floor, target titles), rendered only when a goal is stated.
+    public const string PromptVersion = "match-v2";
 
     /// <summary>The CV text is truncated to this many characters at a section boundary.</summary>
     public const int MaxCvChars = 8_000;
@@ -75,14 +77,49 @@ public static class MatchPrompt
             ? string.Create(CultureInfo.InvariantCulture, $"{floor} {input.SalaryFloorCurrency}")
             : "none";
 
+        // T16: the Owner's career goal — a Profile fact, stable per Profile, so it lives in the cacheable
+        // candidate block. Omitted entirely when no goal is stated, rather than filled with placeholders, so
+        // the model is not invited to reason about a goal that does not exist (same principle as AC-09).
+        var goalLines = RenderGoalLines(input);
+
         return string.Create(CultureInfo.InvariantCulture, $"""
             --- CANDIDATE ---
             {cvText}
             Salary floor: {salaryFloor}
             Timezone: {input.OwnerTimezoneBand}
-            Open to: {input.EmploymentTypesOpenTo}
+            Open to: {input.EmploymentTypesOpenTo}{goalLines}
             --- END CANDIDATE ---
             """);
+    }
+
+    private static string RenderGoalLines(MatchPromptInput input)
+    {
+        var hasFamilies = !string.IsNullOrWhiteSpace(input.TargetRoleFamilies);
+        var hasFloor = !string.IsNullOrWhiteSpace(input.DesiredAiUsageFloor);
+        var hasTitles = !string.IsNullOrWhiteSpace(input.TargetTitles);
+
+        if (!hasFamilies && !hasFloor && !hasTitles)
+        {
+            return string.Empty;
+        }
+
+        // The goal directive (match-schema §Prompt, TUNE-05): fit is not desirability, so the model is told
+        // to reward a genuine stretch toward the trajectory and down-weight a repeat of the current track.
+        var targeting = hasFamilies ? input.TargetRoleFamilies!.Trim() : "roles outside their current track";
+        var directive = string.Create(CultureInfo.InvariantCulture, $"""
+
+            Career goal: the candidate is deliberately targeting {targeting}. Reward genuine alignment to that
+            trajectory even where it is a stretch; down-weight roles that would repeat their current track.
+            """);
+
+        var floorLine = hasFloor
+            ? string.Create(CultureInfo.InvariantCulture, $"\nDesired AI-usage floor: {input.DesiredAiUsageFloor!.Trim()}")
+            : string.Empty;
+        var titleLine = hasTitles
+            ? string.Create(CultureInfo.InvariantCulture, $"\nTarget titles: {input.TargetTitles!.Trim()}")
+            : string.Empty;
+
+        return directive + floorLine + titleLine;
     }
 
     private static string RenderRoleBlock(MatchPromptInput input, string description)

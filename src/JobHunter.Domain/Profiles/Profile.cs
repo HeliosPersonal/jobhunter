@@ -19,11 +19,19 @@ public sealed class Profile : Entity
 {
     private readonly List<string> _preferredCountries = [];
     private readonly List<EmploymentType> _employmentTypes = [];
+    private readonly List<RoleFamily> _targetRoleFamilies = [];
+    private readonly List<string> _targetTitles = [];
 
     /// <summary>
     /// Builds a Profile. A blank display name is rejected. A salary floor is optional, but an amount and
     /// its currency travel together: supplying one without the other is a programmer error, because a
     /// floor without a currency cannot be compared against a job's pay.
+    ///
+    /// <para>The career-goal facts (F4 T16, TUNE-05) are optional and default to "no goal stated": an empty
+    /// target-family set, no desired AI-usage floor, no target titles. They are the trajectory the Owner is
+    /// deliberately aiming at — not present facts — and are fed to the match prompt so the model can reward a
+    /// genuine stretch toward that trajectory. <see cref="AiUsageLevel.Unknown"/> is the tolerant parser's
+    /// sentinel, never a level the Owner would choose, so it is rejected as a desired floor.</para>
     /// </summary>
     public Profile(
         Guid id,
@@ -34,12 +42,23 @@ public sealed class Profile : Entity
         TimezoneBand timezoneBand,
         IReadOnlyList<string> preferredCountries,
         IReadOnlyList<EmploymentType> employmentTypes,
-        DateTimeOffset updatedAt)
+        DateTimeOffset updatedAt,
+        IReadOnlyList<RoleFamily>? targetRoleFamilies = null,
+        AiUsageLevel? desiredAiUsageFloor = null,
+        IReadOnlyList<string>? targetTitles = null)
         : base(id)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(displayName);
         ArgumentNullException.ThrowIfNull(preferredCountries);
         ArgumentNullException.ThrowIfNull(employmentTypes);
+
+        if (desiredAiUsageFloor is AiUsageLevel.Unknown)
+        {
+            throw new ArgumentException(
+                "A desired AI-usage floor cannot be Unknown — that is the parser's sentinel, not a level the "
+                + "Owner would target. Use null to state no floor.",
+                nameof(desiredAiUsageFloor));
+        }
 
         var (floor, currency) = NormaliseSalaryFloor(salaryFloor, salaryFloorCurrency);
 
@@ -51,6 +70,9 @@ public sealed class Profile : Entity
         _preferredCountries = Clean(preferredCountries);
         _employmentTypes = employmentTypes.Distinct().ToList();
         UpdatedAt = updatedAt;
+        _targetRoleFamilies = (targetRoleFamilies ?? []).Distinct().ToList();
+        DesiredAiUsageFloor = desiredAiUsageFloor;
+        _targetTitles = Clean(targetTitles ?? []);
     }
 
     private Profile()
@@ -80,6 +102,26 @@ public sealed class Profile : Entity
 
     /// <summary>The employment types the Owner will consider, e.g. <c>FullTime</c> and <c>Contract</c>.</summary>
     public IReadOnlyList<EmploymentType> EmploymentTypes => new ReadOnlyCollection<EmploymentType>(_employmentTypes);
+
+    /// <summary>
+    /// The role families the Owner is deliberately targeting (F4 T16, TUNE-05) — the Tier-1 trajectory the
+    /// match prompt is told to reward even as a stretch. Empty when no goal is stated. A goal, not a
+    /// present fact: F7 learns weights separately, and the alignment component (T14) already tiers families.
+    /// </summary>
+    public IReadOnlyList<RoleFamily> TargetRoleFamilies => new ReadOnlyCollection<RoleFamily>(_targetRoleFamilies);
+
+    /// <summary>
+    /// The lowest AI-usage level the Owner wants to move toward, or null when none is stated. Never
+    /// <see cref="AiUsageLevel.Unknown"/> — the constructor rejects the parser's sentinel as a floor.
+    /// </summary>
+    public AiUsageLevel? DesiredAiUsageFloor { get; private set; }
+
+    /// <summary>
+    /// Optional target titles the Owner is aiming at (F4 T16) — trimmed, de-blanked and de-duplicated like
+    /// the country list. Empty when none is stated. These are aspirational labels, distinct from any job's
+    /// posted title.
+    /// </summary>
+    public IReadOnlyList<string> TargetTitles => new ReadOnlyCollection<string>(_targetTitles);
 
     private static (decimal? Floor, string? Currency) NormaliseSalaryFloor(decimal? amount, string? currency)
     {

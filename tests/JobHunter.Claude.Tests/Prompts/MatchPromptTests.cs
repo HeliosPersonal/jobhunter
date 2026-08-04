@@ -30,12 +30,19 @@ public sealed class MatchPromptTests
     private static MatchPromptInput Sample(
         string cvText = "Senior Platform Engineer with seven years of Go and Kubernetes.",
         string description = "We are hiring a platform engineer.\n\nYou will build internal tooling.",
-        bool withEnrichment = true) => new(
+        bool withEnrichment = true,
+        string? targetRoleFamilies = null,
+        string? desiredAiUsageFloor = null,
+        string? targetTitles = null) => new(
         CvText: cvText,
         SalaryFloor: 90000m,
         SalaryFloorCurrency: "EUR",
         OwnerTimezoneBand: "EMEA",
         EmploymentTypesOpenTo: "FullTime, Contract",
+        // Career goal (T16): null by default so the no-goal render — the recorded snapshot — is unchanged.
+        TargetRoleFamilies: targetRoleFamilies,
+        DesiredAiUsageFloor: desiredAiUsageFloor,
+        TargetTitles: targetTitles,
         CompanyName: "Acme AI",
         Title: "Senior Platform Engineer",
         Seniority: "Senior",
@@ -48,7 +55,7 @@ public sealed class MatchPromptTests
     [Fact]
     public void The_prompt_version_is_stamped()
     {
-        MatchPrompt.PromptVersion.ShouldBe("match-v1");
+        MatchPrompt.PromptVersion.ShouldBe("match-v2");
     }
 
     [Fact]
@@ -181,5 +188,63 @@ public sealed class MatchPromptTests
         var rendered = MatchPrompt.Render(Sample() with { CvText = null! });
 
         rendered.CvWasTruncated.ShouldBeFalse();
+    }
+
+    // ---- T16: the Owner's career goal renders into the stable candidate block, only when stated ----
+
+    [Fact]
+    public void No_stated_goal_omits_the_goal_section_entirely()
+    {
+        var rendered = MatchPrompt.Render(Sample());
+
+        rendered.CvBlock.ShouldNotContain("Career goal:");
+        rendered.CvBlock.ShouldNotContain("Desired AI-usage floor:");
+        rendered.CvBlock.ShouldNotContain("Target titles:");
+    }
+
+    [Fact]
+    public void A_stated_goal_renders_the_directive_and_optional_lines_into_the_cache_prefix()
+    {
+        var rendered = MatchPrompt.Render(Sample(
+            targetRoleFamilies: "AiPlatform, Platform",
+            desiredAiUsageFloor: "Medium",
+            targetTitles: "Staff Platform Engineer"));
+
+        rendered.CvBlock.ShouldContain("Career goal: the candidate is deliberately targeting AiPlatform, Platform.");
+        rendered.CvBlock.ShouldContain("Reward genuine alignment");
+        rendered.CvBlock.ShouldContain("Desired AI-usage floor: Medium");
+        rendered.CvBlock.ShouldContain("Target titles: Staff Platform Engineer");
+        // The goal is a Profile fact, so it belongs in the stable prefix, never in the per-item role block.
+        rendered.RoleBlock.ShouldNotContain("Career goal:");
+    }
+
+    [Fact]
+    public void The_optional_goal_lines_are_each_omitted_when_absent()
+    {
+        var rendered = MatchPrompt.Render(Sample(targetRoleFamilies: "AiPlatform"));
+
+        rendered.CvBlock.ShouldContain("Career goal: the candidate is deliberately targeting AiPlatform.");
+        rendered.CvBlock.ShouldNotContain("Desired AI-usage floor:");
+        rendered.CvBlock.ShouldNotContain("Target titles:");
+    }
+
+    [Fact]
+    public void A_floor_or_titles_without_families_still_render_the_goal_section()
+    {
+        var rendered = MatchPrompt.Render(Sample(desiredAiUsageFloor: "High"));
+
+        // Families absent: the directive falls back to a generic trajectory rather than naming a family.
+        rendered.CvBlock.ShouldContain("targeting roles outside their current track");
+        rendered.CvBlock.ShouldContain("Desired AI-usage floor: High");
+    }
+
+    [Fact]
+    public void A_stated_goal_keeps_the_cv_block_stable_across_items_that_differ_only_in_the_role()
+    {
+        var itemA = MatchPrompt.Render(Sample(description: "Role A.", targetRoleFamilies: "AiPlatform"));
+        var itemB = MatchPrompt.Render(Sample(description: "Role B.", targetRoleFamilies: "AiPlatform"));
+
+        // The goal sits in the cache prefix, so adding it must not break the byte-identical-prefix guarantee.
+        itemA.CvBlock.ShouldBe(itemB.CvBlock);
     }
 }

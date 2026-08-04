@@ -54,6 +54,10 @@ public sealed class MatchRequestBuilder : IMatchRequestBuilder
                 SalaryFloorCurrency: profile.SalaryFloorCurrency,
                 OwnerTimezoneBand: profile.TimezoneBand.ToString(),
                 EmploymentTypesOpenTo: FormatEmploymentTypes(profile),
+                // --- Career goal: Profile facts, stable across the batch (T16) ---
+                TargetRoleFamilies: FormatTargetRoleFamilies(profile),
+                DesiredAiUsageFloor: profile.DesiredAiUsageFloor?.ToString(),
+                TargetTitles: FormatTargetTitles(profile),
                 // --- Role: per item ---
                 CompanyName: job.CompanyName,
                 Title: job.Title,
@@ -84,6 +88,18 @@ public sealed class MatchRequestBuilder : IMatchRequestBuilder
         profile.EmploymentTypes.Count == 0
             ? "any"
             : string.Join(", ", profile.EmploymentTypes.Select(t => t.ToString()));
+
+    // Null when no goal families are stated, so MatchPrompt omits the whole goal section rather than
+    // rendering an empty directive (T16, same principle as the enrichment omission).
+    private static string? FormatTargetRoleFamilies(Profile profile) =>
+        profile.TargetRoleFamilies.Count == 0
+            ? null
+            : string.Join(", ", profile.TargetRoleFamilies.Select(f => f.ToString()));
+
+    private static string? FormatTargetTitles(Profile profile) =>
+        profile.TargetTitles.Count == 0
+            ? null
+            : string.Join(", ", profile.TargetTitles);
 
     private static MatchEnrichmentFacts? ToFacts(MatchEnrichmentContent? enrichment)
     {

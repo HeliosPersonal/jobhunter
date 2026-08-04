@@ -1,3 +1,4 @@
+using JobHunter.Domain.Intelligence;
 using JobHunter.Domain.Jobs;
 using JobHunter.Domain.Profiles;
 using JobHunter.Infrastructure.Persistence.Pipeline;
@@ -24,6 +25,11 @@ internal sealed class ProfileConfiguration : IEntityTypeConfiguration<Profile>
 
     private static readonly ValueComparer<List<EmploymentType>> EmploymentTypeListComparer = new(
         (left, right) => (left ?? new List<EmploymentType>()).SequenceEqual(right ?? new List<EmploymentType>()),
+        list => list.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode())),
+        list => list.ToList());
+
+    private static readonly ValueComparer<List<RoleFamily>> RoleFamilyListComparer = new(
+        (left, right) => (left ?? new List<RoleFamily>()).SequenceEqual(right ?? new List<RoleFamily>()),
         list => list.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode())),
         list => list.ToList());
 
@@ -54,8 +60,32 @@ internal sealed class ProfileConfiguration : IEntityTypeConfiguration<Profile>
                 EmploymentTypeListComparer)
             .IsRequired();
 
+        // T16 career-goal facts (TUNE-05). target_role_families and target_titles persist as jsonb arrays
+        // through their private backing fields, exactly like the preference lists above; desired_ai_usage_floor
+        // is a nullable enum-as-text scalar (coding-standards §5), null when no floor is stated.
+        b.Property<List<RoleFamily>>("_targetRoleFamilies")
+            .HasColumnName("target_role_families")
+            .HasColumnType("jsonb")
+            .HasConversion(
+                v => EnumListJson.Serialize(v),
+                v => EnumListJson.Deserialize<RoleFamily>(v),
+                RoleFamilyListComparer)
+            .IsRequired();
+
+        b.Property(x => x.DesiredAiUsageFloor)
+            .HasColumnName("desired_ai_usage_floor")
+            .HasConversion<string?>();
+
+        b.Property<List<string>>("_targetTitles")
+            .HasColumnName("target_titles")
+            .HasColumnType("jsonb")
+            .HasConversion(v => StringListJson.Serialize(v), v => StringListJson.Deserialize(v), StringListComparer)
+            .IsRequired();
+
         b.Ignore(x => x.PreferredCountries);
         b.Ignore(x => x.EmploymentTypes);
+        b.Ignore(x => x.TargetRoleFamilies);
+        b.Ignore(x => x.TargetTitles);
 
         // uq_profiles_active — one active Profile — is a partial unique index EF cannot model; it is
         // declared in raw SQL in the migration and named here for documentation only.

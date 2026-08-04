@@ -35,6 +35,9 @@ erDiagram
     text timezone_band
     jsonb preferred_countries
     jsonb employment_types
+    jsonb target_role_families
+    text desired_ai_usage_floor
+    jsonb target_titles
     timestamptz updated_at
   }
   CV_VERSIONS {
@@ -99,16 +102,21 @@ The Owner's structured career facts. Exactly one is active.
 | `timezone_band` | text | NOT NULL | the Owner's own band, compared against the job's |
 | `preferred_countries` | jsonb | NOT NULL | explicit preferences; F7 learns additional weights separately |
 | `employment_types` | jsonb | NOT NULL | `[FullTime, Contract]` |
+| `target_role_families` | jsonb | NOT NULL DEFAULT `[]` | the Owner's career **goal** — `RoleFamily` values, deduped; empty when no goal is stated (T16) |
+| `desired_ai_usage_floor` | text | NULL | minimum AI-usage level the Owner is targeting; `Unknown` (the parser sentinel) is rejected (T16) |
+| `target_titles` | jsonb | NOT NULL DEFAULT `[]` | optional aspirational titles, trimmed and deduped; empty when none stated (T16) |
 | `updated_at` | timestamptz | NOT NULL | |
 
 The Profile holds **explicit** preferences the Owner stated. `preference_weights` (F7) holds
 **learned** ones. Keeping them in different tables means a learned weight can never silently
 overwrite something the Owner said outright.
 
-> **Planned change (TUNE-05, F4 T16):** add `target_role_families jsonb`, `desired_ai_usage_floor text`
-> and optional `target_titles jsonb` so the Owner's career *goal* (not just present facts) is encoded and
-> fed to the match prompt. These are Profile facts, not CV text, so no new leakage surface. See the
-> [[../../../reviews/career-alignment-tuning-backlog|tuning backlog]].
+The three goal columns (`target_role_families`, `desired_ai_usage_floor`, `target_titles`) encode the
+Owner's career **goal** — where they want to go, not just where they have been — and are fed to the
+match prompt's candidate block (TUNE-05, T16). They are Profile facts, **not** CV text, so they cross
+no new boundary and the QG-2 leakage scan is unaffected. The goal renders into the prompt only when
+stated; an unstated goal contributes nothing. See the
+[[../../../reviews/career-alignment-tuning-backlog|tuning backlog]].
 
 ### `cv_versions`
 
