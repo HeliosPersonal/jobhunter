@@ -24,7 +24,10 @@ namespace JobHunter.Application.Matching;
 /// a factual mismatch.</description></item>
 /// <item><description><b>Seniority floor</b> — the job's level is <c>gap</c> or more rungs below the Owner's on
 /// the individual-contributor ladder. Off-ladder levels (<see cref="Seniority.Lead"/>, <see cref="Seniority.Manager"/>)
-/// and untitled postings are never excluded — a level that cannot be compared is not a factual mismatch.</description></item>
+/// and untitled postings are never excluded — a level that cannot be compared is not a factual mismatch. Nor is
+/// an early-stage role (a configured <see cref="CompanyStage"/>, <c>{Seed, SeriesA}</c> by default), whose
+/// erratic levelling makes the absolute gap unreliable — the floor is lifted, but every other rule still
+/// applies (T18).</description></item>
 /// <item><description><b>Salary</b> — the enrichment's estimated pay sits entirely below the Owner's floor, in
 /// the same currency, at a confidence at or above the threshold. Cross-currency and low-confidence estimates
 /// never bite: the floor rule refuses to guess.</description></item>
@@ -135,6 +138,16 @@ public static class PreMatchFilter
     private static bool BelowSeniorityFloor(MatchJobContent job, PreMatchSettings settings, out string reason)
     {
         reason = string.Empty;
+
+        // T18: an early-stage role (Seed / Series A by default) is exempt from the floor entirely — startup
+        // levelling is erratic enough that an absolute level gap is not a fact worth dropping a wanted
+        // Founding-Engineer role on. The exemption is evidence-driven: it needs an enrichment stage fact, so a
+        // job with no enrichment can never claim it. Only the floor is lifted; every other rule still applies.
+        if (job.Enrichment is { } enrichment
+            && settings.SeniorityFloorExemptStages.Contains(enrichment.CompanyStage))
+        {
+            return false;
+        }
 
         // Only a comparable IC level, a rung on the same ladder as the Owner's, can be a factual floor breach.
         if (!Enum.TryParse<Seniority>(job.Seniority, ignoreCase: false, out var jobSeniority))

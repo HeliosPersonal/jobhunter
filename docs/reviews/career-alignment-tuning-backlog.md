@@ -186,6 +186,10 @@ tags: [review, career-alignment, backlog, jobhunter]
   dropping Founding-Engineer / early-startup roles the Owner wants.
 - **Proposed content:** exempt `CompanyStage ∈ {Seed, SeriesA}` from the seniority-floor exclusion, or
   require an explicit parsed down-level rather than an absolute two-level gap.
+- **Delivered (F4 T18):** `PreMatchFilter` exempts any role whose enrichment `CompanyStage` is in the
+  configured `PreMatch:SeniorityFloorExemptStages` (default `{Seed, SeriesA}`) from the seniority floor
+  only — every other factual rule still applies. The exemption is evidence-driven (a job with no
+  enrichment stage cannot claim it) and turns off with an empty set, restoring the pre-T18 behaviour.
 
 ### TUNE-14 — Add a target-role-family slice to the golden ranking set  ·  P2 · M
 - **Target:** golden ranking set `docs/features/f4-cv-matching-ranking/tasks/T11-golden-ranking.md`.

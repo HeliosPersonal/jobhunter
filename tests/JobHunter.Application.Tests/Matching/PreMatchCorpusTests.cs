@@ -35,7 +35,8 @@ public sealed class PreMatchCorpusTests
         updatedAt: new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero));
 
     private static readonly PreMatchSettings Settings =
-        new(OwnerSeniority: Seniority.Senior, SeniorityFloorGap: 2, SalaryConfidenceThreshold: 0.80m);
+        new(OwnerSeniority: Seniority.Senior, SeniorityFloorGap: 2, SalaryConfidenceThreshold: 0.80m,
+            SeniorityFloorExemptStages: PreMatchOptions.DefaultEarlyStages);
 
     private static readonly List<CorpusCase> Corpus = LoadCorpus();
 

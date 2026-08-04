@@ -17,7 +17,8 @@ namespace JobHunter.Application.Tests.Matching;
 public sealed class PreMatchFilterTests
 {
     private static readonly PreMatchSettings Settings =
-        new(OwnerSeniority: Seniority.Senior, SeniorityFloorGap: 2, SalaryConfidenceThreshold: 0.80m);
+        new(OwnerSeniority: Seniority.Senior, SeniorityFloorGap: 2, SalaryConfidenceThreshold: 0.80m,
+            SeniorityFloorExemptStages: PreMatchOptions.DefaultEarlyStages);
 
     // ---- Timezone ----------------------------------------------------------------------------------
 
@@ -149,6 +150,78 @@ public sealed class PreMatchFilterTests
             .Excluded.ShouldBeFalse();
     }
 
+    // ---- T18: the early-stage seniority-floor exemption --------------------------------------------
+
+    [Theory]
+    [InlineData(CompanyStage.Seed)]
+    [InlineData(CompanyStage.SeriesA)]
+    public void An_early_stage_role_below_the_floor_is_exempted_and_reaches_matching(CompanyStage stage)
+    {
+        // A Founding-Engineer / early-startup role the Owner explicitly wants: two rungs below on paper, but at
+        // Seed/Series-A the ladder is erratic and the absolute gap is not a fact worth excluding on (T18).
+        var job = Job(seniority: "Junior", enrichment: Enrichment(stage: stage));
+
+        PreMatchFilter.Evaluate(job, ProfileEmea(), hasCurrentMatch: false, Settings)
+            .Excluded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void An_early_stage_role_still_faces_the_other_factual_rules()
+    {
+        // The exemption is narrow: it lifts only the seniority floor. An early-stage role in an incompatible,
+        // non-remote timezone is still a factual mismatch and is excluded on timezone, not passed through.
+        var job = Job(seniority: "Junior", enrichment: Enrichment(stage: CompanyStage.Seed,
+            band: TimezoneBand.APAC, isRemote: false));
+
+        var verdict = PreMatchFilter.Evaluate(job, ProfileEmea(), hasCurrentMatch: false, Settings);
+
+        verdict.Excluded.ShouldBeTrue();
+        verdict.Rule.ShouldBe(PreMatchRule.Timezone);
+    }
+
+    [Theory]
+    [InlineData(CompanyStage.SeriesB)]
+    [InlineData(CompanyStage.Public)]
+    [InlineData(CompanyStage.Unknown)]
+    public void A_non_early_stage_role_below_the_floor_is_still_excluded(CompanyStage stage)
+    {
+        // The behaviour for every non-exempt stage — including Unknown, where we have no evidence of an
+        // early-stage exception — is unchanged: two rungs below is still a factual floor breach.
+        var job = Job(seniority: "Junior", enrichment: Enrichment(stage: stage));
+
+        var verdict = PreMatchFilter.Evaluate(job, ProfileEmea(), hasCurrentMatch: false, Settings);
+
+        verdict.Excluded.ShouldBeTrue();
+        verdict.Rule.ShouldBe(PreMatchRule.SeniorityFloor);
+    }
+
+    [Fact]
+    public void An_early_stage_role_with_no_enrichment_stage_cannot_claim_the_exemption()
+    {
+        // Without an enrichment there is no stage fact, so the exemption cannot apply and the ordinary floor
+        // still bites — the exemption is evidence-driven, never a default (mirrors the enrichment-absent rules).
+        var job = Job(seniority: "Junior", enrichment: null);
+
+        var verdict = PreMatchFilter.Evaluate(job, ProfileEmea(), hasCurrentMatch: false, Settings);
+
+        verdict.Excluded.ShouldBeTrue();
+        verdict.Rule.ShouldBe(PreMatchRule.SeniorityFloor);
+    }
+
+    [Fact]
+    public void An_empty_exempt_set_reproduces_the_pre_T18_behaviour_for_early_stage_roles()
+    {
+        // The Owner can turn the exemption off entirely; then even a Seed-stage role two rungs below is excluded,
+        // exactly as before T18.
+        var settings = Settings with { SeniorityFloorExemptStages = new HashSet<CompanyStage>() };
+        var job = Job(seniority: "Junior", enrichment: Enrichment(stage: CompanyStage.Seed));
+
+        var verdict = PreMatchFilter.Evaluate(job, ProfileEmea(), hasCurrentMatch: false, settings);
+
+        verdict.Excluded.ShouldBeTrue();
+        verdict.Rule.ShouldBe(PreMatchRule.SeniorityFloor);
+    }
+
     // ---- Salary floor ------------------------------------------------------------------------------
 
     [Fact]
@@ -257,9 +330,10 @@ public sealed class PreMatchFilterTests
     private static MatchEnrichmentContent Enrichment(
         TimezoneBand band = TimezoneBand.EMEA,
         bool isRemote = true,
-        SalaryEstimate? salary = null) =>
+        SalaryEstimate? salary = null,
+        CompanyStage stage = CompanyStage.SeriesB) =>
         new(
-            CompanyStage.SeriesB, isRemote, band, IsContractorFriendly: false,
+            stage, isRemote, band, IsContractorFriendly: false,
             EstimatedSalary: salary, Technologies: ["C#", ".NET"], AiUsage: AiUsageLevel.Medium);
 
     private static SalaryEstimate Estimate(decimal min, decimal max, string currency, decimal confidence) =>

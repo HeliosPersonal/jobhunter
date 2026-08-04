@@ -137,6 +137,9 @@ public static class DependencyInjection
             .Validate(
                 o => o.SalaryConfidenceThreshold is >= 0m and <= 1m,
                 "PreMatch:SalaryConfidenceThreshold must be in [0, 1].")
+            .Validate(
+                o => o.SeniorityFloorExemptStages is not null,
+                "PreMatch:SeniorityFloorExemptStages must not be null.")
             .ValidateOnStart();
         services.AddSingleton(sp =>
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Matching.PreMatchOptions>>().Value);

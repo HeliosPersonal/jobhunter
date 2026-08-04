@@ -57,7 +57,8 @@ public sealed class GoldenRankingSetTests
         updatedAt: Now);
 
     private static readonly PreMatchSettings PreMatch =
-        new(OwnerSeniority: Seniority.Senior, SeniorityFloorGap: 2, SalaryConfidenceThreshold: 0.80m);
+        new(OwnerSeniority: Seniority.Senior, SeniorityFloorGap: 2, SalaryConfidenceThreshold: 0.80m,
+            SeniorityFloorExemptStages: PreMatchOptions.DefaultEarlyStages);
 
     private static readonly List<GoldenCase> Corpus = LoadCorpus();
 

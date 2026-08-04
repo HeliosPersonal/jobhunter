@@ -19,6 +19,16 @@ trajectory the alignment work (TUNE-01/05) is meant to surface.
 - The existing pre-match filter behaviour for non-early-stage roles is unchanged — asserted.
 - A regression case covers the previously-dropped founding role now reaching matching.
 
+## Delivered
+
+`PreMatchFilter.BelowSeniorityFloor` now returns early — the floor is lifted — when the job's enrichment
+`CompanyStage` is in `PreMatchSettings.SeniorityFloorExemptStages`, projected from
+`PreMatch:SeniorityFloorExemptStages` (default `{Seed, SeriesA}`, `PreMatchOptions.DefaultEarlyStages`,
+startup-validated non-null). The exemption is **evidence-driven**: a job with no enrichment stage cannot
+claim it, and only the seniority floor is lifted — timezone, employment-type, salary and lifecycle still
+apply. An empty configured set restores the pre-T18 behaviour exactly. The pre-match corpus and golden
+chain pass both `{Seed, SeriesA}` as the default; their `SeriesB` cases are unaffected.
+
 ## Links
 
 [[../../../reviews/career-alignment-tuning-backlog|career-alignment tuning backlog]] TUNE-13 ·

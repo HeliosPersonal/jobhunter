@@ -1,3 +1,4 @@
+using JobHunter.Domain.Intelligence;
 using JobHunter.Domain.Jobs;
 
 namespace JobHunter.Application.Matching;
@@ -17,6 +18,14 @@ public sealed class PreMatchOptions
 {
     public const string SectionName = "PreMatch";
 
+    /// <summary>
+    /// The default early company stages exempt from the seniority floor (T18): Seed and Series A, where startup
+    /// levelling is erratic enough that an absolute level gap is not a fact worth excluding a wanted
+    /// Founding-Engineer / early-startup role on.
+    /// </summary>
+    public static readonly IReadOnlySet<CompanyStage> DefaultEarlyStages =
+        new HashSet<CompanyStage> { CompanyStage.Seed, CompanyStage.SeriesA };
+
     /// <summary>The Owner's seniority, the reference the floor rule measures a job against (default Senior).</summary>
     public Seniority OwnerSeniority { get; init; } = Seniority.Senior;
 
@@ -26,7 +35,14 @@ public sealed class PreMatchOptions
     /// <summary>The salary-estimate confidence at or above which the floor rule may exclude (default 0.8).</summary>
     public decimal SalaryConfidenceThreshold { get; init; } = 0.80m;
 
+    /// <summary>
+    /// Company stages exempt from the seniority floor (T18; default <see cref="DefaultEarlyStages"/>). Protects
+    /// recall for the early-stage / founding trajectory the alignment work is meant to surface; set empty to
+    /// restore the pre-T18 behaviour.
+    /// </summary>
+    public IReadOnlySet<CompanyStage> SeniorityFloorExemptStages { get; init; } = DefaultEarlyStages;
+
     /// <summary>Projects the tunables the pure filter needs.</summary>
     public PreMatchSettings ToSettings() =>
-        new(OwnerSeniority, SeniorityFloorGap, SalaryConfidenceThreshold);
+        new(OwnerSeniority, SeniorityFloorGap, SalaryConfidenceThreshold, SeniorityFloorExemptStages);
 }
