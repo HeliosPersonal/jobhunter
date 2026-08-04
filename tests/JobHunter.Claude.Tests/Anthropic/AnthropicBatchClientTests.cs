@@ -151,6 +151,46 @@ public sealed class AnthropicBatchClientTests
     }
 
     [Fact]
+    public async Task Results_read_the_cache_read_input_tokens_from_the_usage_block()
+    {
+        // T13 / ADR-F4-0003: the prompt-cache hit is surfaced on TokenUsage so the CV-cache assertion can
+        // read it. The first item pays full price (no cache yet), every later item is served the CV prefix
+        // from cache — exactly the shape the 20-item integration assertion checks against a real batch.
+        const string first =
+            "{\"custom_id\":\"job-0\",\"result\":{\"type\":\"succeeded\",\"message\":{\"usage\":{\"input_tokens\":2600,\"output_tokens\":300,\"cache_read_input_tokens\":0},\"content\":[{\"type\":\"tool_use\",\"name\":\"match\",\"input\":{\"reasons\":[\"r\"]}}]}}}";
+        const string cached =
+            "{\"custom_id\":\"job-1\",\"result\":{\"type\":\"succeeded\",\"message\":{\"usage\":{\"input_tokens\":300,\"output_tokens\":300,\"cache_read_input_tokens\":2400},\"content\":[{\"type\":\"tool_use\",\"name\":\"match\",\"input\":{\"reasons\":[\"r\"]}}]}}}";
+        var handler = StubHttpMessageHandler.Always(first + "\n" + cached);
+        var client = NewClient(handler);
+
+        var items = new List<BatchResultItem>();
+        await foreach (var item in client.GetResultsAsync("msgbatch_01HxYzAbCdEfGhIjKlMnOpQr", CancellationToken.None))
+        {
+            items.Add(item);
+        }
+
+        items[0].Usage.CacheReadInputTokens.ShouldBe(0);
+        items[1].Usage.CacheReadInputTokens.ShouldBe(2400);
+    }
+
+    [Fact]
+    public async Task Results_default_cache_read_to_zero_when_the_usage_block_omits_it()
+    {
+        // The existing fixtures carry no cache_read_input_tokens (enrichment does not cache), so its absence
+        // must be zero, never a parse fault — the fallback tier and every F3 payload rely on that.
+        var handler = StubHttpMessageHandler.Always(await File.ReadAllTextAsync(Path.Combine(FixtureDir, "results.jsonl")));
+        var client = NewClient(handler);
+
+        var items = new List<BatchResultItem>();
+        await foreach (var item in client.GetResultsAsync("msgbatch_01HxYzAbCdEfGhIjKlMnOpQr", CancellationToken.None))
+        {
+            items.Add(item);
+        }
+
+        items[0].Usage.CacheReadInputTokens.ShouldBe(0);
+    }
+
+    [Fact]
     public async Task Results_surface_a_per_item_provider_error_as_a_value_not_an_exception()
     {
         var handler = StubHttpMessageHandler.Always(await File.ReadAllTextAsync(Path.Combine(FixtureDir, "results.jsonl")));

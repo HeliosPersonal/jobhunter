@@ -74,17 +74,23 @@ public sealed class MatchRequestBuilderTests
     }
 
     [Fact]
-    public void Build_folds_the_cv_into_the_user_content_at_this_boundary()
+    public void Build_folds_the_cv_into_the_cache_prefix_and_the_role_into_the_per_item_content()
     {
         var request = new MatchRequestBuilder().Build(
             [Job(Guid.CreateVersion7())], OwnerProfile(), Cv("SENTINEL_CV — Kafka veteran."));
 
-        var content = request.Items.Single().UserContent;
-        content.ShouldContain("SENTINEL_CV — Kafka veteran.");
-        content.ShouldContain(MatchRequestBuilder.CacheBreakpoint);
-        // The role side is present too — company and posting text.
-        content.ShouldContain("Acme");
-        content.ShouldContain("payment rails");
+        var item = request.Items.Single();
+        // The CV rides the cacheable prefix — the stable head the adapter marks with cache_control (T13) —
+        // never the per-item content, so it is materialised once per batch.
+        item.CachePrefix.ShouldNotBeNull();
+        item.CachePrefix.ShouldContain("SENTINEL_CV — Kafka veteran.");
+        item.UserContent.ShouldNotContain("SENTINEL_CV — Kafka veteran.");
+        // The role side is the per-item content — company and posting text.
+        item.UserContent.ShouldContain("Acme");
+        item.UserContent.ShouldContain("payment rails");
+        // FullUserContent is the pessimistic whole the accountant and the fallback see: prefix then role.
+        item.FullUserContent.ShouldContain("SENTINEL_CV — Kafka veteran.");
+        item.FullUserContent.ShouldContain("payment rails");
     }
 
     [Fact]

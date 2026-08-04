@@ -157,7 +157,10 @@ public sealed class MatchingSubmitHandler(
         }
 
         var request = _requestBuilder.Build(survivors, profile, cvVersion);
-        var renderedPrompts = request.Items.Select(i => i.UserContent).ToList();
+        // Price the full user message — cache prefix plus role block — so the estimate stays pessimistic: it
+        // ignores the prompt-cache discount the CV prefix will actually earn, keeping the ceiling a safe
+        // over-statement of spend (invariant 6). The cache saving is real at retrieval, never assumed up front.
+        var renderedPrompts = request.Items.Select(i => i.FullUserContent).ToList();
         var estimate = _accountant.Estimate(Tier, renderedPrompts, request.MaxOutputTokensPerItem);
 
         // The ceiling is a precondition, not an alarm: it is checked against what this Run has already spent

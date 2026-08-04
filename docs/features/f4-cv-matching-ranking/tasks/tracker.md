@@ -33,7 +33,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T10 | [[T10-leakage-suite\|CV leakage scan suite]] | tests | T06, T08 | L | done |
 | T11 | [[T11-golden-ranking\|Golden ranking set (gate G10)]] | tests | T08 | L | done |
 | T12 | [[T12-pre-match-filter\|Pre-match filter]] | app | T05 | M | done |
-| T13 | [[T13-cv-prompt-caching\|CV prompt caching and regret sampler]] | claude/app | T04, T12 | M | pending |
+| T13 | [[T13-cv-prompt-caching\|CV prompt caching]] | claude | T04, T12 | M | done |
 | T14 | [[T14-alignment-score-component\|Add an alignment score component]] | app | T07 | M | pending |
 | T15 | [[T15-anti-goal-downweight\|Down-weight anti-goal roles in the score]] | app | T14 | S | pending |
 | T16 | [[T16-owner-career-goal\|Encode the Owner's career goal in the Profile + match prompt]] | app | T01, T04 | M | pending |
@@ -41,10 +41,14 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T18 | [[T18-founding-role-seniority-floor\|Soften the seniority-floor pre-match rule for early-stage/founding roles]] | app | T12 | S | pending |
 | T19 | [[T19-golden-target-family-slice\|Add a target-role-family slice to the golden ranking set]] | tests | T11, T14, T15 | M | pending |
 | T20 | [[T20-precision-at-10-loop\|Weekly precision@10 rating loop]] | app | T11, F5, F7-T03, F10 | M | pending |
+| T21 | [[T21-regret-sampler\|Regret sampler, matching metrics and live cost measurement]] | app | T12, T13, F5 | M | pending |
 
-**14 tasks · 11×M + 3×L ≈ 8.5 person-days.** T20 was split from T11: the golden set (the deterministic
+**15 tasks · 12×M + 3×L ≈ 9 person-days.** T20 was split from T11: the golden set (the deterministic
 gate) ships in T11; the weekly `precision@10` rating loop is T20, blocked on the `signals` table (F7 T03),
-the digest (F5) and the Telegram command surface (F10).
+the digest (F5) and the Telegram command surface (F10). T21 was split from T13: the CV-prompt-caching
+wire-up (the `cache_control` breakpoint and its zero-network assertions) ships in T13; the regret sampler,
+the `prefiltered`/`regret` metrics and the live-API cost measurement are T21, blocked on the notifier
+alert path (F5) and the opt-in weekly live suite.
 
 **Career-alignment tuning tasks (T14–T19): 3×M + 3×S ≈ 2.25 person-days.** Added from the
 [[../../../reviews/career-alignment-tuning-backlog|career-alignment tuning backlog]] (TUNE-01, TUNE-02,
@@ -65,6 +69,8 @@ graph LR
   T06 --> T09
   T05 --> T12 --> T13
   T04 --> T13
+  T12 --> T21
+  T13 --> T21
   T06 --> T10
   T08 --> T10
   T08 --> T11

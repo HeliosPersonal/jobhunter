@@ -16,22 +16,15 @@ namespace JobHunter.Claude.Matching;
 /// of any Anthropic concept (architecture rule 3).
 ///
 /// <para><strong>This type, through <see cref="MatchPrompt"/>, is the one boundary the CV crosses.</strong>
-/// <see cref="CvVersion.ExtractedText"/> is read here and folded into each item's user content and nowhere
+/// <see cref="CvVersion.ExtractedText"/> is read here and folded into each item's cache prefix and nowhere
 /// else. The candidate block is identical across every item — it is the shared prompt-cache prefix (T13) —
-/// so the CV is materialised once conceptually per batch, and the <c>&lt;&lt;&lt;CACHE_BREAKPOINT&gt;&gt;&gt;</c>
-/// marker between the candidate and role blocks is where the <c>cache_control</c> breakpoint is placed.
-/// <see cref="BatchRequestItem.CustomId"/> is the job id verbatim, so a result maps back with no lookup
-/// table.</para>
+/// so it is carried on <see cref="BatchRequestItem.CachePrefix"/>, where the adapter places the
+/// <c>cache_control</c> breakpoint at its end; the role block is the per-item
+/// <see cref="BatchRequestItem.UserContent"/>. <see cref="BatchRequestItem.CustomId"/> is the job id
+/// verbatim, so a result maps back with no lookup table.</para>
 /// </summary>
 public sealed class MatchRequestBuilder : IMatchRequestBuilder
 {
-    /// <summary>
-    /// The marker between the stable candidate prefix and the per-item role block. A single
-    /// <c>cache_control</c> breakpoint is placed here (T13) so the candidate block — system-prompt-adjacent,
-    /// byte-identical across the batch — is cached once and every item reuses it.
-    /// </summary>
-    public const string CacheBreakpoint = "<<<CACHE_BREAKPOINT>>>";
-
     /// <summary>
     /// The pessimistic per-item output-token ceiling the estimate prices against (match-schema §Cost model:
     /// a match record — score, band, up to ten missing skills, an optional salary and up to five reasons — is
@@ -72,16 +65,16 @@ public sealed class MatchRequestBuilder : IMatchRequestBuilder
                 // --- Enrichment: null omits the enrichment lines entirely (AC-09) ---
                 Enrichment: ToFacts(job.Enrichment)));
 
-            // The candidate block is the shared cache prefix; the role block is the per-item suffix. They are
-            // joined with the breakpoint marker so the whole prompt is one user-content string while the
-            // cache boundary stays recoverable (T13).
-            var userContent = rendered.CvBlock + "\n" + CacheBreakpoint + "\n" + rendered.RoleBlock;
-
+            // The candidate block is the shared cache prefix (byte-identical across the batch); the role block
+            // is the per-item suffix. Carrying them as two fields — rather than one string glued with a marker —
+            // lets the adapter place the real cache_control breakpoint at the prefix's end while the fallback
+            // and the cost accountant still see one continuous user message via FullUserContent (T13).
             items.Add(new BatchRequestItem(
                 CustomId: job.JobId.ToString(),
                 SystemPrompt: MatchPrompt.System,
-                UserContent: userContent,
-                OutputSchema: schema));
+                UserContent: rendered.RoleBlock,
+                OutputSchema: schema,
+                CachePrefix: rendered.CvBlock));
         }
 
         return new MatchBatchRequest(MatchPrompt.PromptVersion, items, MaxOutputTokensPerItem);

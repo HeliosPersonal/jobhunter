@@ -179,7 +179,13 @@ internal static class AnthropicResponseParser
         var output = usage.TryGetProperty("output_tokens", out var ot) && ot.ValueKind == JsonValueKind.Number
             ? ot.GetInt32()
             : 0;
-        return new TokenUsage(input, output);
+        // The prompt-cache hit: the input tokens served from the cached CV prefix at the reduced rate. Its
+        // presence on every item after the first is what the CV-cache assertion checks (F4 T13). Absent on a
+        // provider or model without caching, so it defaults to zero rather than throwing.
+        var cacheRead = usage.TryGetProperty("cache_read_input_tokens", out var cr) && cr.ValueKind == JsonValueKind.Number
+            ? cr.GetInt32()
+            : 0;
+        return new TokenUsage(input, output, cacheRead);
     }
 
     private static int ReadCount(JsonElement counts, string name) =>
