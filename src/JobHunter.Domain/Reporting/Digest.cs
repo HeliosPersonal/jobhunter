@@ -1,0 +1,181 @@
+using System.Collections.ObjectModel;
+using JobHunter.Domain.Common;
+
+namespace JobHunter.Domain.Reporting;
+
+/// <summary>
+/// One day's assembled digest — the single artifact the Owner judges the whole product by (data-model
+/// §digests, SAD §1). It is built and persisted <em>before</em> any message is sent (SAD S2), so delivery
+/// is a replay of stored state rather than a recomputation, and a resumed delivery shows exactly what was
+/// already assembled.
+///
+/// <para>Two guards encode the feature's promises as type-level properties. The suppressed count must
+/// reconcile to its breakdown — a footer that says "34 hidden" while its reasons sum to 30 is what makes
+/// [[DECISION-LOG|D7]] a lie, and the type forbids it (invariant 11). And a model narrative must carry a
+/// prompt version while a template fallback must not, so "the digest read oddly on Tuesday" is answerable
+/// from the stored artifact alone (SAD S4).</para>
+/// </summary>
+public sealed class Digest : Entity
+{
+    private readonly List<DigestCard> _cards = [];
+    private readonly List<SuppressionTally> _suppressionBreakdown = [];
+    private readonly List<string> _degradedSources = [];
+
+    public Digest(
+        Guid id,
+        Guid runId,
+        int totalNewJobs,
+        int strongMatches,
+        decimal? avgSalaryUsd,
+        int suppressedCount,
+        IReadOnlyList<SuppressionTally> suppressionBreakdown,
+        int carriedOverCount,
+        IReadOnlyList<string> degradedSources,
+        string? narrative,
+        NarrativeSource narrativeSource,
+        string? promptVersion,
+        IReadOnlyList<DigestCard> cards,
+        DateTimeOffset generatedAt)
+        : base(id)
+    {
+        if (runId == Guid.Empty)
+        {
+            throw new ArgumentException("A Digest must belong to a Run.", nameof(runId));
+        }
+
+        ThrowIfNegative(totalNewJobs, nameof(totalNewJobs));
+        ThrowIfNegative(strongMatches, nameof(strongMatches));
+        ThrowIfNegative(suppressedCount, nameof(suppressedCount));
+        ThrowIfNegative(carriedOverCount, nameof(carriedOverCount));
+
+        if (avgSalaryUsd is <= 0m)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(avgSalaryUsd),
+                avgSalaryUsd,
+                "The average salary is either a positive amount or absent — never zero or negative.");
+        }
+
+        ArgumentNullException.ThrowIfNull(suppressionBreakdown);
+        ArgumentNullException.ThrowIfNull(degradedSources);
+        ArgumentNullException.ThrowIfNull(cards);
+
+        var breakdownSum = suppressionBreakdown.Sum(t => t.Count);
+        if (breakdownSum != suppressedCount)
+        {
+            // Invariant 11 / D7 as a type-level property: a footer whose stated total does not match the
+            // sum of its reasons is a silent-filter bug, and it cannot be constructed.
+            throw new ArgumentException(
+                $"The suppressed count {suppressedCount} does not reconcile to its breakdown ({breakdownSum}).",
+                nameof(suppressedCount));
+        }
+
+        if (narrativeSource == NarrativeSource.Model)
+        {
+            if (string.IsNullOrWhiteSpace(narrative))
+            {
+                throw new ArgumentException(
+                    "A model narrative must carry text.",
+                    nameof(narrative));
+            }
+
+            if (string.IsNullOrWhiteSpace(promptVersion))
+            {
+                // A model call always stamps the prompt version that produced it (AC on match parity).
+                throw new ArgumentException(
+                    "A model narrative must carry the prompt version that produced it.",
+                    nameof(promptVersion));
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(promptVersion))
+        {
+            // A template fallback made no model call, so a prompt version would be a fabricated provenance.
+            throw new ArgumentException(
+                "A template narrative must not carry a prompt version.",
+                nameof(promptVersion));
+        }
+
+        var ranks = cards.Select(c => c.Rank).ToList();
+        if (ranks.Distinct().Count() != ranks.Count)
+        {
+            throw new ArgumentException("Digest cards must have distinct ranks.", nameof(cards));
+        }
+
+        foreach (var card in cards)
+        {
+            if (card.DigestId != id)
+            {
+                throw new ArgumentException(
+                    "Every card must belong to this Digest.",
+                    nameof(cards));
+            }
+        }
+
+        _suppressionBreakdown = [.. suppressionBreakdown];
+        _degradedSources = degradedSources
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.Trim())
+            .ToList();
+        _cards = cards.OrderBy(c => c.Rank).ToList();
+
+        RunId = runId;
+        TotalNewJobs = totalNewJobs;
+        StrongMatches = strongMatches;
+        AvgSalaryUsd = avgSalaryUsd;
+        SuppressedCount = suppressedCount;
+        CarriedOverCount = carriedOverCount;
+        Narrative = string.IsNullOrWhiteSpace(narrative) ? null : narrative.Trim();
+        NarrativeSource = narrativeSource;
+        PromptVersion = string.IsNullOrWhiteSpace(promptVersion) ? null : promptVersion.Trim();
+        GeneratedAt = generatedAt;
+    }
+
+    private Digest()
+    {
+    }
+
+    public Guid RunId { get; private set; }
+
+    public int TotalNewJobs { get; private set; }
+
+    /// <summary>Count above the strong-match threshold.</summary>
+    public int StrongMatches { get; private set; }
+
+    /// <summary>Null when too few jobs carry a salary to be meaningful — better absent than misleading.</summary>
+    public decimal? AvgSalaryUsd { get; private set; }
+
+    /// <summary>Reconciles to the sum of <see cref="SuppressionBreakdown"/> by construction (AC-07, invariant 11).</summary>
+    public int SuppressedCount { get; private set; }
+
+    /// <summary>Items whose batch missed the 06:45 deadline (AC-06).</summary>
+    public int CarriedOverCount { get; private set; }
+
+    /// <summary>The market note; null for an empty digest with nothing to say.</summary>
+    public string? Narrative { get; private set; }
+
+    public NarrativeSource NarrativeSource { get; private set; }
+
+    /// <summary>Non-null exactly when <see cref="NarrativeSource"/> is <see cref="NarrativeSource.Model"/>.</summary>
+    public string? PromptVersion { get; private set; }
+
+    public DateTimeOffset GeneratedAt { get; private set; }
+
+    /// <summary>The footer's suppression reasons and counts — what makes D7 visible (invariant 11).</summary>
+    public IReadOnlyList<SuppressionTally> SuppressionBreakdown =>
+        new ReadOnlyCollection<SuppressionTally>(_suppressionBreakdown);
+
+    /// <summary>Quarantined sources named in the footer, from F1's degraded-source summary (AC-06).</summary>
+    public IReadOnlyList<string> DegradedSources =>
+        new ReadOnlyCollection<string>(_degradedSources);
+
+    /// <summary>The ranked cards, ordered by <see cref="DigestCard.Rank"/>.</summary>
+    public IReadOnlyList<DigestCard> Cards => new ReadOnlyCollection<DigestCard>(_cards);
+
+    private static void ThrowIfNegative(int value, string name)
+    {
+        if (value < 0)
+        {
+            throw new ArgumentOutOfRangeException(name, value, "A digest count must not be negative.");
+        }
+    }
+}
