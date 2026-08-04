@@ -69,6 +69,9 @@ public static class DependencyInjection
         services.AddScoped<ICvVersionRepository, CvVersionRepository>();
         services.AddScoped<IMatchRepository, MatchRepository>();
         services.AddScoped<IScoreRepository, ScoreRepository>();
+        // F4 re-match backlog (T09): the durable seam between the bus-less Api activation write and the
+        // Worker's next Run. Enqueue is idempotent per open job; the Run drains pending ids and consumes them.
+        services.AddScoped<IReMatchBacklog, ReMatchBacklogRepository>();
 
         // F4 CV upload (T03): the in-process, pure-managed text extractor behind the upload service. No
         // shell-out, no OCR — PdfPig reads embedded text, plain/Markdown is decoded as UTF-8.

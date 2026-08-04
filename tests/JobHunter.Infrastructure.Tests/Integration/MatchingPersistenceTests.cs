@@ -37,10 +37,11 @@ public sealed class MatchingPersistenceTests
         "idx_matches_cv_version",
         "idx_scores_run_final",
         "idx_scores_suppressed",
+        "uq_re_match_queue_open",
     ];
 
     [RequiresDockerFact]
-    public async Task All_eight_declared_indexes_exist_after_the_migration()
+    public async Task All_declared_indexes_exist_after_the_migration()
     {
         await using var database = await TestDatabase.CreateAsync();
 
@@ -204,6 +205,75 @@ public sealed class MatchingPersistenceTests
     }
 
     [RequiresDockerFact]
+    public async Task The_activation_re_staling_sweep_clears_only_other_versions_and_deletes_nothing()
+    {
+        // T09/AC-08: activating a new version stales every current match NOT of that version — never the
+        // active one's own, and never by deletion. The row survives with is_current = false.
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+        var repo = new MatchRepository(seed.Database.CreateContext(), new NpgsqlConnectionFactory(seed.Database.ConnectionString));
+        await repo.UpsertAsync(seed.NewMatch());
+
+        // The just-activated version is a different one from the match's; the match must be staled.
+        var staled = await repo.MarkNotCurrentExceptCvVersionAsync(Guid.CreateVersion7());
+        staled.ShouldBe(1);
+
+        await using var read = seed.Database.CreateContext();
+        var stored = await read.Set<Match>().SingleAsync();
+        stored.IsCurrent.ShouldBeFalse();
+
+        // A second sweep against the match's own version leaves it untouched (nothing to stale).
+        var noop = await repo.MarkNotCurrentExceptCvVersionAsync(seed.CvVersionId);
+        noop.ShouldBe(0);
+    }
+
+    // ---- T09: the re-match backlog repository -----------------------------------------------------
+
+    [RequiresDockerFact]
+    public async Task Enqueue_round_trips_and_is_idempotent_per_open_job()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+        var repo = new ReMatchBacklogRepository(new NpgsqlConnectionFactory(seed.Database.ConnectionString));
+
+        (await repo.EnqueueAsync(seed.NewReMatchItem())).ShouldBeTrue();
+        // A second open request for the same job is the idempotent no-op the partial unique index enforces.
+        (await repo.EnqueueAsync(seed.NewReMatchItem())).ShouldBeFalse();
+
+        (await repo.PendingJobIdsAsync()).ShouldBe([seed.JobId]);
+    }
+
+    [RequiresDockerFact]
+    public async Task Consuming_a_job_drains_it_and_allows_a_fresh_enqueue()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+        var repo = new ReMatchBacklogRepository(new NpgsqlConnectionFactory(seed.Database.ConnectionString));
+        await repo.EnqueueAsync(seed.NewReMatchItem());
+
+        (await repo.MarkConsumedAsync([seed.JobId])).ShouldBe(1);
+        (await repo.PendingJobIdsAsync()).ShouldBeEmpty();
+
+        // Once drained, the partial index no longer collides, so a later CV change can queue the job again.
+        (await repo.EnqueueAsync(seed.NewReMatchItem())).ShouldBeTrue();
+        (await repo.PendingJobIdsAsync()).ShouldBe([seed.JobId]);
+
+        // The consumed row survives — the backlog is history, not a delete queue.
+        await using var read = seed.Database.CreateContext();
+        (await read.Set<ReMatchQueueItem>().CountAsync(x => x.Consumed)).ShouldBe(1);
+    }
+
+    [RequiresDockerFact]
+    public async Task Marking_an_empty_set_consumed_is_a_no_op()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+        var repo = new ReMatchBacklogRepository(new NpgsqlConnectionFactory(seed.Database.ConnectionString));
+
+        (await repo.MarkConsumedAsync([])).ShouldBe(0);
+    }
+
+    [RequiresDockerFact]
     public async Task Score_upsert_round_trips_and_is_idempotent_on_the_job_run_key()
     {
         var seed = await SeedAsync();
@@ -337,5 +407,8 @@ public sealed class MatchingPersistenceTests
                 JobId, RunId, final, components, RankingWeights.Default,
                 preferenceModelId: null, suppressed: false, suppressionReason: null, Now);
         }
+
+        public ReMatchQueueItem NewReMatchItem() =>
+            new(Guid.CreateVersion7(), JobId, CvVersionId, Now);
     }
 }

@@ -34,6 +34,7 @@ public sealed class MatchingSubmitHandlerTests
 
     private readonly IRunRepository _runs = Substitute.For<IRunRepository>();
     private readonly IMatchScopeQuery _scope = Substitute.For<IMatchScopeQuery>();
+    private readonly IReMatchBacklog _reMatchBacklog = Substitute.For<IReMatchBacklog>();
     private readonly IMatchRequestBuilder _builder = Substitute.For<IMatchRequestBuilder>();
     private readonly IProfileRepository _profiles = Substitute.For<IProfileRepository>();
     private readonly ICvVersionRepository _cvVersions = Substitute.For<ICvVersionRepository>();
@@ -49,11 +50,16 @@ public sealed class MatchingSubmitHandlerTests
         // no-CV short-circuit override these to null.
         _profiles.FindActiveAsync(Arg.Any<CancellationToken>()).Returns(ActiveProfile());
         _cvVersions.FindActiveAsync(ProfileId, Arg.Any<CancellationToken>()).Returns(ActiveCv());
+
+        // By default the re-match backlog is empty — a CV change queues into it, and the tests that cover
+        // the drain populate it explicitly.
+        _reMatchBacklog.PendingJobIdsAsync(Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<Guid>());
     }
 
     private MatchingSubmitHandler CreateHandler(ICostAccountant? accountant = null, ILlmBatchClient? client = null) =>
-        new(_runs, _scope, _builder, _profiles, _cvVersions, accountant ?? _accountant, client ?? _client,
-            _clock, _ids, NullLogger<MatchingSubmitHandler>.Instance);
+        new(_runs, _scope, _reMatchBacklog, _builder, _profiles, _cvVersions, accountant ?? _accountant,
+            client ?? _client, _clock, _ids, NullLogger<MatchingSubmitHandler>.Instance);
 
     private List<object> Published() =>
         _bus.ReceivedCalls()
@@ -330,6 +336,48 @@ public sealed class MatchingSubmitHandlerTests
             run.CutoffFrom, run.CutoffTo,
             Arg.Is<IReadOnlyCollection<Guid>>(c => c != null && c.Count == 2 && c.Contains(carried[0]) && c.Contains(carried[1])),
             Arg.Any<CancellationToken>());
+    }
+
+    // ---- T09: the re-match backlog is drained into the scope and consumed ----------------------
+
+    [Fact]
+    public async Task Queued_re_match_jobs_are_folded_into_the_scope_and_marked_consumed()
+    {
+        var run = MatchingRun();
+        _runs.FindAsync(RunId, Arg.Any<CancellationToken>()).Returns(run);
+        var carried = new[] { Guid.CreateVersion7() };
+        var reMatch = new[] { Guid.CreateVersion7(), Guid.CreateVersion7() };
+        GivenScope(Job());
+        GivenEstimate(0.44m);
+        _runs.FindRetriableJobIdsAsync(Arg.Any<CancellationToken>()).Returns(carried);
+        _reMatchBacklog.PendingJobIdsAsync(Arg.Any<CancellationToken>()).Returns(reMatch);
+
+        await CreateHandler().Handle(new EnrichmentCompleted(RunId, 1, 0, Now), _bus, CancellationToken.None);
+
+        // The re-match jobs join the carried-over failures in the scope union...
+        await _scope.Received(1).InScopeAsync(
+            run.CutoffFrom, run.CutoffTo,
+            Arg.Is<IReadOnlyCollection<Guid>>(c =>
+                c != null && c.Count == 3 &&
+                c.Contains(carried[0]) && c.Contains(reMatch[0]) && c.Contains(reMatch[1])),
+            Arg.Any<CancellationToken>());
+        // ...and are marked consumed so a later Run does not re-match the same stale request.
+        await _reMatchBacklog.Received(1).MarkConsumedAsync(
+            Arg.Is<IReadOnlyCollection<Guid>>(c => c != null && c.Count == 2 && c.Contains(reMatch[0]) && c.Contains(reMatch[1])),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task An_empty_re_match_backlog_is_not_marked_consumed()
+    {
+        var run = MatchingRun();
+        _runs.FindAsync(RunId, Arg.Any<CancellationToken>()).Returns(run);
+        GivenScope(Job());
+        GivenEstimate(0.44m);
+
+        await CreateHandler().Handle(new EnrichmentCompleted(RunId, 1, 0, Now), _bus, CancellationToken.None);
+
+        await _reMatchBacklog.DidNotReceiveWithAnyArgs().MarkConsumedAsync(default!, default);
     }
 
     // ---- Idempotency (QG-1): a redelivery never resubmits --------------------------------------

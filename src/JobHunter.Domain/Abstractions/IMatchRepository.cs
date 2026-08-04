@@ -26,4 +26,13 @@ public interface IMatchRepository
     /// Returns the number of matches marked stale.
     /// </summary>
     Task<int> MarkNotCurrentForCvVersionAsync(Guid cvVersionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The re-staling sweep run when a new CV version is activated (AC-08, ADR-F4-0002): marks every current
+    /// match <em>not</em> made against <paramref name="activeCvVersionId"/> — that is, every match computed
+    /// against an older version — as no longer current. Robust to more than one superseded version having
+    /// left current matches. Matches are marked, never deleted, so the honest record of what was true then
+    /// survives. Returns the number of matches marked stale.
+    /// </summary>
+    Task<int> MarkNotCurrentExceptCvVersionAsync(Guid activeCvVersionId, CancellationToken cancellationToken = default);
 }

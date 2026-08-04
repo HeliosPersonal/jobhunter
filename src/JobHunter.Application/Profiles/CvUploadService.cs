@@ -21,9 +21,13 @@ public sealed class CvUploadService(
     IProfileRepository profiles,
     ICvVersionRepository cvVersions,
     ICvTextExtractor extractor,
+    ReMatchScheduler reMatchScheduler,
     IIdGenerator ids,
     IClock clock)
 {
+    private readonly ReMatchScheduler _reMatchScheduler =
+        reMatchScheduler ?? throw new ArgumentNullException(nameof(reMatchScheduler));
+
     /// <summary>The hard cap enforced before extraction begins (security §5): 5 MB.</summary>
     public const int MaxSizeBytes = 5 * 1024 * 1024;
 
@@ -114,6 +118,11 @@ public sealed class CvUploadService(
         // Deactivate the previous active version and insert the new one in one transaction: the partial
         // unique index never sees two active rows for the profile.
         await cvVersions.ActivateAsync(cvVersion, cancellationToken).ConfigureAwait(false);
+
+        // A genuine activation re-stales matches from older versions and queues the recent live jobs for
+        // cheap-tier re-match (AC-08, ADR-F4-0002). Only a real new version reaches here — the content-hash
+        // no-op returned above never re-stales and never re-matches (T09 done-when).
+        await _reMatchScheduler.ScheduleAsync(cvVersion.Id, cancellationToken).ConfigureAwait(false);
 
         // The binary goes out of scope here and is never written anywhere: only the extracted text (on the
         // version row) and the content hash survive.

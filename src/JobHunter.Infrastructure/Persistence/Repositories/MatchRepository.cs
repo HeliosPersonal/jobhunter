@@ -35,6 +35,9 @@ public sealed class MatchRepository(JobHunterDbContext context, INpgsqlConnectio
     private const string MarkNotCurrentSql =
         "UPDATE matches SET is_current = false WHERE cv_version_id = @cv_version_id AND is_current;";
 
+    private const string MarkNotCurrentExceptSql =
+        "UPDATE matches SET is_current = false WHERE cv_version_id <> @cv_version_id AND is_current;";
+
     public async Task<bool> UpsertAsync(Match match, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(match);
@@ -65,6 +68,16 @@ public sealed class MatchRepository(JobHunterDbContext context, INpgsqlConnectio
         await using var connection = await connectionFactory.OpenAsync(cancellationToken);
         await using var command = new NpgsqlCommand(MarkNotCurrentSql, connection);
         command.Parameters.Add(new NpgsqlParameter("cv_version_id", NpgsqlDbType.Uuid) { Value = cvVersionId });
+        return await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task<int> MarkNotCurrentExceptCvVersionAsync(
+        Guid activeCvVersionId,
+        CancellationToken cancellationToken = default)
+    {
+        await using var connection = await connectionFactory.OpenAsync(cancellationToken);
+        await using var command = new NpgsqlCommand(MarkNotCurrentExceptSql, connection);
+        command.Parameters.Add(new NpgsqlParameter("cv_version_id", NpgsqlDbType.Uuid) { Value = activeCvVersionId });
         return await command.ExecuteNonQueryAsync(cancellationToken);
     }
 

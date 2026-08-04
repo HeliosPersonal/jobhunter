@@ -6,6 +6,7 @@ using JobHunter.Domain.Intelligence;
 using JobHunter.Domain.Jobs;
 using JobHunter.Domain.Profiles;
 using JobHunter.TestKit;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Shouldly;
 using Xunit;
@@ -26,10 +27,23 @@ public sealed class CvUploadServiceTests
     private readonly IProfileRepository _profiles = Substitute.For<IProfileRepository>();
     private readonly ICvVersionRepository _cvVersions = Substitute.For<ICvVersionRepository>();
     private readonly ICvTextExtractor _extractor = Substitute.For<ICvTextExtractor>();
+    private readonly IMatchRepository _matches = Substitute.For<IMatchRepository>();
+    private readonly ILiveJobsQuery _liveJobs = Substitute.For<ILiveJobsQuery>();
+    private readonly IReMatchBacklog _queue = Substitute.For<IReMatchBacklog>();
     private readonly SequentialIdGenerator _ids = new();
     private readonly FakeClock _clock = new(Now);
 
-    private CvUploadService NewService() => new(_profiles, _cvVersions, _extractor, _ids, _clock);
+    private CvUploadService NewService()
+    {
+        _liveJobs.DiscoveredSinceAsync(Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
+            .Returns(Array.Empty<Domain.Jobs.LiveJob>());
+        _queue.EnqueueAsync(Arg.Any<Domain.Intelligence.ReMatchQueueItem>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+        var scheduler = new ReMatchScheduler(
+            _matches, _liveJobs, _queue, new ReMatchOptions(), _ids, _clock,
+            NullLogger<ReMatchScheduler>.Instance);
+        return new CvUploadService(_profiles, _cvVersions, _extractor, scheduler, _ids, _clock);
+    }
 
     private static Profile ActiveProfile() =>
         new(
@@ -84,6 +98,27 @@ public sealed class CvUploadServiceTests
         // The returned metadata is the version identity and nothing else — never the CV text.
         var serialised = System.Text.Json.JsonSerializer.Serialize(result.Value);
         serialised.ShouldNotContain("SENTINEL");
+    }
+
+    [Fact]
+    public async Task Activating_a_new_version_re_stales_older_matches_and_queues_recent_jobs()
+    {
+        var profile = ActiveProfile();
+        HasActiveProfile(profile);
+        _cvVersions.NextVersionAsync(profile.Id, Arg.Any<CancellationToken>()).Returns((short)2);
+        _extractor.Extract(CvMediaType.Markdown, Arg.Any<ReadOnlyMemory<byte>>())
+            .Returns(Result<string>.Success("Senior platform engineer."));
+        CvVersion? activated = null;
+        await _cvVersions.ActivateAsync(Arg.Do<CvVersion>(v => activated = v), Arg.Any<CancellationToken>());
+
+        var result = await NewService().UploadAsync("cv.md", Markdown("# CV v2"));
+
+        result.IsSuccess.ShouldBeTrue();
+        activated.ShouldNotBeNull();
+        // AC-08: matches from older versions are re-staled against the just-activated version — never deleted.
+        await _matches.Received(1).MarkNotCurrentExceptCvVersionAsync(activated.Id, Arg.Any<CancellationToken>());
+        // The recent-live-jobs re-match window is consulted (queueing itself is covered by the scheduler tests).
+        await _liveJobs.Received(1).DiscoveredSinceAsync(Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>());
     }
 
     // --- Size cap before extraction ---------------------------------------------------------------
@@ -157,6 +192,9 @@ public sealed class CvUploadServiceTests
         // No extraction, no insertion — the same CV is the same version.
         _extractor.DidNotReceiveWithAnyArgs().Extract(default, default);
         await _cvVersions.DidNotReceiveWithAnyArgs().ActivateAsync(default!, default);
+        // T09 done-when: re-uploading identical content triggers no re-staling and no re-match.
+        await _matches.DidNotReceiveWithAnyArgs().MarkNotCurrentExceptCvVersionAsync(default, default);
+        await _liveJobs.DidNotReceiveWithAnyArgs().DiscoveredSinceAsync(default, default);
     }
 
     // --- Empty and no-profile guards --------------------------------------------------------------

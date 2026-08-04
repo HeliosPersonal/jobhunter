@@ -39,6 +39,7 @@ namespace JobHunter.Application.Matching;
 public sealed class MatchingSubmitHandler(
     IRunRepository runs,
     IMatchScopeQuery scope,
+    IReMatchBacklog reMatchBacklog,
     IMatchRequestBuilder requestBuilder,
     IProfileRepository profiles,
     ICvVersionRepository cvVersions,
@@ -53,6 +54,7 @@ public sealed class MatchingSubmitHandler(
 
     private readonly IRunRepository _runs = runs ?? throw new ArgumentNullException(nameof(runs));
     private readonly IMatchScopeQuery _scope = scope ?? throw new ArgumentNullException(nameof(scope));
+    private readonly IReMatchBacklog _reMatchBacklog = reMatchBacklog ?? throw new ArgumentNullException(nameof(reMatchBacklog));
     private readonly IMatchRequestBuilder _requestBuilder = requestBuilder ?? throw new ArgumentNullException(nameof(requestBuilder));
     private readonly IProfileRepository _profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
     private readonly ICvVersionRepository _cvVersions = cvVersions ?? throw new ArgumentNullException(nameof(cvVersions));
@@ -218,8 +220,20 @@ public sealed class MatchingSubmitHandler(
         // The window's jobs plus the previous Run's failed items retrying once (AC-08) — the same scope
         // enrichment saw, so a job that made it into enrichment is matchable.
         var carriedOver = await _runs.FindRetriableJobIdsAsync(cancellationToken).ConfigureAwait(false);
+
+        // Plus the re-match backlog (T09, ADR-F4-0002): jobs a CV change queued for re-match against the new
+        // version. They are folded into the scope union and marked consumed here — once this Run has taken
+        // them, a later Run must not re-match them again on the same stale request.
+        var pendingReMatch = await _reMatchBacklog.PendingJobIdsAsync(cancellationToken).ConfigureAwait(false);
+        IReadOnlyCollection<Guid> scopeIds = carriedOver;
+        if (pendingReMatch.Count > 0)
+        {
+            scopeIds = carriedOver.Concat(pendingReMatch).Distinct().ToList();
+            await _reMatchBacklog.MarkConsumedAsync(pendingReMatch, cancellationToken).ConfigureAwait(false);
+        }
+
         return await _scope
-            .InScopeAsync(run.CutoffFrom, run.CutoffTo, carriedOver, cancellationToken)
+            .InScopeAsync(run.CutoffFrom, run.CutoffTo, scopeIds, cancellationToken)
             .ConfigureAwait(false);
     }
 

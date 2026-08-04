@@ -389,5 +389,8 @@ public sealed class MatchingResultProcessingHandlerTests
 
         public Task<int> MarkNotCurrentForCvVersionAsync(Guid cvVersionId, CancellationToken cancellationToken = default) =>
             Task.FromResult(0);
+
+        public Task<int> MarkNotCurrentExceptCvVersionAsync(Guid activeCvVersionId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
     }
 }

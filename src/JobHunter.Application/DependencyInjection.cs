@@ -99,6 +99,18 @@ public static class DependencyInjection
         // (the profile/CV repositories and the in-process text extractor) are registered by Infrastructure.
         services.AddScoped<Profiles.CvUploadService>();
 
+        // F4 re-match on CV change (T09, ADR-F4-0002): the upload service runs this inline the moment a new
+        // version is activated — the Api host has no message bus, so re-staling and re-match scheduling are a
+        // synchronous owner-scoped write, not a published event. It re-stales older-version matches and queues
+        // the recent live jobs for cheap-tier re-match into the backlog the next Run drains. The window is a
+        // startup-validated option so the cost/coverage trade-off is tunable without a deploy.
+        services.AddScoped<Profiles.ReMatchScheduler>();
+        services.AddOptions<Profiles.ReMatchOptions>()
+            .Validate(o => o.Window > TimeSpan.Zero, "ReMatch:Window must be positive.")
+            .ValidateOnStart();
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Profiles.ReMatchOptions>>().Value);
+
         // F4 ranking (T08): the ranking tunables (top-count, salary-floor opt-in), passed to the handler by
         // Wolverine as a dependency, so register the validated value as a resolvable singleton. The learned
         // preference model is F7's; until it lands the null query answers "no active model" and ranking
