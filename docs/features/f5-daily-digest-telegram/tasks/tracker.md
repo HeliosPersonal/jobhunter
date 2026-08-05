@@ -25,7 +25,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T04 | [[T04-apply-link-verification\|Apply-link verification]] | app | T03 | S | done |
 | T05 | [[T05-narrative-synthesis\|Narrative synthesis with template fallback]] | claude | T03 | M | done |
 | T06 | [[T06-formatting-escaping\|MarkdownV2 escaping and formatters]] | telegram | T01 | M | done |
-| T07 | [[T07-telegram-host-auth\|Telegram host, allowlist and long polling]] | telegram | — | M | pending |
+| T07 | [[T07-telegram-host-auth\|Telegram host, allowlist and long polling]] | telegram | — | M | done |
 | T08 | [[T08-delivery-idempotence\|Delivery handler with per-card idempotence]] | app | T02, T06, T07 | L | pending |
 | T09 | [[T09-schedule-degraded\|Delivery scheduling and degraded-day variants]] | app | T08, T05 | M | pending |
 | T10 | [[T10-callback-actions\|Callback handling, actions and Signal capture]] | telegram | T08 | L | pending |
