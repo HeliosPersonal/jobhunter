@@ -1,5 +1,6 @@
 using JobHunter.Contracts.Pipeline;
 using JobHunter.Domain.Abstractions;
+using JobHunter.Domain.Pipeline;
 using JobHunter.Domain.Reporting;
 using JobHunter.Domain.Sources;
 using Microsoft.Extensions.Logging;
@@ -43,6 +44,7 @@ public sealed class DigestAssembler(
     IRunRepository runs,
     IDigestScopeQuery scope,
     IDegradedCoverageQuery degraded,
+    IActiveCompanyCountQuery activeCompanies,
     IDigestRepository digests,
     IApplyLinkVerifier applyLinkVerifier,
     INarrativeSynthesizer narrativeSynthesizer,
@@ -55,6 +57,8 @@ public sealed class DigestAssembler(
     private readonly IRunRepository _runs = runs ?? throw new ArgumentNullException(nameof(runs));
     private readonly IDigestScopeQuery _scope = scope ?? throw new ArgumentNullException(nameof(scope));
     private readonly IDegradedCoverageQuery _degraded = degraded ?? throw new ArgumentNullException(nameof(degraded));
+    private readonly IActiveCompanyCountQuery _activeCompanies = activeCompanies
+        ?? throw new ArgumentNullException(nameof(activeCompanies));
     private readonly IDigestRepository _digests = digests ?? throw new ArgumentNullException(nameof(digests));
     private readonly IApplyLinkVerifier _applyLinkVerifier = applyLinkVerifier
         ?? throw new ArgumentNullException(nameof(applyLinkVerifier));
@@ -67,6 +71,11 @@ public sealed class DigestAssembler(
     private readonly IClock _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     private readonly ILogger<DigestAssembler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
+    /// <summary>
+    /// The early, happy-path trigger: ranking completed, so assemble the digest now rather than waiting for
+    /// the 06:45 tick (SAD §6.1). Idempotent on <c>uq_digests_run</c> — a replayed completion re-emits the
+    /// existing digest rather than building a second one.
+    /// </summary>
     public async Task Handle(RankingCompleted message, IMessageBus bus, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(message);
@@ -79,10 +88,40 @@ public sealed class DigestAssembler(
             return;
         }
 
+        await AssembleForRunAsync(run, bus, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The 06:45 Europe/Kyiv deadline (ADR-F5-0001, SAD §6.3): assemble the day's digest against whatever
+    /// state the Run is in. It resolves the most recent Run — including a terminal <c>CostAborted</c>/
+    /// <c>Failed</c> one, which the happy path never assembled — and assembles the variant that state earns.
+    /// When there is no Run at all the 02:00 tick never fired, which is the silence case the runbook alerts on
+    /// (R1), not a digest this handler can invent. Idempotent: if the happy path already assembled earlier,
+    /// this re-emits <see cref="DigestReady"/> and writes nothing new.
+    /// </summary>
+    public async Task Handle(DigestAssemblyDue message, IMessageBus bus, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        ArgumentNullException.ThrowIfNull(bus);
+
+        var run = await _runs.FindMostRecentRunAsync(cancellationToken).ConfigureAwait(false);
+        if (run is null)
+        {
+            // No Run row means the 02:00 tick never opened the day — genuine silence, which the R1 runbook
+            // alerts on. There is nothing to assemble a digest from, so this is not a degraded digest path.
+            _logger.LogWarning("DigestAssemblyDue at {DueAt} but no Run exists for the day; nothing to assemble.", message.DueAt);
+            return;
+        }
+
+        await AssembleForRunAsync(run, bus, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task AssembleForRunAsync(Run run, IMessageBus bus, CancellationToken cancellationToken)
+    {
         var existing = await _digests.FindByRunAsync(run.Id, cancellationToken).ConfigureAwait(false);
         if (existing is not null)
         {
-            // One digest per Run (uq_digests_run). A replayed completion re-emits the same DigestReady for the
+            // One digest per Run (uq_digests_run). A replayed trigger re-emits the same DigestReady for the
             // already-assembled digest rather than building a second one — idempotent on the RunId.
             _logger.LogInformation("Run {RunId} already has a digest; re-publishing DigestReady.", run.Id);
             await PublishReadyAsync(bus, existing).ConfigureAwait(false);
@@ -111,8 +150,23 @@ public sealed class DigestAssembler(
             .Select(v => v.Candidate.JobId)
             .ToList();
 
+        // The header shape the Run earned at this point, frozen onto the digest so delivery replays it rather
+        // than re-classifying a run that has since moved on (ADR-F5-0001, S2). Suppressed count drives the
+        // Full-vs-NothingNew split, so it is computed before the mode.
+        var suppressedCount = candidates.Count(c => c.Suppressed);
+        var mode = DigestModeResolver.Resolve(run.State, cards.Count, suppressedCount);
+
+        // The two counts only some headers show. Companies-checked is the scope a NothingNew day looked across
+        // (AC-05); analysed-count is how far a budget-aborted run got before the ceiling (AC-06). Read only when
+        // the mode uses it, so a normal day pays for neither.
+        var companiesChecked = mode == DigestMode.NothingNew
+            ? await _activeCompanies.ActiveCompanyCountAsync(cancellationToken).ConfigureAwait(false)
+            : 0;
+        var analysedCount = mode == DigestMode.BudgetReached ? candidates.Count : 0;
+
         var digest = await Assemble(
-            digestId, run.Id, run.JobsInScope, run.JobsCarriedOver, candidates, cards, degradedSources, cancellationToken)
+            digestId, run.Id, mode, run.JobsInScope, run.JobsCarriedOver, companiesChecked, analysedCount,
+            candidates, cards, degradedSources, cancellationToken)
             .ConfigureAwait(false);
 
         // Persist the whole digest before anything is sent (S2): delivery replays stored state.
@@ -188,8 +242,11 @@ public sealed class DigestAssembler(
     private async Task<Digest> Assemble(
         Guid digestId,
         Guid runId,
+        DigestMode mode,
         int totalNewJobs,
         int carriedOverCount,
+        int companiesChecked,
+        int analysedCount,
         IReadOnlyList<DigestCandidate> candidates,
         List<DigestCard> cards,
         IReadOnlyList<DegradedSource> degradedSources,
@@ -219,12 +276,15 @@ public sealed class DigestAssembler(
         return new Digest(
             digestId,
             runId,
+            mode,
             totalNewJobs,
             strongMatches,
             avgSalaryUsd,
             suppressed.Count,
             breakdown,
             carriedOverCount,
+            companiesChecked,
+            analysedCount,
             degradedLabels,
             narrative.Narrative,
             narrative.Source,

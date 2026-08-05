@@ -82,6 +82,10 @@ public static class DependencyInjection
         // politeness-gated client (QG-2), so a confirmed-dead link drops its card without ever owning an
         // HttpClient of its own — robots, SSRF and the rate budget all apply to the probe (AC-11).
         services.AddScoped<IApplyLinkVerifier, ApplyLinkVerifier>();
+        // F5 degraded-day assembly (T09): the count of the active company registry, snapshotted onto a
+        // NothingNew digest so its "checked N companies, nothing new" reassurance states a real number
+        // (AC-05). Read-only Dapper; registered in every host, harmless anywhere.
+        services.AddScoped<IActiveCompanyCountQuery, ActiveCompanyCountQuery>();
         // F4 re-match backlog (T09): the durable seam between the bus-less Api activation write and the
         // Worker's next Run. Enqueue is idempotent per open job; the Run drains pending ids and consumes them.
         services.AddScoped<IReMatchBacklog, ReMatchBacklogRepository>();
@@ -166,6 +170,13 @@ public static class DependencyInjection
         services.AddScoped<JobLivenessCheckTrigger>();
         services.AddScoped<IndexReconcileTrigger>();
 
+        // F5 daily digest schedule (T09): the three Europe/Kyiv ticks that bracket the day — 02:00 opens the
+        // Run, 06:45 assembles whatever it produced, 07:00 delivers. Only the Worker's Hangfire server resolves
+        // them, and each publishes one message onto the bus this host runs.
+        services.AddScoped<DailyRunTrigger>();
+        services.AddScoped<DigestAssemblyTrigger>();
+        services.AddScoped<DigestDeliveryTrigger>();
+
         // The operator-requested rebuild and reprocess bodies (F9-T07): enqueued from the Api, executed here
         // on the Worker's Hangfire server. Registered alongside the recurring triggers so the server resolves
         // them; unlike the recurring bindings they carry no cron — they run on demand.
@@ -228,6 +239,42 @@ public static class DependencyInjection
                 cron,
                 new RecurringJobOptions { TimeZone = timeZone })));
 
+        // The day starts at 02:00 Kyiv (ADR-F5-0001): opening the Run five hours before delivery guarantees a
+        // Run row exists by the 06:45 assembly deadline, so a degraded day still has something to assemble a
+        // digest from. StartDailyRun is idempotent at the orchestrator, so a redelivered tick starts no second Run.
+        services.AddSingleton(new RecurringJobBinding(
+            DailyRunJobId,
+            DailyRunCron,
+            (cron, timeZone) => RecurringJob.AddOrUpdate<DailyRunTrigger>(
+                DailyRunJobId,
+                trigger => trigger.PublishAsync(),
+                cron,
+                new RecurringJobOptions { TimeZone = timeZone })));
+
+        // The 06:45 assembly deadline (SAD §6.3): the digest is normally assembled early on RankingCompleted,
+        // and this tick is the backstop that assembles whatever the day produced by the deadline — Partial for a
+        // still-running Run, reduced for a CostAborted one — so the 07:00 slot always has a digest to deliver.
+        services.AddSingleton(new RecurringJobBinding(
+            DigestAssemblyJobId,
+            DigestAssemblyCron,
+            (cron, timeZone) => RecurringJob.AddOrUpdate<DigestAssemblyTrigger>(
+                DigestAssemblyJobId,
+                trigger => trigger.PublishAsync(),
+                cron,
+                new RecurringJobOptions { TimeZone = timeZone })));
+
+        // The 07:00 delivery slot (QG-1): a hard commitment. The digest is assembled and held; this tick is the
+        // only thing that releases it, so it lands on the slot and nothing lands before it. Delivery is
+        // idempotent per card (invariant 8), so a redelivered tick re-sends nothing.
+        services.AddSingleton(new RecurringJobBinding(
+            DigestDeliveryJobId,
+            DigestDeliveryCron,
+            (cron, timeZone) => RecurringJob.AddOrUpdate<DigestDeliveryTrigger>(
+                DigestDeliveryJobId,
+                trigger => trigger.PublishAsync(),
+                cron,
+                new RecurringJobOptions { TimeZone = timeZone })));
+
         services.AddHostedService<RecurringJobApplier>();
     }
 
@@ -250,6 +297,18 @@ public static class DependencyInjection
     /// <summary>The nightly search-index reconcile at 04:00 (SAD §6.3, F9-T08): re-indexes drift above 1%.</summary>
     private const string IndexReconcileJobId = "index-reconcile";
     private const string IndexReconcileCron = "0 4 * * *";
+
+    /// <summary>The daily run start at 02:00 Kyiv (F5 SAD §6.3, T09): opens the Run five hours before delivery.</summary>
+    private const string DailyRunJobId = "daily-run";
+    private const string DailyRunCron = "0 2 * * *";
+
+    /// <summary>The digest assembly deadline at 06:45 Kyiv (F5 SAD §6.3, T09): the backstop before the slot.</summary>
+    private const string DigestAssemblyJobId = "digest-assembly";
+    private const string DigestAssemblyCron = "45 6 * * *";
+
+    /// <summary>The digest delivery slot at 07:00 Kyiv (F5 SAD §6.3, QG-1, T09): the hard delivery commitment.</summary>
+    private const string DigestDeliveryJobId = "digest-delivery";
+    private const string DigestDeliveryCron = "0 7 * * *";
 
     /// <summary>
     /// Wires the shared outbound HTTP pipeline (SAD §8, QG-2): the politeness options, the SSRF guard,

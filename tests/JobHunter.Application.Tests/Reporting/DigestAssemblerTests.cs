@@ -38,6 +38,7 @@ public sealed class DigestAssemblerTests
     private readonly IRunRepository _runs = Substitute.For<IRunRepository>();
     private readonly IDigestScopeQuery _scope = Substitute.For<IDigestScopeQuery>();
     private readonly IDegradedCoverageQuery _degraded = Substitute.For<IDegradedCoverageQuery>();
+    private readonly IActiveCompanyCountQuery _activeCompanies = Substitute.For<IActiveCompanyCountQuery>();
     private readonly FakeDigestRepository _digests = new();
     private readonly IApplyLinkVerifier _verifier = Substitute.For<IApplyLinkVerifier>();
     private readonly INarrativeSynthesizer _narrative = Substitute.For<INarrativeSynthesizer>();
@@ -85,8 +86,9 @@ public sealed class DigestAssemblerTests
     }
 
     private DigestAssembler CreateHandler(DigestOptions? options = null) =>
-        new(_runs, _scope, _degraded, _digests, _verifier, _narrative, _ids, options ?? new DigestOptions(),
-            new ApplyVerificationOptions(), _clock, NullLogger<DigestAssembler>.Instance);
+        new(_runs, _scope, _degraded, _activeCompanies, _digests, _verifier, _narrative, _ids,
+            options ?? new DigestOptions(), new ApplyVerificationOptions(), _clock,
+            NullLogger<DigestAssembler>.Instance);
 
     private static Run RankingCompletedRun(int jobsInScope = 20, int carriedOver = 0)
     {
@@ -362,6 +364,125 @@ public sealed class DigestAssemblerTests
         digest.SuppressedCount.ShouldBe(0);
         digest.SuppressionBreakdown.ShouldBeEmpty();
         Publishes().OfType<DigestReady>().ShouldHaveSingleItem().CardCount.ShouldBe(0);
+    }
+
+    // ---- T09: the four header modes a day's state earns (ADR-F5-0001) -------------------------
+
+    private static Run RunInState(RunState state, int jobsInScope = 20)
+    {
+        var run = new Run(RunId, RunStart.AddHours(-24), RunStart, 2.00m, RunStart.AddMinutes(-5));
+        run.SetScope(jobsInScope);
+        run.TransitionTo(RunState.Enriching, RunStart);
+        if (state == RunState.Enriching)
+        {
+            return run;
+        }
+
+        if (state == RunState.CostAborted)
+        {
+            return run.Abort("Daily budget reached before ranking.", RunStart, costBreach: true);
+        }
+
+        run.TransitionTo(RunState.Matching, RunStart);
+        run.TransitionTo(RunState.Ranking, RunStart);
+        run.TransitionTo(RunState.Researching, RunStart);
+        return run;
+    }
+
+    [Fact]
+    public async Task A_finished_run_with_cards_is_a_full_digest()
+    {
+        // Reporting/Delivered/Researching with at least one card → the normal header (ADR-F5-0001 row 1).
+        GivenRun(RunInState(RunState.Researching));
+        GivenCandidates(Shown(Guid.CreateVersion7(), 90m));
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        _digests.Saved.ShouldHaveSingleItem().Mode.ShouldBe(DigestMode.Full);
+    }
+
+    [Fact]
+    public async Task A_finished_run_with_nothing_shown_or_suppressed_is_nothing_new_and_states_the_scope()
+    {
+        // A finished run that surfaced no cards and suppressed nothing → the "nothing new, nothing wrong"
+        // header, which states how many companies were scanned (AC-05, ADR-F5-0001 row 2).
+        GivenRun(RunInState(RunState.Researching));
+        GivenCandidates();
+        _activeCompanies.ActiveCompanyCountAsync(Arg.Any<CancellationToken>()).Returns(137);
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        var digest = _digests.Saved.ShouldHaveSingleItem();
+        digest.Mode.ShouldBe(DigestMode.NothingNew);
+        digest.CompaniesChecked.ShouldBe(137);
+        // Only a NothingNew day pays for the company count; the query is not run on the other paths.
+        await _activeCompanies.Received(1).ActiveCompanyCountAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_still_running_run_is_a_partial_digest_naming_what_is_carried_over()
+    {
+        // The 06:45 deadline caught the run mid-flight (still Enriching) → the "analysis incomplete" header,
+        // which names what is missing via the carried-over count (AC-06, ADR-F5-0001 row 3).
+        var run = RunInState(RunState.Enriching);
+        run.RecordCarryOver(9);
+        _runs.FindMostRecentRunAsync(Arg.Any<CancellationToken>()).Returns(run);
+        GivenCandidates(Shown(Guid.CreateVersion7(), 90m));
+
+        await CreateHandler().Handle(new DigestAssemblyDue(Now), _bus, CancellationToken.None);
+
+        var digest = _digests.Saved.ShouldHaveSingleItem();
+        digest.Mode.ShouldBe(DigestMode.Partial);
+        digest.CarriedOverCount.ShouldBe(9);
+        // The company count is a NothingNew concern only — a partial day never runs it.
+        await _activeCompanies.DidNotReceive().ActiveCompanyCountAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_cost_aborted_run_is_a_budget_reached_digest_stating_how_far_it_got()
+    {
+        // The run hit the ceiling and aborted → the "budget reached" header, reduced but delivered, stating
+        // how many candidates were analysed before the abort (AC-06, ADR-F5-0001 row 4).
+        var run = RunInState(RunState.CostAborted);
+        _runs.FindMostRecentRunAsync(Arg.Any<CancellationToken>()).Returns(run);
+        var shown = Guid.CreateVersion7();
+        GivenCandidates(Shown(shown, 90m), Suppressed(Guid.CreateVersion7(), "Below the bar"));
+
+        await CreateHandler().Handle(new DigestAssemblyDue(Now), _bus, CancellationToken.None);
+
+        var digest = _digests.Saved.ShouldHaveSingleItem();
+        digest.Mode.ShouldBe(DigestMode.BudgetReached);
+        // Analysed-count is every candidate the run managed to score before the ceiling, shown or suppressed.
+        digest.AnalysedCount.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task The_assembly_deadline_with_no_run_at_all_is_silence_not_a_digest()
+    {
+        // No Run row means the 02:00 tick never opened the day — the R1 silence case, not a degraded digest.
+        _runs.FindMostRecentRunAsync(Arg.Any<CancellationToken>()).Returns((Run?)null);
+
+        await CreateHandler().Handle(new DigestAssemblyDue(Now), _bus, CancellationToken.None);
+
+        _digests.Saved.ShouldBeEmpty();
+        Publishes().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task The_assembly_deadline_reuses_an_already_assembled_digest()
+    {
+        // The happy path already assembled earlier on RankingCompleted; the 06:45 backstop re-emits rather
+        // than building a second one (idempotent on uq_digests_run).
+        GivenRun(RunInState(RunState.Researching));
+        _runs.FindMostRecentRunAsync(Arg.Any<CancellationToken>()).Returns(RunInState(RunState.Researching));
+        GivenCandidates(Shown(Guid.CreateVersion7(), 90m));
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+        await CreateHandler().Handle(new DigestAssemblyDue(Now), _bus, CancellationToken.None);
+
+        _digests.Saved.Count.ShouldBe(1);
+        _digests.AddCount.ShouldBe(1);
+        Publishes().OfType<DigestReady>().Count().ShouldBe(2);
     }
 
     // ---- T04: apply-link verification ---------------------------------------------------------

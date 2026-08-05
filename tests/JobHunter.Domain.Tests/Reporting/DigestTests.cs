@@ -25,12 +25,15 @@ public sealed class DigestTests
             applyUrlVerified: true);
 
     private static Digest NewDigest(
+        DigestMode mode = DigestMode.Full,
         int totalNewJobs = 40,
         int strongMatches = 6,
         decimal? avgSalaryUsd = 145000m,
         int suppressedCount = 34,
         IReadOnlyList<SuppressionTally>? suppressionBreakdown = null,
         int carriedOverCount = 0,
+        int companiesChecked = 0,
+        int analysedCount = 0,
         IReadOnlyList<string>? degradedSources = null,
         string? narrative = "A calm market today.",
         NarrativeSource narrativeSource = NarrativeSource.Model,
@@ -41,12 +44,15 @@ public sealed class DigestTests
         return new Digest(
             DigestId,
             RunId,
+            mode,
             totalNewJobs,
             strongMatches,
             avgSalaryUsd,
             suppressedCount,
             suppressionBreakdown ?? [Tally("Below your salary floor", 30), Tally("Wrong location", 4)],
             carriedOverCount,
+            companiesChecked,
+            analysedCount,
             degradedSources ?? [],
             narrative,
             narrativeSource,
@@ -58,15 +64,18 @@ public sealed class DigestTests
     [Fact]
     public void A_valid_digest_exposes_its_fields()
     {
-        var digest = NewDigest();
+        var digest = NewDigest(mode: DigestMode.Full, companiesChecked: 42, analysedCount: 7);
 
         digest.Id.ShouldBe(DigestId);
         digest.RunId.ShouldBe(RunId);
+        digest.Mode.ShouldBe(DigestMode.Full);
         digest.TotalNewJobs.ShouldBe(40);
         digest.StrongMatches.ShouldBe(6);
         digest.AvgSalaryUsd.ShouldBe(145000m);
         digest.SuppressedCount.ShouldBe(34);
         digest.SuppressionBreakdown.Count.ShouldBe(2);
+        digest.CompaniesChecked.ShouldBe(42);
+        digest.AnalysedCount.ShouldBe(7);
         digest.NarrativeSource.ShouldBe(NarrativeSource.Model);
         digest.Narrative.ShouldBe("A calm market today.");
         digest.PromptVersion.ShouldBe("digest-v1");
@@ -211,7 +220,8 @@ public sealed class DigestTests
         var clock = new FakeClock();
 
         Should.Throw<ArgumentException>(() => new Digest(
-            DigestId, Guid.Empty, 0, 0, null, 0, [], 0, [], null, NarrativeSource.Template, null, [], clock.UtcNow));
+            DigestId, Guid.Empty, DigestMode.Full, 0, 0, null, 0, [], 0, 0, 0, [], null,
+            NarrativeSource.Template, null, [], clock.UtcNow));
     }
 
     [Fact]
@@ -226,5 +236,17 @@ public sealed class DigestTests
     public void Carried_over_count_is_carried()
     {
         NewDigest(carriedOverCount: 12).CarriedOverCount.ShouldBe(12);
+    }
+
+    [Fact]
+    public void A_negative_companies_checked_is_rejected()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() => NewDigest(companiesChecked: -1));
+    }
+
+    [Fact]
+    public void A_negative_analysed_count_is_rejected()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() => NewDigest(analysedCount: -1));
     }
 }

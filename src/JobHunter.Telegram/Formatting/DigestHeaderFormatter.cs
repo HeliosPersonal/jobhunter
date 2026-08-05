@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using JobHunter.Domain.Reporting;
 
 namespace JobHunter.Telegram.Formatting;
 

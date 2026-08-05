@@ -2,6 +2,7 @@ using JobHunter.Application.Delivery;
 using JobHunter.Contracts.Pipeline;
 using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Notifications;
+using JobHunter.Domain.Pipeline;
 using JobHunter.Domain.Reporting;
 using JobHunter.TestKit;
 using Microsoft.Extensions.Logging;
@@ -15,16 +16,18 @@ using DeliveryOptions = JobHunter.Application.Delivery.DeliveryOptions;
 namespace JobHunter.Application.Tests.Delivery;
 
 /// <summary>
-/// T08: the delivery step and the whole reason [[adr/0002-delivery-idempotence|ADR-F5-0002]] exists — the
-/// duplicate-delivery suite (QG-2, invariant 8). The handler consumes <see cref="DigestReady"/>, renders the
-/// stored digest into an ordered keyed sequence, asks the <c>delivery_log</c> what already went to the chat,
-/// and sends only the remainder, writing a log row <em>immediately after each successful send</em>. The
-/// load-bearing properties: a clean run of ten cards sends twelve messages and writes twelve rows; a crash
-/// after card three resumes to send exactly the remaining seven and never a card twice; a crash in the
-/// one-statement send→log window re-sends that one card (at-least-once, deliberately); a retry after success
-/// sends nothing; two racing handlers cannot double-send because the unique constraint arbitrates; and a
-/// per-card 400 logs that one card failed while the rest deliver (AC-05). Every collaborator is faked, so
-/// these are zero-database, zero-network unit tests.
+/// T08/T09: the delivery step and the whole reason [[adr/0002-delivery-idempotence|ADR-F5-0002]] exists — the
+/// duplicate-delivery suite (QG-2, invariant 8). The handler is fired by the 07:00 slot
+/// (<see cref="DigestDeliveryDue"/>, T09): it resolves the day's Run — the live one, else the most recent
+/// terminal one — loads that Run's stored digest, renders it into an ordered keyed sequence, asks the
+/// <c>delivery_log</c> what already went to the chat, and sends only the remainder, writing a log row
+/// <em>immediately after each successful send</em>. The load-bearing properties: a clean run of ten cards
+/// sends twelve messages and writes twelve rows; a crash after card three resumes to send exactly the
+/// remaining seven and never a card twice; a crash in the one-statement send→log window re-sends that one
+/// card (at-least-once, deliberately); a retry after success sends nothing; two racing handlers cannot
+/// double-send because the unique constraint arbitrates; a per-card 400 logs that one card failed while the
+/// rest deliver (AC-05); and when no Run exists at all the slot is genuine silence the handler does not paper
+/// over (R1). Every collaborator is faked, so these are zero-database, zero-network unit tests.
 /// </summary>
 public sealed class DeliveryHandlerTests
 {
@@ -38,9 +41,17 @@ public sealed class DeliveryHandlerTests
     private readonly FakeClock _clock = new(Now);
     private readonly IMessageBus _bus = Substitute.For<IMessageBus>();
     private readonly IDigestRepository _digests = Substitute.For<IDigestRepository>();
+    private readonly IRunRepository _runs = Substitute.For<IRunRepository>();
 
-    public DeliveryHandlerTests() =>
+    public DeliveryHandlerTests()
+    {
+        // The default day: a live Run whose id the digest and the log are keyed by. A test that wants the
+        // terminal-Run or no-Run path overrides these two arranges.
+        _runs.FindActiveRunAsync(Arg.Any<CancellationToken>()).Returns(RunForId(RunId));
         _digests.FindByRunAsync(RunId, Arg.Any<CancellationToken>()).Returns(BuildDigest());
+    }
+
+    private static Run RunForId(Guid id) => new(id, Now.AddDays(-1), Now, ceilingUsd: 5m, Now);
 
     // ---- the ordered, keyed sequence a delivery renders: header, N cards, footer ----------------
 
@@ -56,17 +67,19 @@ public sealed class DeliveryHandlerTests
         return keys;
     }
 
-    private static Digest BuildDigest() =>
-        new(Guid.Parse("00000000-0000-0000-0000-0000000000D9"), RunId, totalNewJobs: 0, strongMatches: 0,
-            avgSalaryUsd: null, suppressedCount: 0, suppressionBreakdown: [], carriedOverCount: 0,
-            degradedSources: [], narrative: null, NarrativeSource.Template, promptVersion: null, cards: [],
-            generatedAt: Now);
+    private static Digest BuildDigest() => BuildDigestForRun(RunId);
+
+    private static Digest BuildDigestForRun(Guid runId) =>
+        new(Guid.Parse("00000000-0000-0000-0000-0000000000D9"), runId, DigestMode.Full, totalNewJobs: 0,
+            strongMatches: 0, avgSalaryUsd: null, suppressedCount: 0, suppressionBreakdown: [], carriedOverCount: 0,
+            companiesChecked: 0, analysedCount: 0, degradedSources: [], narrative: null, NarrativeSource.Template,
+            promptVersion: null, cards: [], generatedAt: Now);
 
     private DeliveryHandler CreateHandler(IReadOnlyList<CardKey> sequence) =>
-        new(_digests, new FakeDigestRenderer(sequence), _log, _notifier, _ids, _clock,
+        new(_runs, _digests, new FakeDigestRenderer(sequence), _log, _notifier, _ids, _clock,
             new DeliveryOptions { OwnerChatId = OwnerChat }, NullLogger<DeliveryHandler>.Instance);
 
-    private static DigestReady Message() => new(RunId, Guid.NewGuid(), CardCount: 10, Now);
+    private static DigestDeliveryDue Message() => new(Now);
 
     private DigestDelivered? Delivered() =>
         _bus.ReceivedCalls()
@@ -125,7 +138,7 @@ public sealed class DeliveryHandlerTests
 
         // Restart on a fresh handler with a live notifier: only the untouched remainder should go.
         var secondNotifier = new FakeNotifier();
-        var resumed = new DeliveryHandler(_digests, new FakeDigestRenderer(sequence), _log, secondNotifier,
+        var resumed = new DeliveryHandler(_runs, _digests, new FakeDigestRenderer(sequence), _log, secondNotifier,
             _ids, _clock, new DeliveryOptions { OwnerChatId = OwnerChat }, NullLogger<DeliveryHandler>.Instance);
 
         await resumed.Handle(Message(), _bus, CancellationToken.None);
@@ -160,7 +173,7 @@ public sealed class DeliveryHandlerTests
         // Resume with the window closed: the header is re-sent (the duplicate ADR-F5-0002 accepts) and the rest follow.
         _log.BeforeRecord = null;
         var secondNotifier = new FakeNotifier();
-        var resumed = new DeliveryHandler(_digests, new FakeDigestRenderer(sequence), _log, secondNotifier,
+        var resumed = new DeliveryHandler(_runs, _digests, new FakeDigestRenderer(sequence), _log, secondNotifier,
             _ids, _clock, new DeliveryOptions { OwnerChatId = OwnerChat }, NullLogger<DeliveryHandler>.Instance);
 
         await resumed.Handle(Message(), _bus, CancellationToken.None);
@@ -180,7 +193,7 @@ public sealed class DeliveryHandlerTests
         var rowsAfterFirst = _log.Rows.Count;
 
         var secondNotifier = new FakeNotifier();
-        var retry = new DeliveryHandler(_digests, new FakeDigestRenderer(sequence), _log, secondNotifier,
+        var retry = new DeliveryHandler(_runs, _digests, new FakeDigestRenderer(sequence), _log, secondNotifier,
             _ids, _clock, new DeliveryOptions { OwnerChatId = OwnerChat }, NullLogger<DeliveryHandler>.Instance);
 
         await retry.Handle(Message(), _bus, CancellationToken.None);
@@ -208,9 +221,9 @@ public sealed class DeliveryHandlerTests
 
         var notifierA = new FakeNotifier();
         var notifierB = new FakeNotifier();
-        var handlerA = new DeliveryHandler(_digests, new FakeDigestRenderer(sequence), _log, notifierA,
+        var handlerA = new DeliveryHandler(_runs, _digests, new FakeDigestRenderer(sequence), _log, notifierA,
             _ids, _clock, new DeliveryOptions { OwnerChatId = OwnerChat }, NullLogger<DeliveryHandler>.Instance);
-        var handlerB = new DeliveryHandler(_digests, new FakeDigestRenderer(sequence), _log, notifierB,
+        var handlerB = new DeliveryHandler(_runs, _digests, new FakeDigestRenderer(sequence), _log, notifierB,
             _ids, _clock, new DeliveryOptions { OwnerChatId = OwnerChat }, NullLogger<DeliveryHandler>.Instance);
 
         await handlerA.Handle(Message(), _bus, CancellationToken.None);
@@ -269,7 +282,7 @@ public sealed class DeliveryHandlerTests
 
         // A later pass with a valid message (no refusal) delivers the card that was refused before.
         var secondNotifier = new FakeNotifier();
-        var resumed = new DeliveryHandler(_digests, new FakeDigestRenderer(sequence), _log, secondNotifier,
+        var resumed = new DeliveryHandler(_runs, _digests, new FakeDigestRenderer(sequence), _log, secondNotifier,
             _ids, _clock, new DeliveryOptions { OwnerChatId = OwnerChat }, NullLogger<DeliveryHandler>.Instance);
 
         await resumed.Handle(Message(), _bus, CancellationToken.None);
@@ -315,6 +328,42 @@ public sealed class DeliveryHandlerTests
         _log.Rows.ShouldBeEmpty();
     }
 
+    // ---- T09: resolving the day's Run from the 07:00 slot ----------------------------------------
+
+    [Fact]
+    public async Task The_slot_delivers_the_most_recent_run_when_the_day_has_already_gone_terminal()
+    {
+        // A degraded day (CostAborted) finishes before 07:00, so there is no live Run — the slot must still
+        // find the day's Run through the most-recent lookup and deliver its reduced digest (ADR-F5-0001).
+        var terminalId = Guid.Parse("00000000-0000-0000-0000-0000000000CA");
+        _runs.FindActiveRunAsync(Arg.Any<CancellationToken>()).Returns((Run?)null);
+        _runs.FindMostRecentRunAsync(Arg.Any<CancellationToken>()).Returns(RunForId(terminalId));
+        _digests.FindByRunAsync(terminalId, Arg.Any<CancellationToken>())
+            .Returns(BuildDigestForRun(terminalId));
+
+        await CreateHandler(Sequence(2)).Handle(Message(), _bus, CancellationToken.None);
+
+        _notifier.SentKeys.Count.ShouldBe(4); // header + 2 cards + footer
+        _log.Rows.ShouldAllBe(r => r.RunId == terminalId);
+        Delivered().ShouldNotBeNull().RunId.ShouldBe(terminalId);
+    }
+
+    [Fact]
+    public async Task No_run_at_all_is_silence_the_slot_does_not_paper_over()
+    {
+        // The 02:00 tick never fired, so no Run row exists. That is genuine infrastructure silence the R1
+        // runbook alerts on — the handler sends nothing and publishes nothing rather than inventing a digest.
+        _runs.FindActiveRunAsync(Arg.Any<CancellationToken>()).Returns((Run?)null);
+        _runs.FindMostRecentRunAsync(Arg.Any<CancellationToken>()).Returns((Run?)null);
+
+        await CreateHandler(Sequence(1)).Handle(Message(), _bus, CancellationToken.None);
+
+        _notifier.SentKeys.ShouldBeEmpty();
+        _log.Rows.ShouldBeEmpty();
+        Delivered().ShouldBeNull();
+        await _digests.DidNotReceive().FindByRunAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task A_null_message_is_rejected()
     {
@@ -330,6 +379,7 @@ public sealed class DeliveryHandlerTests
     }
 
     [Theory]
+    [InlineData("runs")]
     [InlineData("digests")]
     [InlineData("renderer")]
     [InlineData("deliveryLog")]
@@ -340,6 +390,7 @@ public sealed class DeliveryHandlerTests
     [InlineData("logger")]
     public void A_null_dependency_is_rejected(string nullDependency)
     {
+        IRunRepository? runs = _runs;
         IDigestRepository? digests = _digests;
         IDigestRenderer? renderer = new FakeDigestRenderer(Sequence(1));
         IDeliveryLog? log = _log;
@@ -351,6 +402,7 @@ public sealed class DeliveryHandlerTests
 
         switch (nullDependency)
         {
+            case "runs": runs = null; break;
             case "digests": digests = null; break;
             case "renderer": renderer = null; break;
             case "deliveryLog": log = null; break;
@@ -362,7 +414,7 @@ public sealed class DeliveryHandlerTests
         }
 
         Should.Throw<ArgumentNullException>(() =>
-            new DeliveryHandler(digests!, renderer!, log!, notifier!, ids!, clock!, options!, logger!));
+            new DeliveryHandler(runs!, digests!, renderer!, log!, notifier!, ids!, clock!, options!, logger!));
     }
 
     /// <summary>A stand-in for the transport-fault type the real notifier throws on a 5xx or dropped connection.</summary>

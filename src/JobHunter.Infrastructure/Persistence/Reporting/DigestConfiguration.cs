@@ -32,11 +32,14 @@ internal sealed class DigestConfiguration : IEntityTypeConfiguration<Digest>
         b.HasKey(x => x.Id);
         b.Property(x => x.Id).HasColumnName("id").ValueGeneratedNever();
         b.Property(x => x.RunId).HasColumnName("run_id").IsRequired();
+        b.Property(x => x.Mode).HasColumnName("mode").HasConversion<string>().IsRequired();
         b.Property(x => x.TotalNewJobs).HasColumnName("total_new_jobs").IsRequired();
         b.Property(x => x.StrongMatches).HasColumnName("strong_matches").IsRequired();
         b.Property(x => x.AvgSalaryUsd).HasColumnName("avg_salary_usd").HasColumnType("numeric(12,2)");
         b.Property(x => x.SuppressedCount).HasColumnName("suppressed_count").IsRequired();
         b.Property(x => x.CarriedOverCount).HasColumnName("carried_over_count").HasDefaultValue(0).IsRequired();
+        b.Property(x => x.CompaniesChecked).HasColumnName("companies_checked").HasDefaultValue(0).IsRequired();
+        b.Property(x => x.AnalysedCount).HasColumnName("analysed_count").HasDefaultValue(0).IsRequired();
         b.Property(x => x.Narrative).HasColumnName("narrative");
         b.Property(x => x.NarrativeSource).HasColumnName("narrative_source").IsRequired();
         b.Property(x => x.PromptVersion).HasColumnName("prompt_version");

@@ -42,6 +42,11 @@ public sealed class RunRepository(JobHunterDbContext context) : IRunRepository
     public Task<Run?> FindActiveRunAsync(CancellationToken cancellationToken = default) =>
         NonTerminalRuns().OrderBy(r => r.StartedAt).FirstOrDefaultAsync(cancellationToken);
 
+    public Task<Run?> FindMostRecentRunAsync(CancellationToken cancellationToken = default) =>
+        // The day's Run whatever its state — a terminal CostAborted/Failed Run is exactly what the 06:45 and
+        // 07:00 ticks must still find to assemble and deliver its degraded digest (ADR-F5-0001).
+        context.Set<Run>().OrderByDescending(r => r.StartedAt).FirstOrDefaultAsync(cancellationToken);
+
     public async Task<IReadOnlyList<Run>> FindResumableRunsAsync(CancellationToken cancellationToken = default) =>
         await NonTerminalRuns().OrderBy(r => r.StartedAt).ToListAsync(cancellationToken);
 

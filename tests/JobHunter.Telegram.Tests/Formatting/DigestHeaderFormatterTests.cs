@@ -1,3 +1,4 @@
+using JobHunter.Domain.Reporting;
 using JobHunter.Telegram.Formatting;
 using Shouldly;
 using Xunit;

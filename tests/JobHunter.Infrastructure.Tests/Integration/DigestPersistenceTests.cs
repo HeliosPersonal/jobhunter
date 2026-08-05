@@ -237,14 +237,14 @@ public sealed class DigestPersistenceTests
                 Guid.CreateVersion7(), digestId, JobId, RunId, rank: 1, score: 82m,
                 reasons: ["Strong platform-engineering overlap."], applyUrlVerified: true);
             return new Digest(
-                digestId, RunId, totalNewJobs: 10, strongMatches: 1, avgSalaryUsd: 120000m,
+                digestId, RunId, DigestMode.Full, totalNewJobs: 10, strongMatches: 1, avgSalaryUsd: 120000m,
                 suppressedCount: 3,
                 suppressionBreakdown:
                 [
                     SuppressionTally.TryCreate("salary floor", 2).Value,
                     SuppressionTally.TryCreate("location", 1).Value,
                 ],
-                carriedOverCount: 0, degradedSources: ["greenhouse:flaky"],
+                carriedOverCount: 0, companiesChecked: 0, analysedCount: 0, degradedSources: ["greenhouse:flaky"],
                 narrative: "A quiet day with one strong lead.", NarrativeSource.Model,
                 promptVersion: "digest-v1", cards: [card], generatedAt: Now);
         }

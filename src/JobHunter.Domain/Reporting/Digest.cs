@@ -24,12 +24,15 @@ public sealed class Digest : Entity
     public Digest(
         Guid id,
         Guid runId,
+        DigestMode mode,
         int totalNewJobs,
         int strongMatches,
         decimal? avgSalaryUsd,
         int suppressedCount,
         IReadOnlyList<SuppressionTally> suppressionBreakdown,
         int carriedOverCount,
+        int companiesChecked,
+        int analysedCount,
         IReadOnlyList<string> degradedSources,
         string? narrative,
         NarrativeSource narrativeSource,
@@ -47,6 +50,8 @@ public sealed class Digest : Entity
         ThrowIfNegative(strongMatches, nameof(strongMatches));
         ThrowIfNegative(suppressedCount, nameof(suppressedCount));
         ThrowIfNegative(carriedOverCount, nameof(carriedOverCount));
+        ThrowIfNegative(companiesChecked, nameof(companiesChecked));
+        ThrowIfNegative(analysedCount, nameof(analysedCount));
 
         if (avgSalaryUsd is <= 0m)
         {
@@ -119,11 +124,14 @@ public sealed class Digest : Entity
         _cards = cards.OrderBy(c => c.Rank).ToList();
 
         RunId = runId;
+        Mode = mode;
         TotalNewJobs = totalNewJobs;
         StrongMatches = strongMatches;
         AvgSalaryUsd = avgSalaryUsd;
         SuppressedCount = suppressedCount;
         CarriedOverCount = carriedOverCount;
+        CompaniesChecked = companiesChecked;
+        AnalysedCount = analysedCount;
         Narrative = string.IsNullOrWhiteSpace(narrative) ? null : narrative.Trim();
         NarrativeSource = narrativeSource;
         PromptVersion = string.IsNullOrWhiteSpace(promptVersion) ? null : promptVersion.Trim();
@@ -135,6 +143,13 @@ public sealed class Digest : Entity
     }
 
     public Guid RunId { get; private set; }
+
+    /// <summary>
+    /// Which of the four header shapes this digest renders (ADR-F5-0001). Resolved once at assembly from the
+    /// Run's state and counts and frozen here, so delivery — and a later re-render — reproduces the header the
+    /// run earned at 06:45 rather than re-classifying a run that has since moved on (SAD §4 S2).
+    /// </summary>
+    public DigestMode Mode { get; private set; }
 
     public int TotalNewJobs { get; private set; }
 
@@ -149,6 +164,18 @@ public sealed class Digest : Entity
 
     /// <summary>Items whose batch missed the 06:45 deadline (AC-06).</summary>
     public int CarriedOverCount { get; private set; }
+
+    /// <summary>
+    /// Active companies scanned this run — the "N companies checked, nothing matched" reassurance on a
+    /// <see cref="DigestMode.NothingNew"/> day (AC-05). Zero on days where the count is not shown.
+    /// </summary>
+    public int CompaniesChecked { get; private set; }
+
+    /// <summary>
+    /// Scores analysed before a budget abort — the "N analysed before the daily budget was reached" line on a
+    /// <see cref="DigestMode.BudgetReached"/> day (AC-06). Zero on days where the count is not shown.
+    /// </summary>
+    public int AnalysedCount { get; private set; }
 
     /// <summary>The market note; null for an empty digest with nothing to say.</summary>
     public string? Narrative { get; private set; }

@@ -70,12 +70,15 @@ stored state rather than a recomputation (SAD §4 S2).
 |---|---|---|---|
 | `id` | uuid | PK | |
 | `run_id` | uuid | NOT NULL, FK, **UNIQUE** | one digest per Run |
+| `mode` | text | NOT NULL | `Full` / `NothingNew` / `Partial` / `BudgetReached` — the degraded-day classification resolved at assembly and snapshotted, so delivery renders from stored state (T09, ADR-F5-0001) |
 | `total_new_jobs` | integer | NOT NULL | |
 | `strong_matches` | integer | NOT NULL | count above the strong threshold |
 | `avg_salary_usd` | numeric(12,2) | NULL | null when too few jobs carry a salary to be meaningful — better absent than misleading |
 | `suppressed_count` | integer | NOT NULL | (AC-07) |
 | `suppression_breakdown` | jsonb | NOT NULL | `[{reason, count}]` — what makes [[../../DECISION-LOG\|D7]] real |
 | `carried_over_count` | integer | NOT NULL DEFAULT 0 | items whose batch missed the deadline (AC-06) |
+| `companies_checked` | integer | NOT NULL DEFAULT 0 | active companies scanned — shown only on a `NothingNew` day to state the scope (AC-05, T09) |
+| `analysed_count` | integer | NOT NULL DEFAULT 0 | scores analysed before a budget abort — shown only on a `BudgetReached` day (AC-06, T09) |
 | `degraded_sources` | jsonb | NOT NULL DEFAULT '[]' | quarantined sources, from F1 (AC-06) |
 | `narrative` | text | NULL | model-generated market note |
 | `narrative_source` | text | NOT NULL | `Model` or `Template` — records whether the fallback was used |

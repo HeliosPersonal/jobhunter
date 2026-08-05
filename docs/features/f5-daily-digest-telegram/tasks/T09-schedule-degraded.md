@@ -1,6 +1,34 @@
 # T09 — Delivery scheduling and degraded-day variants
 
-**Layer:** app · **Deps:** T08, T05 · **Est:** M · **Owner:** Viacheslav
+**Layer:** app · **Deps:** T08, T05 · **Est:** M · **Owner:** Viacheslav · **Status:** done
+
+## As built
+
+Delivery moved off the eager `DigestReady` trigger onto three scheduled ticks, all interpreted in
+`RecurringJobRegistry.Kyiv` so 07:00 is a wall-clock commitment (QG-1):
+
+- **02:00 `DailyRunTrigger`** publishes F3's existing `StartDailyRun(WindowEnd)`; the orchestrator is a
+  no-op when a live Run already exists. This guarantees a `Created` Run row exists by 06:45, so the
+  `digests.run_id` FK is always satisfiable and a degraded day still has a Run to assemble against.
+- **06:45 `DigestAssemblyTrigger`** publishes `DigestAssemblyDue`; `DigestAssembler.Handle(DigestAssemblyDue)`
+  resolves the most-recent Run and assembles-if-absent (idempotent on `uq_digests_run`, re-emitting
+  `DigestReady` if the happy path already assembled via `RankingCompleted`).
+- **07:00 `DigestDeliveryTrigger`** publishes `DigestDeliveryDue`; `DeliveryHandler.Handle(DigestDeliveryDue)`
+  resolves the day's Run (`FindActiveRunAsync` ?? `FindMostRecentRunAsync`), loads its stored digest and
+  delivers each card once. `DigestReady` no longer triggers a send.
+
+`DigestMode` was placed in `JobHunter.Domain/Reporting` (one enum, referenced by both Application and
+Telegram). `DigestModeResolver.Resolve(RunState, cardCount, suppressedCount)` classifies; the resolved
+`Mode` plus `CompaniesChecked` and `AnalysedCount` are snapshotted onto `Digest` (migration
+`F5_AddDigestMode`) so delivery renders from stored state, never a live re-classification.
+
+**True absence of a Run row** (the 02:00 tick itself never fired) is the R1 silence case: delivery
+logs a warning and returns — it does not paper over the gap with an empty rendered digest.
+
+The four header shapes (`Full` / `NothingNew` / `Partial` / `BudgetReached`) each have a committed
+snapshot under `tests/JobHunter.Telegram.Tests/Fixtures/rendering-corpus/` and are asserted by
+`RenderingCorpusSnapshotTests`. DST stability is asserted in `RecurringJobApplierTests` across both 2026
+transitions.
 
 ## What
 

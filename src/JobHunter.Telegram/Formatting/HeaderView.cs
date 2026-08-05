@@ -1,25 +1,6 @@
+using JobHunter.Domain.Reporting;
+
 namespace JobHunter.Telegram.Formatting;
-
-/// <summary>
-/// Which of the four header shapes a digest renders (F5 message contract §Header, §Degraded-day variants).
-/// Every variant still arrives at 07:00 (ADR-F5-0001) — a degraded day is a different message, never a
-/// missing one. Persisted nowhere; it is a render-time classification the delivery layer sets from the
-/// digest's own counts and run outcome.
-/// </summary>
-public enum DigestMode
-{
-    /// <summary>The normal morning: counts, the single best opportunity, the hidden line.</summary>
-    Full,
-
-    /// <summary>Nothing matched (AC-05): the "this is normal, everything is working" reassurance.</summary>
-    NothingNew,
-
-    /// <summary>Analysis did not finish (AC-06): a "(partial)" header and a "still being analysed" line.</summary>
-    Partial,
-
-    /// <summary>The daily budget was reached mid-run (AC-06 cost abort): a "(reduced)" header.</summary>
-    BudgetReached,
-}
 
 /// <summary>
 /// The display projection of a <see cref="Domain.Reporting.Digest"/>'s header — the three-second message

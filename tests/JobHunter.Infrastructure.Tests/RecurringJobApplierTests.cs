@@ -73,4 +73,62 @@ public sealed class RecurringJobApplierTests
 
         await Should.NotThrowAsync(() => applier.StopAsync(CancellationToken.None));
     }
+
+    // ---- T09: the daily digest schedule (02:00 run, 06:45 assembly, 07:00 delivery) -------------
+
+    [Theory]
+    [InlineData("daily-run", "0 2 * * *")]
+    [InlineData("digest-assembly", "45 6 * * *")]
+    [InlineData("digest-delivery", "0 7 * * *")]
+    public async Task Each_digest_schedule_binding_is_declared_and_installed_in_the_kyiv_zone(
+        string jobId, string cron)
+    {
+        var registry = new RecurringJobRegistry();
+        (string Cron, TimeZoneInfo Zone)? applied = null;
+        var binding = new RecurringJobBinding(jobId, cron, (c, z) => applied = (c, z));
+
+        var applier = new RecurringJobApplier(registry, [binding], NullLogger<RecurringJobApplier>.Instance);
+
+        await applier.StartAsync(CancellationToken.None);
+
+        var registration = registry.Registrations.ShouldHaveSingleItem();
+        registration.JobId.ShouldBe(jobId);
+        registration.Cron.ShouldBe(cron);
+        registration.TimeZone.ShouldBe(RecurringJobRegistry.Kyiv);
+
+        applied.ShouldNotBeNull();
+        applied!.Value.Cron.ShouldBe(cron);
+        // The whole point of declaring the cron in Kyiv (not UTC) is DST stability (QG-1); assert the zone.
+        applied.Value.Zone.ShouldBe(RecurringJobRegistry.Kyiv);
+    }
+
+    // The 07:00 delivery cron is read in Europe/Kyiv, so the slot is a wall-clock commitment: it stays at
+    // 07:00 local across both 2026 DST transitions even though the underlying UTC instant shifts by an hour.
+    // Cronos lives inside Hangfire.Core; this asserts the property that guarantee rests on — that 07:00 Kyiv
+    // is a stable, unambiguous local time whose UTC offset changes with the season (QG-1, done-when).
+    [Theory]
+    // The day after spring-forward (29 Mar 2026, +02:00 → +03:00): summer time, 07:00 Kyiv = 04:00 UTC.
+    [InlineData(2026, 3, 30, 3, 4)]
+    // The day after fall-back (25 Oct 2026, +03:00 → +02:00): winter time, 07:00 Kyiv = 05:00 UTC.
+    [InlineData(2026, 10, 26, 2, 5)]
+    public void The_seven_am_delivery_slot_is_the_same_wall_clock_across_both_dst_transitions(
+        int year, int month, int day, int expectedOffsetHours, int expectedUtcHour)
+    {
+        var kyiv = RecurringJobRegistry.Kyiv;
+        var sevenLocal = new DateTime(year, month, day, 7, 0, 0, DateTimeKind.Unspecified);
+
+        // 07:00 is well clear of the 03:00–04:00 DST gap/overlap, so it is never skipped or ambiguous —
+        // which is exactly why the slot is deliverable to the minute every day of the year.
+        kyiv.IsInvalidTime(sevenLocal).ShouldBeFalse();
+        kyiv.IsAmbiguousTime(sevenLocal).ShouldBeFalse();
+
+        // The local offset flips with the season, proving the zone observes DST rather than sitting at a
+        // fixed offset (a fixed-offset zone would drift the wall-clock by an hour for half the year).
+        kyiv.GetUtcOffset(sevenLocal).ShouldBe(TimeSpan.FromHours(expectedOffsetHours));
+
+        // Yet the UTC firing instant that keeps the Owner's clock at 07:00 shifts by exactly that hour.
+        var utc = TimeZoneInfo.ConvertTimeToUtc(sevenLocal, kyiv);
+        utc.Hour.ShouldBe(expectedUtcHour);
+        TimeZoneInfo.ConvertTimeFromUtc(utc, kyiv).Hour.ShouldBe(7);
+    }
 }

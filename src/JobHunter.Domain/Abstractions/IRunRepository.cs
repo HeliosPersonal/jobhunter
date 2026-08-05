@@ -29,6 +29,15 @@ public interface IRunRepository
     /// <summary>The single live Run, if any — the one the active-Run guard and resume path both look for.</summary>
     Task<Run?> FindActiveRunAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The most recently started Run whatever its state — including a terminal one — or null when none exists.
+    /// The 06:45 assembly and 07:00 delivery ticks resolve "today's Run" through this: unlike
+    /// <see cref="FindActiveRunAsync"/> it does not exclude terminal Runs, so a <c>CostAborted</c> or
+    /// <c>Failed</c> Run — exactly the degraded days that still owe the Owner a digest (ADR-F5-0001) — is found
+    /// rather than missed. Ordered by <c>started_at</c> descending, so the day's Run is the one returned.
+    /// </summary>
+    Task<Run?> FindMostRecentRunAsync(CancellationToken cancellationToken = default);
+
     /// <summary>Every non-terminal Run, for the startup resume sweep (QG-1). Served by <c>idx_runs_resumable</c>.</summary>
     Task<IReadOnlyList<Run>> FindResumableRunsAsync(CancellationToken cancellationToken = default);
 

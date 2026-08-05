@@ -27,7 +27,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T06 | [[T06-formatting-escaping\|MarkdownV2 escaping and formatters]] | telegram | T01 | M | done |
 | T07 | [[T07-telegram-host-auth\|Telegram host, allowlist and long polling]] | telegram | — | M | done |
 | T08 | [[T08-delivery-idempotence\|Delivery handler with per-card idempotence]] | app | T02, T06, T07 | L | done |
-| T09 | [[T09-schedule-degraded\|Delivery scheduling and degraded-day variants]] | app | T08, T05 | M | pending |
+| T09 | [[T09-schedule-degraded\|Delivery scheduling and degraded-day variants]] | app | T08, T05 | M | done |
 | T10 | [[T10-callback-actions\|Callback handling, actions and Signal capture]] | telegram | T08 | L | pending |
 | T11 | [[T11-command-set\|Command set]] | telegram | T10 | M | pending |
 | T12 | [[T12-rendering-corpus\|Rendering corpus and live smoke checklist]] | tests | T09, T11 | M | pending |
