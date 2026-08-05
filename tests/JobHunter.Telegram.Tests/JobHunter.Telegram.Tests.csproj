@@ -11,4 +11,9 @@
     <ProjectReference Include="..\JobHunter.TestKit\JobHunter.TestKit.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The rendering-corpus snapshots (F5 T06): the exact bytes each contract layout renders to. -->
+    <Content Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

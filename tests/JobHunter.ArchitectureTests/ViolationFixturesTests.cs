@@ -136,6 +136,17 @@ public sealed class ViolationFixturesTests
         result.IsSuccessful.ShouldBeFalse();
     }
 
+    [Fact]
+    public void Rule9_fixture_provesInterpolatedMarkupGuard_canFail()
+    {
+        var offenders = SourceScan
+            .ForPattern(@"\$""[^""]*([*_\[\]`~|]\{|\}[*_\[\]`~|])")
+            .InDirectory(ViolationsDirectory())
+            .Matches;
+
+        offenders.ShouldNotBeEmpty();
+    }
+
     private static PredicateList FixtureNamed(string typeName) =>
         Types.InAssembly(typeof(ViolationFixturesTests).Assembly)
             .That()

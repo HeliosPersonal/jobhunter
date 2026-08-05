@@ -1,4 +1,5 @@
 using JobHunter.Domain.Abstractions;
+using JobHunter.Telegram.Formatting;
 using Microsoft.Extensions.Logging;
 
 namespace JobHunter.Telegram.Search;

@@ -13,7 +13,7 @@ namespace JobHunter.Infrastructure.Persistence.Repositories;
 /// arbitrates (invariant 8). There is deliberately no update and no delete: deleting a row would mean
 /// re-delivering, the exact failure the log prevents.
 /// </summary>
-public sealed class DeliveryLog(INpgsqlConnectionFactory connectionFactory) : IDeliveryLog
+internal sealed class DeliveryLog(INpgsqlConnectionFactory connectionFactory) : IDeliveryLog
 {
     private const string RecordSql =
         """

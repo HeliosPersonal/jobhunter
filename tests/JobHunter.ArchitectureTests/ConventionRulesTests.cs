@@ -109,7 +109,31 @@ public sealed class ConventionRulesTests
         offenders.IsSuccessful.ShouldBeTrue(LayeringRulesTests.FailureMessage(offenders));
     }
 
-    private static string ScrapersSourceDirectory()
+    [Fact]
+    public void Rule9_noFormatter_interpolatesARawValueIntoActiveMarkup()
+    {
+        // F5 message contract §Escaping: a message formatter must never interpolate a non-constant straight
+        // into MarkdownV2 markup — the value has to pass through MarkdownV2Escaper.Escape and the markup be
+        // added as an adjacent constant, or one unescaped special silently fails the whole send. The hazard
+        // is specifically an interpolation hole sitting next to active markup (e.g. $"*{title}*"), which
+        // this scan of the Telegram Formatting tree forbids.
+        var offenders = SourceScan
+            .ForPattern(@"\$""[^""]*([*_\[\]`~|]\{|\}[*_\[\]`~|])")
+            .InDirectory(FormattingSourceDirectory())
+            .Matches;
+
+        offenders.ShouldBeEmpty(
+            "No message formatter may interpolate a raw value into active MarkdownV2 markup (rule 9): "
+            + string.Join("; ", offenders));
+    }
+
+    private static string ScrapersSourceDirectory() =>
+        Path.Combine(RepositoryRoot(), "src", "JobHunter.Scrapers");
+
+    private static string FormattingSourceDirectory() =>
+        Path.Combine(RepositoryRoot(), "src", "JobHunter.Telegram", "Formatting");
+
+    private static string RepositoryRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "JobHunter.slnx")))
@@ -122,6 +146,6 @@ public sealed class ConventionRulesTests
             throw new InvalidOperationException("Could not locate the repository root (JobHunter.slnx).");
         }
 
-        return Path.Combine(dir.FullName, "src", "JobHunter.Scrapers");
+        return dir.FullName;
     }
 }
