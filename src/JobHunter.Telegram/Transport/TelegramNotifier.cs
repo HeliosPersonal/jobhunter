@@ -14,7 +14,10 @@ namespace JobHunter.Telegram.Transport;
 /// token lives only in the injected <see cref="HttpClient.BaseAddress"/> (<c>…/bot{token}/</c>); the request
 /// path is the relative <c>sendMessage</c>, so the token appears in no log, no exception message and no span
 /// (invariant 12). A send that exhausts its attempts is a <see cref="TelegramSendException"/> — an
-/// infrastructure fault the caller (the delivery handler) surfaces, not a silent drop.
+/// infrastructure fault the caller (the delivery handler) surfaces, not a silent drop. A permanent
+/// <c>4xx</c> refusal (a 400: bad chat, over-long message, malformed markup) is a
+/// <see cref="NotificationRejectedException"/> instead, so the delivery loop can log that one card as failed
+/// and deliver the rest (AC-05) rather than redeliver the whole digest.
 /// </summary>
 internal sealed class TelegramNotifier : INotifier
 {
@@ -81,6 +84,16 @@ internal sealed class TelegramNotifier : INotifier
                 return messageId;
             }
 
+            // A 4xx (except the 429 handled above) is a permanent refusal of this message — a bad chat, a
+            // message too long, malformed markup — that retrying will not fix. Surface it as a rejection so the
+            // delivery loop logs the one card as failed and delivers the rest (AC-05), rather than a transient
+            // fault that would propagate and redeliver the whole digest.
+            if (IsPermanentRejection(response.StatusCode))
+            {
+                throw new NotificationRejectedException(
+                    $"Telegram permanently rejected a send to chat {chatId} with status {(int)response.StatusCode} (ok={body?.Ok.ToString() ?? "null"}).");
+            }
+
             throw new TelegramSendException(
                 $"Telegram rejected a send to chat {chatId} with status {(int)response.StatusCode} (ok={body?.Ok.ToString() ?? "null"}).");
         }
@@ -99,6 +112,10 @@ internal sealed class TelegramNotifier : INotifier
 
         return new SendMessagePayload(chatId, message.Text, "MarkdownV2", keyboard);
     }
+
+    // A 4xx other than 429 is the message's fault, not the transport's — a retry sends the same bad request.
+    private static bool IsPermanentRejection(HttpStatusCode status) =>
+        (int)status is >= 400 and < 500 && status != HttpStatusCode.TooManyRequests;
 
     private static async Task<TimeSpan> ReadRetryAfterAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {

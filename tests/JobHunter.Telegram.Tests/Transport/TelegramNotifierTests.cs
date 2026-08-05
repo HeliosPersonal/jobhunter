@@ -179,14 +179,29 @@ public sealed class TelegramNotifierTests
     }
 
     [Fact]
-    public async Task A_non_success_response_is_an_exception_not_a_silent_drop()
+    public async Task A_permanent_400_is_a_rejection_not_a_silent_drop()
     {
         var harness = Build((_, _) =>
             StubHttpMessageHandler.Json(HttpStatusCode.BadRequest, """{"ok":false,"error_code":400}"""));
 
+        // A 400 is the message's fault, not the transport's: a rejection the delivery loop logs as a failed
+        // card and moves past, never retried. The failure message never carries the token (invariant 12).
+        var ex = await Should.ThrowAsync<NotificationRejectedException>(() => harness.Notifier.SendAsync(4242, Header));
+
+        ex.Message.ShouldNotContain(Token);
+        harness.Handler.CallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task A_server_error_is_a_transport_fault_that_propagates_for_retry()
+    {
+        var harness = Build((_, _) =>
+            StubHttpMessageHandler.Json(HttpStatusCode.InternalServerError, """{"ok":false,"error_code":500}"""));
+
+        // A 5xx is the transport's fault: a TelegramSendException the caller surfaces so the message is retried,
+        // not a per-card rejection that would drop the card.
         var ex = await Should.ThrowAsync<TelegramSendException>(() => harness.Notifier.SendAsync(4242, Header));
 
-        // The failure message never carries the token (invariant 12).
         ex.Message.ShouldNotContain(Token);
         harness.Handler.CallCount.ShouldBe(1);
     }

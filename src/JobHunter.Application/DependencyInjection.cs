@@ -180,6 +180,17 @@ public static class DependencyInjection
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Reporting.NarrativeSynthesisOptions>>().Value);
         services.AddScoped<Reporting.INarrativeSynthesizer, Reporting.NarrativeSynthesizer>();
 
+        // F5 delivery (T08, ADR-F5-0002): the delivery handler consumes DigestReady, renders the stored digest
+        // and sends each message exactly once, writing a delivery-log row immediately after each send (S1). It
+        // is discovered and constructed by Wolverine like every other handler; only its one tunable — the
+        // Owner's chat id, the chat_id half of the idempotence key — needs registering, startup-validated so a
+        // digest can never be delivered to an unset chat.
+        services.AddOptions<Delivery.DeliveryOptions>()
+            .Validate(o => o.OwnerChatId != 0, "Delivery:OwnerChatId must be set.")
+            .ValidateOnStart();
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Delivery.DeliveryOptions>>().Value);
+
         return services;
     }
 }
