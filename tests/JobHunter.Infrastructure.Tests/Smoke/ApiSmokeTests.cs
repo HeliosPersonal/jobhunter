@@ -30,6 +30,13 @@ public sealed class ApiSmokeTests
             builder.UseSetting("ConnectionStrings:Messaging", "amqp://guest:guest@localhost:5672");
             builder.UseSetting("Messaging:ConnectionString", "amqp://guest:guest@localhost:5672");
 
+            // The API composes the Typesense read adapter (F9), whose options are startup-validated (AC-09).
+            // No live Typesense is contacted by the endpoints under test; these are placeholder values so the
+            // composition root can build, exactly as the connection strings above let it start.
+            builder.UseSetting("Typesense:BaseUrl", "http://localhost:8108");
+            builder.UseSetting("Typesense:ApiKey", "test-key");
+            builder.UseSetting("Typesense:EnvironmentPrefix", "test");
+
             if (extra is not null)
             {
                 foreach (var (key, value) in extra)

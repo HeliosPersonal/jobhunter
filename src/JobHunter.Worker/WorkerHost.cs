@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using JobHunter.Application;
+using JobHunter.Claude;
 using JobHunter.Infrastructure;
 using JobHunter.Infrastructure.Configuration;
 using JobHunter.Infrastructure.Messaging;
@@ -31,6 +32,28 @@ public static class WorkerHost
 
         builder.Services.AddJobHunterApplication();
         builder.Services.AddJobHunterInfrastructure(builder.Configuration);
+
+        // The Worker is the one host that runs the pipeline (Wolverine handlers, the Hangfire server), so it is
+        // the only host that composes the Claude adapter layer — the enrichment/match/narrative request-builders
+        // and result-parsers and the ILlmBatchClient the batch handlers submit through. The read-only Api and
+        // Telegram hosts never touch Anthropic, so they never require its key (ADR-0005, coding-standards §DI).
+        builder.Services.AddJobHunterClaude(builder.Configuration);
+
+        // The digest narrative synthesiser is a pipeline collaborator of the (Wolverine-discovered)
+        // DigestAssembler and depends on the Claude ports registered just above; like every other pipeline-only
+        // service it is composed here, not in the shared Application registrations (F5 T05).
+        builder.Services.AddScoped<JobHunter.Application.Reporting.INarrativeSynthesizer,
+            JobHunter.Application.Reporting.NarrativeSynthesizer>();
+
+        // The delivery handler is a Wolverine-discovered pipeline handler, so its one tunable — the Owner's
+        // chat id, the chat_id half of the idempotence key — is registered and startup-validated here, in the
+        // host that actually delivers, rather than in the shared Application registrations (F5 T08/T09).
+        builder.Services.AddOptions<JobHunter.Application.Delivery.DeliveryOptions>()
+            .Bind(builder.Configuration.GetSection(JobHunter.Application.Delivery.DeliveryOptions.SectionName))
+            .Validate(o => o.OwnerChatId != 0, "Delivery:OwnerChatId must be set.")
+            .ValidateOnStart();
+        builder.Services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<JobHunter.Application.Delivery.DeliveryOptions>>().Value);
 
         // The Worker owns indexing: it runs the SearchIndexingHandler (writes a document per JobIndexRequested)
         // and the nightly reconcile/rebuild (F9-T02/T08), so it composes the Typesense adapter. The Api also

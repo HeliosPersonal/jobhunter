@@ -178,18 +178,18 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton(sp =>
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Reporting.NarrativeSynthesisOptions>>().Value);
-        services.AddScoped<Reporting.INarrativeSynthesizer, Reporting.NarrativeSynthesizer>();
+        // The synthesiser itself (INarrativeSynthesizer) is a pipeline collaborator: it is a dependency of the
+        // Wolverine-discovered DigestAssembler and it depends in turn on the Claude request-builder/result-parser
+        // ports. Like the RunOrchestrator's batch collaborators above, it is composed only by the host that runs
+        // the pipeline (the Worker), alongside AddJobHunterClaude — never in a read-only host such as the Api,
+        // whose composition root must not require an Anthropic key it never uses.
 
-        // F5 delivery (T08, ADR-F5-0002): the delivery handler consumes DigestReady, renders the stored digest
-        // and sends each message exactly once, writing a delivery-log row immediately after each send (S1). It
-        // is discovered and constructed by Wolverine like every other handler; only its one tunable — the
-        // Owner's chat id, the chat_id half of the idempotence key — needs registering, startup-validated so a
-        // digest can never be delivered to an unset chat.
-        services.AddOptions<Delivery.DeliveryOptions>()
-            .Validate(o => o.OwnerChatId != 0, "Delivery:OwnerChatId must be set.")
-            .ValidateOnStart();
-        services.AddSingleton(sp =>
-            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Delivery.DeliveryOptions>>().Value);
+        // F5 delivery (T08/T09, ADR-F5-0001/0002): the delivery handler is fired by the 07:00 slot
+        // (DigestDeliveryDue), resolves the day's Run, renders its stored digest and sends each message exactly
+        // once, writing a delivery-log row immediately after each send (S1). It is a Wolverine-discovered pipeline
+        // handler, so its one tunable — DeliveryOptions.OwnerChatId, the chat_id half of the idempotence key — is
+        // registered and startup-validated by the pipeline host, not here: a read-only host such as the Api must
+        // not be forced to configure a chat id it never delivers to.
 
         return services;
     }
