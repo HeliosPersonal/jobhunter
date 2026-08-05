@@ -51,6 +51,12 @@ public sealed class EndpointsHostFactory : WebApplicationFactory<Program>
     /// <summary>The in-process text extractor behind the upload service; a substitute needs no real bytes.</summary>
     public ICvTextExtractor CvTextExtractor { get; } = Substitute.For<ICvTextExtractor>();
 
+    /// <summary>The match repository the re-match scheduler re-stales through when a new CV version activates.</summary>
+    public IMatchRepository Matches { get; } = Substitute.For<IMatchRepository>();
+
+    /// <summary>The re-match backlog the scheduler enqueues recent live jobs onto when a new CV version activates.</summary>
+    public IReMatchBacklog ReMatchBacklog { get; } = Substitute.For<IReMatchBacklog>();
+
     /// <summary>A client presenting a valid Owner token with the given scope (read by default).</summary>
     public HttpClient OwnerClient(string scope = "jobhunter:read")
     {
@@ -110,6 +116,14 @@ public sealed class EndpointsHostFactory : WebApplicationFactory<Program>
             services.AddScoped(_ => CvVersions);
             services.RemoveAll<ICvTextExtractor>();
             services.AddSingleton(CvTextExtractor);
+
+            // A genuinely new CV version activates inline through the ReMatchScheduler (AC-08), which re-stales
+            // matches and enqueues recent live jobs. Substitute its two write ports so activation stays offline;
+            // without these the real EF/Dapper adapters dial the unreachable test database and the upload 500s.
+            services.RemoveAll<IMatchRepository>();
+            services.AddScoped(_ => Matches);
+            services.RemoveAll<IReMatchBacklog>();
+            services.AddScoped(_ => ReMatchBacklog);
         });
     }
 }
