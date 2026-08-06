@@ -198,6 +198,14 @@ public static class DependencyInjection
         // registered by Infrastructure.
         services.AddScoped<Actions.RecordCardActionHandler>();
 
+        // F6 application tracking (T03): OwnerActionHandler is discovered by Wolverine for OwnerActionRecorded
+        // like every other pipeline handler, so it is not registered here; only its ReminderPolicy dependency
+        // needs to be resolvable. The SAD §8 thresholds are configuration — until the reminder sweep (T06)
+        // binds them from options, the handler resolves the documented defaults (Applied 10 d / Interview 7 d /
+        // Saved 5 d) so a permitted transition can reschedule next_action_at. Its IApplicationRepository is
+        // registered by Infrastructure.
+        services.AddSingleton(Domain.Applications.ReminderPolicy.Default);
+
         return services;
     }
 }

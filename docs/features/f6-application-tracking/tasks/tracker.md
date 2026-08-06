@@ -2,7 +2,7 @@
 status: Draft
 owner: "Viacheslav Melnichenko"
 reviewers: ["Tech Lead (Viacheslav)"]
-updated_at: "2026-08-06T15"
+updated_at: "2026-08-06T16"
 feature_size: "M"
 stage: "13"
 ticket: ""
@@ -21,7 +21,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 |---|---|---|---|---|---|
 | T01 | [[T01-domain-application\|Domain: Application, TransitionRules, ReminderPolicy]] | domain | — | M | done |
 | T02 | [[T02-application-persistence\|Migration and repositories]] | infra/db | T01 | S | done |
-| T03 | [[T03-owner-action-handler\|Owner action handler]] | app | T02 | M | pending |
+| T03 | [[T03-owner-action-handler\|Owner action handler]] | app | T02 | M | done |
 | T04 | [[T04-pipeline-query\|Pipeline query and history view]] | app | T02 | M | pending |
 | T05 | [[T05-job-closure\|Job closure handling]] | app | T03 | S | pending |
 | T06 | [[T06-reminder-sweep\|Reminder sweep]] | app | T04 | M | pending |
@@ -87,3 +87,19 @@ See [[../../../IMPLEMENTATION-READINESS]] §4 for the full per-task checklist.
   and the reminder-sweep and pipeline queries are `idx_applications_due`/`idx_applications_pipeline`-covered
   (query-plan assertions with no `Seq Scan`). The `last_reminder_condition`/`last_reminder_at` columns are
   deferred to T06, where reminder suppression (QG-3) gives them behaviour and tests.
+- **T03** — the owner-action handler. Two integration events join `JobHunter.Contracts.Pipeline`:
+  `OwnerActionRecorded` (the F5 digest tap — `JobId`, `Action` as string constants `Open`/`Ignore`/`Save`/
+  `Applied`, `ChatId`, `OccurredAt`) and `ApplicationStatusChanged` (`ApplicationId`, `JobId`, `FromStatus`,
+  `ToStatus`, `OccurredAt`), both registered in `PipelineEventContext`. `OwnerActionHandler`
+  (`Application/Applications/`, Wolverine-discovered) loads the application for the job, creates it lazily in
+  `New` on the first action (S2 — a delivered card with no action creates nothing), maps the action to a
+  status (`Save→Saved`, `Ignore→Ignored`, `Applied→Applied`; `Open` is a URL button with no pipeline effect),
+  calls `ChangeStatus`, persists, and publishes `ApplicationStatusChanged` — the status change, the history
+  row and the outbox message committing together in the one Wolverine EF transaction (AC-03). A refused
+  transition changes nothing and publishes nothing (AC-02, a value not an exception). Idempotence is the
+  SAD §8 key `(application_id, to_status, occurred_at)`: the durable inbox collapses a redelivered envelope,
+  and as a second net the handler skips an action whose exact `(to, occurred_at)` transition already exists,
+  so a double-tap appends no second transition and re-emits nothing. Invariant 7 holds structurally — the
+  handler has no notifier or HTTP dependency, so setting `Applied` can only write a transition and the event.
+  The weighted outcome signal (S4) is T08's, which depends on this. `ReminderPolicy.Default` is registered so
+  the handler can reschedule `next_action_at`; T06 will bind the thresholds from options.
