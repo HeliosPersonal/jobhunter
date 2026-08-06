@@ -153,6 +153,35 @@ public sealed class WeightFitterTests
     }
 
     [Fact]
+    public void The_career_trajectory_dimensions_fit_like_any_other_under_the_same_floor_and_bound()
+    {
+        // TUNE-08 / T10: AiUsage and RoleFamily are ordinary dimensions to the fitter. A consistently saved
+        // AiPlatform role and a consistently ignored EnterpriseCrud role each earn a weight, in the right
+        // direction, citing their signals and inside the [-1, +1] bound — no special-casing in the fitter.
+        var aiPlatform = Repeat(4, () => Fact(SignalKind.Saved, Dimension.RoleFamily, "AiPlatform", ageDays: 2));
+        var crud = Repeat(5, () => Fact(SignalKind.Ignored, Dimension.RoleFamily, "EnterpriseCrud", ageDays: 2));
+        var highAi = Repeat(4, () => Fact(SignalKind.Saved, Dimension.AiUsage, "High", ageDays: 2));
+
+        var model = WeightFitter.Fit([.. aiPlatform, .. crud, .. highAi], Options);
+
+        var platform = model.Weights
+            .Where(w => w.Dimension == Dimension.RoleFamily && w.Value == "AiPlatform")
+            .ShouldHaveSingleItem();
+        platform.Weight.ShouldBeGreaterThan(0m);
+        platform.SupportingSignalIds.Count.ShouldBe(4);
+
+        var enterpriseCrud = model.Weights
+            .Where(w => w.Dimension == Dimension.RoleFamily && w.Value == "EnterpriseCrud")
+            .ShouldHaveSingleItem();
+        enterpriseCrud.Weight.ShouldBeLessThan(0m);
+
+        var usage = model.Weights.Where(w => w.Dimension == Dimension.AiUsage).ShouldHaveSingleItem();
+        usage.Value.ShouldBe("High");
+        usage.Weight.ShouldBeGreaterThan(0m);
+        usage.Weight.ShouldBeInRange(PreferenceWeight.MinWeight, PreferenceWeight.MaxWeight);
+    }
+
+    [Fact]
     public void An_outcome_signal_outweighs_a_card_action_of_the_opposite_sign()
     {
         // One interview (weight 4.0, positive) against three ignores (weight 1.0 each, negative) for the same

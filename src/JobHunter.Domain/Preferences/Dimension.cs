@@ -33,4 +33,12 @@ public enum Dimension
 
     /// <summary>The employment type — full-time, contract and so on.</summary>
     EmploymentType,
+
+    /// <summary>How much the role is about building with or on AI systems, from the F3 enrichment
+    /// (<c>ai_usage</c>, e.g. <c>High</c>); lets the loop reinforce the Owner's AI trajectory (TUNE-08).</summary>
+    AiUsage,
+
+    /// <summary>What the role actually is, classified from the described work by the F3 enrichment
+    /// (<c>role_family</c>, e.g. <c>AiPlatform</c>); lets the loop pull toward the target family (TUNE-03/08).</summary>
+    RoleFamily,
 }
