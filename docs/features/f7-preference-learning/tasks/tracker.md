@@ -30,7 +30,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T07 | [[T07-suppression-floor\|Suppression evaluation and the card floor]] | app | T06, **O5 [?]** | M | pending |
 | T08 | [[T08-explainability-overrides\|Explainability view and Owner overrides]] | app/api | T07, ⟂F9 T04 | M | pending |
 | T09 | [[T09-corpus-and-metrics\|Synthetic corpus, property suite and precision tracking]] | tests | T04, T07 | L | pending |
-| T10 | [[T10-aiusage-rolefamily-dimensions\|Add AiUsage and RoleFamily as preference dimensions]] | domain | T01 | M | pending |
+| T10 | [[T10-aiusage-rolefamily-dimensions\|Add AiUsage and RoleFamily as preference dimensions]] | domain | T01 | M | done |
 
 **9 tasks · 2×S + 5×M + 2×L ≈ 5 person-days.**
 
