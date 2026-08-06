@@ -116,6 +116,10 @@ public static class DependencyInjection
         // its latest score and its current match, newest-first and capped, so /saved renders the same card the
         // digest did (AC-12). Read-only Dapper; F5 reads the signals F5/F7 write.
         services.AddScoped<ISavedRolesQuery, SavedRolesQuery>();
+        // F5 /stats (T11): this week's engagement — delivered from the append-only delivery_log, and the
+        // opened/ignored/saved/applied reactions from signals — over a half-open window, so the command can
+        // compare it against the week before. Read-only Dapper.
+        services.AddScoped<IWeeklyStatsQuery, WeeklyStatsQuery>();
         services.AddScoped<IStaleJobsQuery, StaleJobsQuery>();
         services.AddScoped<IRawPostingReader, RawPostingReaderQuery>();
         services.AddScoped<IReprocessableJobsQuery, ReprocessableJobsQuery>();
