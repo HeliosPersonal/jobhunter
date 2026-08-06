@@ -67,4 +67,10 @@ public static class Telemetry
 
     public static readonly Counter<long> RankingSuppressed =
         Meter.CreateCounter<long>("jobhunter.ranking.suppressed", "jobs", "Matched jobs suppressed with a reason");
+
+    // F7 T07 (AC-06): an Owner override contradicted the model's verdict — a never-suppress rule forced a
+    // hidden job to appear, or an always-suppress rule hid a shown one. Counted so the tension is visible,
+    // never a silent rewrite (invariant 11).
+    public static readonly Counter<long> RankingOverrideApplied =
+        Meter.CreateCounter<long>("jobhunter.ranking.override_applied", "jobs", "Owner override reversed the model verdict");
 }

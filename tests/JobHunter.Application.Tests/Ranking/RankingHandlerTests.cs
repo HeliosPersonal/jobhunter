@@ -4,6 +4,7 @@ using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Intelligence;
 using JobHunter.Domain.Jobs;
 using JobHunter.Domain.Pipeline;
+using JobHunter.Domain.Preferences;
 using JobHunter.Domain.Profiles;
 using JobHunter.TestKit;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -35,6 +36,8 @@ public sealed class RankingHandlerTests
     private readonly IRankingScopeQuery _scope = Substitute.For<IRankingScopeQuery>();
     private readonly IProfileRepository _profiles = Substitute.For<IProfileRepository>();
     private readonly IPreferenceModelQuery _preferences = Substitute.For<IPreferenceModelQuery>();
+    private readonly ISuppressionOverrideQuery _overrides = Substitute.For<ISuppressionOverrideQuery>();
+    private readonly IJobFactsSnapshotQuery _facts = Substitute.For<IJobFactsSnapshotQuery>();
     private readonly FakeScoreRepository _scores = new();
     private readonly FakeClock _clock = new(Now);
     private readonly IMessageBus _bus = Substitute.For<IMessageBus>();
@@ -44,15 +47,23 @@ public sealed class RankingHandlerTests
         _profiles.FindActiveAsync(Arg.Any<CancellationToken>()).Returns(ActiveProfile());
         _preferences.FindActiveAsync(Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<CancellationToken>())
             .Returns((ActivePreference?)null);
+        _overrides.AllAsync(Arg.Any<CancellationToken>()).Returns((IReadOnlyList<SuppressionOverride>)[]);
     }
+
+    private void GivenOverrides(params SuppressionOverride[] rules) =>
+        _overrides.AllAsync(Arg.Any<CancellationToken>()).Returns((IReadOnlyList<SuppressionOverride>)rules);
+
+    private void GivenFacts(Guid jobId, Dimension dimension, params string[] values) =>
+        _facts.SnapshotAsync(jobId, Arg.Any<CancellationToken>())
+            .Returns(JobFacts.Create(new Dictionary<Dimension, IReadOnlyList<string>> { [dimension] = values }));
 
     private static Profile ActiveProfile(bool salaryFloor = false) =>
         new(ProfileId, isActive: true, "Owner", salaryFloor ? 120000m : null, salaryFloor ? "USD" : null,
             TimezoneBand.EMEA, ["Portugal"], [EmploymentType.FullTime], RunStart);
 
     private RankingHandler CreateHandler(RankingOptions? options = null) =>
-        new(_runs, _scope, _profiles, _preferences, _scores, options ?? new RankingOptions(), _clock,
-            NullLogger<RankingHandler>.Instance);
+        new(_runs, _scope, _profiles, _preferences, _overrides, _facts, _scores, options ?? new RankingOptions(),
+            _clock, NullLogger<RankingHandler>.Instance);
 
     private static Run RankingRun()
     {
@@ -292,6 +303,61 @@ public sealed class RankingHandlerTests
         _scores.Stored.ShouldBeEmpty();
         run.State.ShouldBe(RunState.Researching);
         Publishes().OfType<RankingCompleted>().ShouldHaveSingleItem().RankedCount.ShouldBe(0);
+    }
+
+    // ---- T07 / AC-06: Owner overrides outrank the learner --------------------------------------
+
+    [Fact]
+    public async Task A_never_suppress_override_forces_a_below_threshold_job_to_appear()
+    {
+        var run = RankingRun();
+        GivenRun(run);
+        var forced = Guid.CreateVersion7();
+        // The job would fall below the presentation threshold, but the Owner said Germany must always show.
+        GivenJobs(Job(forced, 5, enriched: false));
+        GivenOverrides(new SuppressionOverride(
+            Guid.CreateVersion7(), Dimension.Country, "DE", SuppressionMode.NeverSuppress, Now));
+        GivenFacts(forced, Dimension.Country, "DE");
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        var score = _scores.Stored.Single();
+        score.Suppressed.ShouldBeFalse();
+        score.SuppressionReason.ShouldBeNull();
+        Publishes().OfType<RankingCompleted>().ShouldHaveSingleItem().SuppressedCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task An_always_suppress_override_hides_a_shown_job_with_the_override_reason()
+    {
+        var run = RankingRun();
+        GivenRun(run);
+        var hidden = Guid.CreateVersion7();
+        // A strong match the model would show, but the Owner said this role family must always hide.
+        GivenJobs(Job(hidden, 90));
+        GivenOverrides(new SuppressionOverride(
+            Guid.CreateVersion7(), Dimension.RoleFamily, "Other", SuppressionMode.AlwaysSuppress, Now));
+        GivenFacts(hidden, Dimension.RoleFamily, "Other");
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        var score = _scores.Stored.Single();
+        score.Suppressed.ShouldBeTrue();
+        score.SuppressionReason.ShouldNotBeNull().ShouldContain("Other");
+        Publishes().OfType<RankingCompleted>().ShouldHaveSingleItem().SuppressedCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task With_no_overrides_the_facts_snapshot_is_never_consulted()
+    {
+        var run = RankingRun();
+        GivenRun(run);
+        GivenJobs(Job(Guid.CreateVersion7(), 90));
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        // The common day: no override rule means no per-job facts lookup at all.
+        await _facts.DidNotReceive().SnapshotAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 
     // ---- guards --------------------------------------------------------------------------------

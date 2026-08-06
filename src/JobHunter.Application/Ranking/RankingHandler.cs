@@ -34,6 +34,8 @@ public sealed class RankingHandler(
     IRankingScopeQuery scope,
     IProfileRepository profiles,
     IPreferenceModelQuery preferences,
+    ISuppressionOverrideQuery overrides,
+    IJobFactsSnapshotQuery facts,
     IScoreRepository scores,
     RankingOptions options,
     IClock clock,
@@ -43,6 +45,8 @@ public sealed class RankingHandler(
     private readonly IRankingScopeQuery _scope = scope ?? throw new ArgumentNullException(nameof(scope));
     private readonly IProfileRepository _profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
     private readonly IPreferenceModelQuery _preferences = preferences ?? throw new ArgumentNullException(nameof(preferences));
+    private readonly ISuppressionOverrideQuery _overrides = overrides ?? throw new ArgumentNullException(nameof(overrides));
+    private readonly IJobFactsSnapshotQuery _facts = facts ?? throw new ArgumentNullException(nameof(facts));
     private readonly IScoreRepository _scores = scores ?? throw new ArgumentNullException(nameof(scores));
     private readonly RankingOptions _options = options ?? throw new ArgumentNullException(nameof(options));
     private readonly IClock _clock = clock ?? throw new ArgumentNullException(nameof(clock));
@@ -85,6 +89,7 @@ public sealed class RankingHandler(
             .ConfigureAwait(false);
 
         var scored = ScoreAll(jobs, profile, preference);
+        scored = await ApplyOverridesAsync(scored, cancellationToken).ConfigureAwait(false);
 
         var suppressedCount = 0;
         foreach (var item in scored)
@@ -164,6 +169,50 @@ public sealed class RankingHandler(
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// Applies the Owner's <see cref="SuppressionOverride"/> rules on top of the model's verdicts (T07, AC-06).
+    /// On the common day there are none, so this is a single cheap read and an untouched list — no per-job facts
+    /// lookup at all. When rules exist, each job's current facts are snapshotted and the pure
+    /// <see cref="SuppressionOverrideResolver"/> decides the final verdict; any tension where an override
+    /// contradicted the model is logged and counted, never a silent rewrite (invariant 11).
+    /// </summary>
+    private async Task<List<ScoredJob>> ApplyOverridesAsync(
+        List<ScoredJob> scored, CancellationToken cancellationToken)
+    {
+        var rules = await _overrides.AllAsync(cancellationToken).ConfigureAwait(false);
+        if (rules.Count == 0)
+        {
+            return scored;
+        }
+
+        var adjusted = new List<ScoredJob>(scored.Count);
+        foreach (var item in scored)
+        {
+            var facts = await _facts.SnapshotAsync(item.Result.JobId, cancellationToken).ConfigureAwait(false);
+            if (facts is null)
+            {
+                // The job closed between scoring and this read; no facts to match a rule on, so the model's
+                // verdict stands. It is still scored and, if suppressed, still reasoned (invariant 11).
+                adjusted.Add(item);
+                continue;
+            }
+
+            var resolution = SuppressionOverrideResolver.Resolve(item.Reason, facts, rules);
+            if (resolution.Tension is not null)
+            {
+                // Non-silent: the override reversed the model, so record the tension for the Owner (AC-06).
+                Telemetry.RankingOverrideApplied.Add(1);
+                _logger.LogInformation(
+                    "Owner override changed the ranking verdict for Job {JobId}: {Tension}",
+                    item.Result.JobId, resolution.Tension);
+            }
+
+            adjusted.Add(item with { Reason = resolution.Reason });
+        }
+
+        return adjusted;
     }
 
     private async Task AdvanceAndPublishAsync(

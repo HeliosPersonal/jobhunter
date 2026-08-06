@@ -365,6 +365,7 @@ public sealed class CvLeakageScanTests
         private Task RankAsync() => InScopeAsync<RankingHandler>(logger =>
             new RankingHandler(
                     Runs(), new RankingScopeQuery(_factory), Profiles(), new NullPreferenceModelQuery(),
+                    new SuppressionOverrideQuery(_factory), new JobFactsSnapshotQuery(_factory),
                     Scores(), new RankingOptions(), _clock, logger)
                 .Handle(new MatchingCompleted(_runId, JobCount, 0, 0m, Now), _bus, CancellationToken.None));
 

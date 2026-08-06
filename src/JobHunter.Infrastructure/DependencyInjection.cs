@@ -123,6 +123,9 @@ public static class DependencyInjection
         services.AddScoped<IJobFactsSnapshotQuery, JobFactsSnapshotQuery>();
         // F7 T05: the read side of the weekly refit — the 180-day signal window the WeightFitter fits on.
         services.AddScoped<ISignalWindowQuery, SignalWindowQuery>();
+        // F7 T07: the Owner's stated override rules ranking consults to force a category to always appear
+        // (NeverSuppress) or always hide (AlwaysSuppress), outranking the learner (AC-06). Read-only Dapper.
+        services.AddScoped<ISuppressionOverrideQuery, SuppressionOverrideQuery>();
         services.AddScoped<ICardResolutionQuery, CardResolutionQuery>();
         // F6 T04: the two read sides of application tracking. The pipeline groups non-archived applications by
         // status, most-recently-active first (AC-01); the history returns one application with its complete,
