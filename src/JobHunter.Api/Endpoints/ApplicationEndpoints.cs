@@ -28,19 +28,25 @@ public static class ApplicationEndpoints
     {
         ArgumentNullException.ThrowIfNull(app);
 
+        // Each read declares its 200 response type so the OpenAPI document carries a described body the F6
+        // example transformer can attach a concrete example to (T09 done-when 5) — a documented endpoint is
+        // never an undemonstrated one.
         app.MapGet("/api/applications", HandlePipelineAsync)
             .WithName("ApplicationPipeline")
             .WithSummary("The application pipeline, grouped by status, with per-status counts.")
+            .Produces<ApplicationPipelineResponse>()
             .RequireAuthorization(ApiSecurityExtensions.ReadPolicy);
 
         app.MapGet("/api/applications/due", HandleDueAsync)
             .WithName("ApplicationsDue")
             .WithSummary("The applications whose next action is due now — what needs attention.")
+            .Produces<IReadOnlyList<DueReminderResponse>>()
             .RequireAuthorization(ApiSecurityExtensions.ReadPolicy);
 
         app.MapGet("/api/applications/{id:guid}", HandleDetailAsync)
             .WithName("ApplicationDetail")
             .WithSummary("One application with its complete transition history and its notes.")
+            .Produces<ApplicationDetailResponse>()
             .RequireAuthorization(ApiSecurityExtensions.ReadPolicy);
 
         app.MapPost("/api/applications/{id:guid}/status", HandleStatusChangeAsync)

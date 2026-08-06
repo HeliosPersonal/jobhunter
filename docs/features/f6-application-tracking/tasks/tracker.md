@@ -27,7 +27,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T06 | [[T06-reminder-sweep\|Reminder sweep]] | app | T04 | M | done |
 | T07 | [[T07-notes\|Notes]] | app | T04 | S | done |
 | T08 | [[T08-outcome-signals\|Outcome signals]] | app | T03 | M | done |
-| T09 | [[T09-commands-and-api\|Telegram commands and API endpoints]] | telegram/api | T04, T06, T07, ⟂F9 T04 | M | pending |
+| T09 | [[T09-commands-and-api\|Telegram commands and API endpoints]] | telegram/api | T04, T06, T07, ⟂F9 T04 | M | done |
 
 **9 tasks · 3×S + 6×M + 0×L ≈ 3.75 person-days.**
 

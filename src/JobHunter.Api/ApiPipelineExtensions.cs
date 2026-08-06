@@ -33,8 +33,11 @@ public static class ApiPipelineExtensions
                 context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
             });
 
-        // .NET built-in OpenAPI document; served raw at /openapi/v1.json and rendered by Scalar.
-        builder.Services.AddOpenApi();
+        // .NET built-in OpenAPI document; served raw at /openapi/v1.json and rendered by Scalar. The F6
+        // operation transformer attaches a concrete example to each application-tracking endpoint (T09
+        // done-when 5), so a documented endpoint is never an undemonstrated one.
+        builder.Services.AddOpenApi(options =>
+            options.AddOperationTransformer<Endpoints.ApplicationOpenApiExamples>());
 
         builder.Services.AddRateLimiter(options =>
         {
