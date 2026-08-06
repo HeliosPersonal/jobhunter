@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Hangfire;
+using JobHunter.Application.Preferences;
 using JobHunter.Contracts.Pipeline;
 using JobHunter.Domain.Abstractions;
 using JobHunter.Infrastructure.Configuration;
@@ -120,6 +121,8 @@ public static class DependencyInjection
         services.AddScoped<IRankingScopeQuery, RankingScopeQuery>();
         services.AddScoped<ICurrentMatchQuery, CurrentMatchQuery>();
         services.AddScoped<IJobFactsSnapshotQuery, JobFactsSnapshotQuery>();
+        // F7 T05: the read side of the weekly refit — the 180-day signal window the WeightFitter fits on.
+        services.AddScoped<ISignalWindowQuery, SignalWindowQuery>();
         services.AddScoped<ICardResolutionQuery, CardResolutionQuery>();
         // F6 T04: the two read sides of application tracking. The pipeline groups non-archived applications by
         // status, most-recently-active first (AC-01); the history returns one application with its complete,
