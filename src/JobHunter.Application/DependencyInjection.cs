@@ -191,6 +191,13 @@ public static class DependencyInjection
         // registered and startup-validated by the pipeline host, not here: a read-only host such as the Api must
         // not be forced to configure a chat id it never delivers to.
 
+        // F5 card actions (T10, AC-08): the handler a card tap resolves to — it snapshots the job's facts at
+        // the tap and captures one card-action signal in a single step. Unlike the pipeline handlers above it
+        // is invoked directly (by the Telegram callback router), not discovered by Wolverine, so it is
+        // registered here; its collaborators (the facts snapshot query and the signal repository) are
+        // registered by Infrastructure.
+        services.AddScoped<Actions.RecordCardActionHandler>();
+
         return services;
     }
 }

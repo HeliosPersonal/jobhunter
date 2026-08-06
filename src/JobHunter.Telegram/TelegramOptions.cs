@@ -46,4 +46,13 @@ public sealed class TelegramOptions
     /// <summary>How many times a single send is retried on a <c>429</c> before it is abandoned as failed.</summary>
     [Range(1, 10)]
     public int MaxSendAttempts { get; init; } = 5;
+
+    /// <summary>
+    /// How far back a card-action tap may still resolve (F5 T10, AC-09). A callback carries only a signed
+    /// short id, resolved against the cards of digests generated within this window; a tap on a card older
+    /// than this falls out of scope and gets the plain "this role has closed" message rather than resolving
+    /// against an unbounded history. Owned here because the Telegram layer owns "how stale a tap may be".
+    /// </summary>
+    [Range(typeof(TimeSpan), "01:00:00", "30.00:00:00")]
+    public TimeSpan CallbackResolutionWindow { get; init; } = TimeSpan.FromDays(7);
 }

@@ -9,32 +9,34 @@ using Xunit;
 namespace JobHunter.Telegram.Tests.Transport;
 
 /// <summary>
-/// The allowlist gate at the front of update processing (AC-10). An update from an unauthorised chat, or one
-/// with no chat at all, is dropped before routing; only the Owner's update passes. Routing itself is T10/T11
-/// — here we prove the gate.
+/// The allowlist gate at the front of update processing (AC-10) and the callback routing behind it (T10).
+/// An update from an unauthorised chat, or one with no chat at all, is dropped before routing; only the
+/// Owner's update passes, and an authorised callback query is routed to the <see cref="ICallbackRouter"/>
+/// while an authorised message is not (message routing is T11).
 /// </summary>
 public sealed class OwnerGatedUpdateProcessorTests
 {
     private const long OwnerChat = 4242;
 
-    private static OwnerGatedUpdateProcessor Build(out CapturingLogger<OwnerAuthorizer> authLog)
+    private static OwnerGatedUpdateProcessor Build(out CapturingLogger<OwnerAuthorizer> authLog, out RecordingCallbackRouter router)
     {
         var options = Options.Create(new TelegramOptions { BotToken = "t", AllowedChatIds = [OwnerChat] });
         authLog = new CapturingLogger<OwnerAuthorizer>();
         var authorizer = new OwnerAuthorizer(options, authLog);
-        return new OwnerGatedUpdateProcessor(authorizer, NullLogger<OwnerGatedUpdateProcessor>.Instance);
+        router = new RecordingCallbackRouter();
+        return new OwnerGatedUpdateProcessor(authorizer, router, NullLogger<OwnerGatedUpdateProcessor>.Instance);
     }
 
     private static TelegramUpdate MessageFrom(long chatId, long updateId = 1) =>
         new(updateId, new TelegramMessage(new TelegramChat(chatId), "/digest"), null);
 
     private static TelegramUpdate CallbackFrom(long chatId, long updateId = 1) =>
-        new(updateId, null, new TelegramCallbackQuery("cb1", "ignore:ab12", new TelegramMessage(new TelegramChat(chatId), null)));
+        new(updateId, null, new TelegramCallbackQuery("cb1", "ign:ab12", new TelegramMessage(new TelegramChat(chatId), null)));
 
     [Fact]
     public async Task An_update_from_an_unauthorised_chat_is_dropped_and_logged()
     {
-        var processor = Build(out var authLog);
+        var processor = Build(out var authLog, out _);
 
         await processor.ProcessAsync(MessageFrom(9999));
 
@@ -44,7 +46,7 @@ public sealed class OwnerGatedUpdateProcessorTests
     [Fact]
     public async Task The_owners_message_passes_the_gate()
     {
-        var processor = Build(out var authLog);
+        var processor = Build(out var authLog, out _);
 
         await processor.ProcessAsync(MessageFrom(OwnerChat));
 
@@ -54,7 +56,7 @@ public sealed class OwnerGatedUpdateProcessorTests
     [Fact]
     public async Task The_owners_callback_query_passes_the_gate()
     {
-        var processor = Build(out var authLog);
+        var processor = Build(out var authLog, out _);
 
         await processor.ProcessAsync(CallbackFrom(OwnerChat));
 
@@ -62,9 +64,41 @@ public sealed class OwnerGatedUpdateProcessorTests
     }
 
     [Fact]
+    public async Task The_owners_callback_query_is_routed_to_the_callback_router()
+    {
+        var processor = Build(out _, out var router);
+        var update = CallbackFrom(OwnerChat);
+
+        await processor.ProcessAsync(update);
+
+        var routed = router.Routed.ShouldHaveSingleItem();
+        routed.ShouldBe(update.CallbackQuery);
+    }
+
+    [Fact]
+    public async Task An_authorised_message_without_a_callback_is_not_routed_to_the_callback_router()
+    {
+        var processor = Build(out _, out var router);
+
+        await processor.ProcessAsync(MessageFrom(OwnerChat));
+
+        router.Routed.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task An_unauthorised_callback_query_is_not_routed()
+    {
+        var processor = Build(out _, out var router);
+
+        await processor.ProcessAsync(CallbackFrom(9999));
+
+        router.Routed.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task An_update_with_no_chat_is_dropped()
     {
-        var processor = Build(out _);
+        var processor = Build(out _, out _);
         var chatless = new TelegramUpdate(1, null, null);
 
         // No chat means not the Owner's — dropped silently, not routed and not thrown.
@@ -74,7 +108,7 @@ public sealed class OwnerGatedUpdateProcessorTests
     [Fact]
     public async Task A_null_update_is_rejected()
     {
-        var processor = Build(out _);
+        var processor = Build(out _, out _);
 
         await Should.ThrowAsync<ArgumentNullException>(() => processor.ProcessAsync(null!));
     }
@@ -82,18 +116,29 @@ public sealed class OwnerGatedUpdateProcessorTests
     [Fact]
     public async Task An_authorised_callback_query_without_a_message_chat_is_dropped()
     {
-        var processor = Build(out _);
+        var processor = Build(out _, out var router);
         // A callback with no message (so no chat) resolves to no chat id — treated as not the Owner's.
         var chatless = new TelegramUpdate(1, null, new TelegramCallbackQuery("cb1", "x", null));
 
         await Should.NotThrowAsync(() => processor.ProcessAsync(chatless));
+        router.Routed.ShouldBeEmpty();
     }
 
     [Fact]
     public void A_null_authorizer_is_rejected()
     {
         Should.Throw<ArgumentNullException>(() =>
-            new OwnerGatedUpdateProcessor(null!, NullLogger<OwnerGatedUpdateProcessor>.Instance));
+            new OwnerGatedUpdateProcessor(null!, new RecordingCallbackRouter(), NullLogger<OwnerGatedUpdateProcessor>.Instance));
+    }
+
+    [Fact]
+    public void A_null_router_is_rejected()
+    {
+        var options = Options.Create(new TelegramOptions { BotToken = "t", AllowedChatIds = [OwnerChat] });
+        var authorizer = new OwnerAuthorizer(options, new CapturingLogger<OwnerAuthorizer>());
+
+        Should.Throw<ArgumentNullException>(() =>
+            new OwnerGatedUpdateProcessor(authorizer, null!, NullLogger<OwnerGatedUpdateProcessor>.Instance));
     }
 
     [Fact]
@@ -102,6 +147,7 @@ public sealed class OwnerGatedUpdateProcessorTests
         var options = Options.Create(new TelegramOptions { BotToken = "t", AllowedChatIds = [OwnerChat] });
         var authorizer = new OwnerAuthorizer(options, new CapturingLogger<OwnerAuthorizer>());
 
-        Should.Throw<ArgumentNullException>(() => new OwnerGatedUpdateProcessor(authorizer, null!));
+        Should.Throw<ArgumentNullException>(() =>
+            new OwnerGatedUpdateProcessor(authorizer, new RecordingCallbackRouter(), null!));
     }
 }

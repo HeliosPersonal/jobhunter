@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using JobHunter.Domain.Abstractions;
 using JobHunter.Telegram.Auth;
+using JobHunter.Telegram.Callbacks;
 using JobHunter.Telegram.Transport;
 using Microsoft.Extensions.Options;
 
@@ -47,11 +48,21 @@ public static class TelegramHostExtensions
                 client.BaseAddress = new Uri($"https://api.telegram.org/bot{options.BotToken}/");
             });
 
-        services.AddSingleton<INotifier>(sp => new TelegramNotifier(
+        // One TelegramNotifier instance backs both roles: the INotifier the delivery loop sends through and the
+        // ICallbackResponder a tap acknowledges through, so acks share the same client and token-free paths.
+        services.AddSingleton(sp => new TelegramNotifier(
             sp.GetRequiredService<IHttpClientFactory>().CreateClient(TelegramNotifier.HttpClientName),
             sp.GetRequiredService<TelegramSendPacer>(),
             sp.GetRequiredService<IOptions<TelegramOptions>>().Value.MaxSendAttempts,
             sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<TelegramNotifier>>()));
+        services.AddSingleton<INotifier>(sp => sp.GetRequiredService<TelegramNotifier>());
+        services.AddSingleton<ICallbackResponder>(sp => sp.GetRequiredService<TelegramNotifier>());
+
+        // The card-action callback path (T10): the HMAC short-id codec, and the router that opens a DI scope
+        // per tap and drives the CallbackHandler. The processor above depends on the router, not the handler,
+        // so its routing decision stays a singleton while the action write runs scoped.
+        services.AddSingleton<CallbackDataCodec>();
+        services.AddSingleton<ICallbackRouter, ScopedCallbackRouter>();
 
         services.AddHostedService<TelegramLongPollService>();
 
