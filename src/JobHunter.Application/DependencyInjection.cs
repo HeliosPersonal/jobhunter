@@ -198,6 +198,12 @@ public static class DependencyInjection
         // registered by Infrastructure.
         services.AddScoped<Actions.RecordCardActionHandler>();
 
+        // F6 application tracking (T07, AC-06): the note handler is the single write path both the Telegram
+        // /note command and the API POST …/notes drive. Like RecordCardActionHandler it needs synchronous
+        // feedback (a distinct AddNoteOutcome the caller renders), so it is invoked directly rather than
+        // discovered by Wolverine, and is registered here; IApplicationRepository is registered by Infrastructure.
+        services.AddScoped<Applications.AddNoteHandler>();
+
         // F6 application tracking (T03/T06): the SAD §8 reminder thresholds are configuration, not hard-coded
         // durations. ReminderOptions binds the day counts (defaults = SAD §8: Applied 10 d / Interview 7 d /
         // Saved 5 d) and builds the one ReminderPolicy that both consumers resolve through — the T03

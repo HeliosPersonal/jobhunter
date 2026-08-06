@@ -2,7 +2,7 @@
 status: Draft
 owner: "Viacheslav Melnichenko"
 reviewers: ["Tech Lead (Viacheslav)"]
-updated_at: "2026-08-06T20"
+updated_at: "2026-08-06T21"
 feature_size: "M"
 stage: "13"
 ticket: ""
@@ -25,7 +25,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T04 | [[T04-pipeline-query\|Pipeline query and history view]] | app | T02 | M | done |
 | T05 | [[T05-job-closure\|Job closure handling]] | app | T03 | S | done |
 | T06 | [[T06-reminder-sweep\|Reminder sweep]] | app | T04 | M | done |
-| T07 | [[T07-notes\|Notes]] | app | T04 | S | pending |
+| T07 | [[T07-notes\|Notes]] | app | T04 | S | done |
 | T08 | [[T08-outcome-signals\|Outcome signals]] | app | T03 | M | pending |
 | T09 | [[T09-commands-and-api\|Telegram commands and API endpoints]] | telegram/api | T04, T06, T07, ⟂F9 T04 | M | pending |
 
@@ -164,3 +164,21 @@ See [[../../../IMPLEMENTATION-READINESS]] §4 for the full per-task checklist.
   a real database (`ReminderSweepSuppressionTests`, the test-plan sweep suite): a stale application is reminded
   exactly once across seven consecutive daily sweeps, an Owner action that clears the condition the same day takes
   the reminder away, and a shortened threshold governs only the next reschedule, never the already-parked row.
+- **T07** — free-text notes (AC-06). `AddNoteHandler` (`Application/Applications/`) is the single write path both
+  the Telegram `/note` command and the API `POST …/notes` drive; unlike the Wolverine-discovered pipeline handlers
+  it is invoked directly and returns a value-typed `AddNoteOutcome` the caller renders (`Recorded`/`Empty`/`TooLong`/
+  `ApplicationNotFound`), so a refusal is an outcome, not an exception (coding-standards §4). The command is keyed by
+  `JobId` — the same job-scoped write path every F6 handler uses, so it fits the pinned repository surface (QG-1: it
+  loads through `FindByJobAsync`, adds no repository method); the API, which addresses an application by id, resolves
+  the id to its job before dispatching (T09). The handler validates at the boundary as values — a blank/whitespace
+  body → `Empty`, a body over `ApplicationNote.MaxLength` (4 000) → `TooLong` (the length checked here rather than
+  caught from the aggregate) — and a note for an untracked job → `ApplicationNotFound`, never lazily creating an
+  application (a note annotates one, it does not create it, unlike an owner action). On success it appends through
+  `Application.AddNote`, which counts as activity — it advances `last_activity_at` so the note defers the reminder
+  sweep (done-when 4) — without changing the status, and commits through `SaveChangesAsync`. The note body is
+  **never logged** — only its length — because it may contain anything the Owner typed (invariant 12, done-when 3):
+  a `CapturingLogger` unit test drives a secret-shaped body through the handler and asserts no log line carries a
+  fragment of it. Nothing is written on a refusal (`SaveCount` stays 0). AC-06 is proven end-to-end against a real
+  database (`ApplicationPersistenceTests`, the persistence suite): a note added through the real handler over a real
+  repository round-trips with its time, advances `last_activity_at`, and leaves the status unchanged. Registered
+  scoped in Application DI alongside `RecordCardActionHandler`.

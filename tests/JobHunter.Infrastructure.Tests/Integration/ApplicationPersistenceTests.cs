@@ -1,4 +1,5 @@
 using System.Text;
+using JobHunter.Application.Applications;
 using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Applications;
 using JobHunter.Domain.Companies;
@@ -157,6 +158,42 @@ public sealed class ApplicationPersistenceTests
 
         plan.ShouldNotContain("Seq Scan");
         plan.ShouldContain("idx_applications_pipeline");
+    }
+
+    [RequiresDockerFact]
+    public async Task A_note_added_through_the_handler_is_stored_with_its_time_and_counts_as_activity()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+
+        // The application already exists (a note annotates one, it does not create it — T07).
+        var app = App.Create(Guid.CreateVersion7(), seed.JobId, Now, TransitionSource.Telegram);
+        var setup = new ApplicationRepository(seed.Database.CreateContext());
+        setup.Add(app);
+        await setup.SaveChangesAsync();
+
+        // AC-06 driven through the real write path: the T07 handler over a real repository and database.
+        var handler = new AddNoteHandler(
+            new ApplicationRepository(seed.Database.CreateContext()),
+            new SequentialIdGenerator(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<AddNoteHandler>.Instance);
+
+        var outcome = await handler.Handle(
+            new AddNoteCommand(seed.JobId, "Recruiter called; onsite next week.", Now.AddMinutes(5)),
+            CancellationToken.None);
+
+        outcome.ShouldBe(AddNoteOutcome.Recorded);
+
+        // Read it back from a fresh context: the note is persisted with its time, and it advanced
+        // last_activity_at (so it counts as engagement for the reminder sweep) without changing the status.
+        var read = new ApplicationRepository(seed.Database.CreateContext());
+        var loaded = await read.FindByJobAsync(seed.JobId);
+        loaded.ShouldNotBeNull();
+        var note = loaded.Notes.ShouldHaveSingleItem();
+        note.Body.ShouldBe("Recruiter called; onsite next week.");
+        note.CreatedAt.ShouldBe(Now.AddMinutes(5));
+        loaded.LastActivityAt.ShouldBe(Now.AddMinutes(5));
+        loaded.Status.ShouldBe(ApplicationStatus.New);
     }
 
     private static async Task PersistAppliedApplicationAsync(Seed seed)
