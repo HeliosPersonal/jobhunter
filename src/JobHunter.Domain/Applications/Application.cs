@@ -18,6 +18,10 @@ public sealed class Application : Entity
     /// <summary>The <see cref="StatusTransition.Detail"/> recorded on the self-transition a closure appends.</summary>
     public const string PostingClosedDetail = "posting closed";
 
+    /// <summary>The reminder condition recorded when the nudge is about a closed posting (drop it or apply
+    /// elsewhere), rather than a status that has gone stale.</summary>
+    public const string PostingClosedCondition = "posting-closed";
+
     private readonly List<StatusTransition> _transitions = [];
     private readonly List<ApplicationNote> _notes = [];
 
@@ -64,6 +68,13 @@ public sealed class Application : Entity
 
     /// <summary>When a reminder is next due — a stored column, not a computed value (SAD §4 S6).</summary>
     public DateTimeOffset? NextActionAt { get; private set; }
+
+    /// <summary>The condition the last reminder fired for, for one-per-condition suppression (QG-3); <c>null</c>
+    /// until a reminder is recorded, and cleared whenever the Owner acts so a fresh cycle is not suppressed.</summary>
+    public string? LastReminderCondition { get; private set; }
+
+    /// <summary>When the last reminder was recorded; <c>null</c> until one is, cleared on the next action.</summary>
+    public DateTimeOffset? LastReminderAt { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -125,6 +136,11 @@ public sealed class Application : Entity
         var threshold = policy.ThresholdFor(to);
         NextActionAt = threshold is null ? null : now.Add(threshold.Value);
 
+        // Acting clears the reminder condition and resets the threshold (T06 done-when 3): a fresh cycle
+        // starts, so a reminder for the new stage is never suppressed by the previous stage's condition.
+        LastReminderCondition = null;
+        LastReminderAt = null;
+
         var transition = new StatusTransition(
             id: Guid.NewGuid(),
             applicationId: Id,
@@ -148,6 +164,37 @@ public sealed class Application : Entity
         _notes.Add(note);
         LastActivityAt = now;
         return note;
+    }
+
+    /// <summary>
+    /// The condition a reminder would fire for right now: <see cref="PostingClosedCondition"/> when the
+    /// posting has closed (the salient nudge — drop it or apply elsewhere), otherwise <c>stale:{Status}</c>
+    /// naming the status that has gone quiet. The condition is the suppression key: one reminder per
+    /// <c>(application, condition)</c> until it clears or recurs (QG-3, SAD §8).
+    /// </summary>
+    public string CurrentReminderCondition() =>
+        PostingClosed ? PostingClosedCondition : $"stale:{Status}";
+
+    /// <summary>
+    /// Records that a reminder has been sent for the current condition and suppresses the next one: it stamps
+    /// <see cref="LastReminderCondition"/>/<see cref="LastReminderAt"/> and pushes <see cref="NextActionAt"/>
+    /// forward by the stage threshold, so the same condition does not fire again until it recurs (SAD §6.2,
+    /// QG-3). A reminder is not a status change — no transition is recorded and the status is untouched.
+    /// Returns the condition recorded, for the caller to render the nudge and log it. When the status has no
+    /// threshold, <see cref="NextActionAt"/> is cleared — there is nothing further to chase.
+    /// </summary>
+    public string RecordReminder(DateTimeOffset now, ReminderPolicy policy)
+    {
+        ArgumentNullException.ThrowIfNull(policy);
+
+        var condition = CurrentReminderCondition();
+        LastReminderCondition = condition;
+        LastReminderAt = now;
+
+        var threshold = policy.ThresholdFor(Status);
+        NextActionAt = threshold is null ? null : now.Add(threshold.Value);
+
+        return condition;
     }
 
     /// <summary>

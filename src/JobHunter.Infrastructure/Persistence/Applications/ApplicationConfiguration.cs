@@ -27,6 +27,8 @@ internal sealed class ApplicationConfiguration : IEntityTypeConfiguration<App>
         b.Property(x => x.AppliedAt).HasColumnName("applied_at");
         b.Property(x => x.LastActivityAt).HasColumnName("last_activity_at").IsRequired();
         b.Property(x => x.NextActionAt).HasColumnName("next_action_at");
+        b.Property(x => x.LastReminderCondition).HasColumnName("last_reminder_condition");
+        b.Property(x => x.LastReminderAt).HasColumnName("last_reminder_at");
         b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
 
         b.HasOne<Job>()

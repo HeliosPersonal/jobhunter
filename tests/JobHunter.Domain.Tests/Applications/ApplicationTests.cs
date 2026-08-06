@@ -207,6 +207,58 @@ public sealed class ApplicationTests
     }
 
     [Fact]
+    public void Recording_a_reminder_names_the_stale_condition_and_pushes_next_action_forward()
+    {
+        var app = App.Create(Id, Job, T0, TransitionSource.Telegram);
+        app.ChangeStatus(ApplicationStatus.Applied, TransitionSource.Telegram, T0.AddMinutes(1), Policy);
+
+        // Eleven days on, the Applied threshold (10 d) has passed — the sweep finds it due.
+        var now = T0.AddDays(11);
+        var condition = app.RecordReminder(now, Policy);
+
+        // The condition names why the reminder fired — the suppression key is (application, condition).
+        condition.ShouldBe("stale:Applied");
+        app.LastReminderCondition.ShouldBe("stale:Applied");
+        app.LastReminderAt.ShouldBe(now);
+        // Push next_action_at forward by the stage threshold so the same condition does not fire again until
+        // it recurs (SAD §6.2, QG-3) — no transition is recorded, a reminder is not a status change.
+        app.NextActionAt.ShouldBe(now.Add(Policy.ThresholdFor(ApplicationStatus.Applied)!.Value));
+        app.Status.ShouldBe(ApplicationStatus.Applied);
+        app.Transitions.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Recording_a_reminder_for_a_closed_posting_names_the_posting_closed_condition()
+    {
+        var app = App.Create(Id, Job, T0, TransitionSource.Telegram);
+        app.ChangeStatus(ApplicationStatus.Saved, TransitionSource.Telegram, T0.AddMinutes(1), Policy);
+        app.MarkPostingClosed(T0.AddDays(1));
+
+        var condition = app.RecordReminder(T0.AddDays(6), Policy);
+
+        // A closed posting is the salient thing to nudge on — drop it or apply elsewhere — so it names its
+        // own condition rather than the stale-status one (test-plan: Saved + closed).
+        condition.ShouldBe(App.PostingClosedCondition);
+        app.LastReminderCondition.ShouldBe(App.PostingClosedCondition);
+    }
+
+    [Fact]
+    public void Acting_on_an_application_clears_the_last_reminder_condition()
+    {
+        var app = App.Create(Id, Job, T0, TransitionSource.Telegram);
+        app.ChangeStatus(ApplicationStatus.Applied, TransitionSource.Telegram, T0.AddMinutes(1), Policy);
+        app.RecordReminder(T0.AddDays(11), Policy);
+        app.LastReminderCondition.ShouldNotBeNull();
+
+        // Acting clears the condition and resets the threshold (done-when 3): a fresh cycle starts, so a
+        // reminder for the new stage is not suppressed by the old one.
+        app.ChangeStatus(ApplicationStatus.Interview, TransitionSource.Telegram, T0.AddDays(12), Policy);
+
+        app.LastReminderCondition.ShouldBeNull();
+        app.LastReminderAt.ShouldBeNull();
+    }
+
+    [Fact]
     public void Create_rejects_an_empty_job_id()
     {
         Should.Throw<ArgumentException>(

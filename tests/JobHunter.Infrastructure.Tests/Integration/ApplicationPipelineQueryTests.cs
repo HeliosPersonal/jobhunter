@@ -174,6 +174,78 @@ public sealed class ApplicationPipelineQueryTests
     }
 
     [RequiresDockerFact]
+    public async Task Due_reminders_returns_only_non_archived_applications_past_their_next_action()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+
+        // Applied 11 days ago: the 10-day threshold has passed, so next_action_at is in the past — due.
+        var dueJob = seed.JobId;
+        var dueId = await PersistApplicationAsync(seed.Database, dueJob, [(ApplicationStatus.Applied, Now.AddDays(-11))]);
+
+        // Applied yesterday: next_action_at is nine days out — not due.
+        var freshJob = await SeedJobAsync(seed.Database, seed.CompanyId, "Platform Engineer");
+        await PersistApplicationAsync(seed.Database, freshJob, [(ApplicationStatus.Applied, Now.AddDays(-1))]);
+
+        // Rejected then archived: terminal has no threshold (next_action_at is null) and archived is hidden anyway.
+        var archivedJob = await SeedJobAsync(seed.Database, seed.CompanyId, "Backend Engineer");
+        await PersistApplicationAsync(
+            seed.Database, archivedJob,
+            [(ApplicationStatus.Applied, Now.AddDays(-20)), (ApplicationStatus.Rejected, Now.AddDays(-19))],
+            archived: true);
+
+        var query = new DueReminderQuery(new NpgsqlConnectionFactory(seed.Database.ConnectionString));
+        var due = await query.DueAsync(Now);
+
+        var reminder = due.ShouldHaveSingleItem();
+        reminder.ApplicationId.ShouldBe(dueId);
+        reminder.JobId.ShouldBe(dueJob);
+        reminder.Title.ShouldBe("Staff SRE");
+        reminder.Company.ShouldBe("Acme");
+        reminder.Status.ShouldBe(ApplicationStatus.Applied);
+        reminder.PostingClosed.ShouldBeFalse();
+        reminder.LastReminderCondition.ShouldBeNull();
+        reminder.CurrentCondition().ShouldBe("stale:Applied");
+        reminder.IsAlreadyReminded().ShouldBeFalse();
+    }
+
+    [RequiresDockerFact]
+    public async Task Due_reminders_carries_the_last_condition_and_flags_a_closed_posting()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+
+        // A Saved application whose posting has closed and past its 5-day threshold — the "drop or apply
+        // elsewhere" nudge (test-plan Saved + closed). A prior reminder for the same closed condition means
+        // it is already suppressed.
+        await PersistApplicationAsync(
+            seed.Database, seed.JobId, [(ApplicationStatus.Saved, Now.AddDays(-6))],
+            closedAt: Now.AddDays(-2), remindedCondition: (App.PostingClosedCondition, Now.AddDays(-1)));
+
+        var query = new DueReminderQuery(new NpgsqlConnectionFactory(seed.Database.ConnectionString));
+        var reminder = (await query.DueAsync(Now)).ShouldHaveSingleItem();
+
+        reminder.PostingClosed.ShouldBeTrue();
+        reminder.CurrentCondition().ShouldBe(App.PostingClosedCondition);
+        reminder.LastReminderCondition.ShouldBe(App.PostingClosedCondition);
+        // The last reminder already fired for this exact condition — suppressed until it clears or recurs (QG-3).
+        reminder.IsAlreadyReminded().ShouldBeTrue();
+    }
+
+    [RequiresDockerFact]
+    public async Task The_due_reminder_query_is_covered_by_idx_applications_due()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+        await PersistApplicationAsync(seed.Database, seed.JobId, [(ApplicationStatus.Applied, Now.AddDays(-11))]);
+
+        var plan = await ExplainAsync(seed.Database, DueReminderQuery.Sql, ("now", Now));
+
+        plan.ShouldNotContain("Seq Scan");
+        plan.ShouldContain("idx_applications_due");
+    }
+
+    [RequiresDockerFact]
     public async Task The_pipeline_query_is_covered_by_idx_applications_pipeline()
     {
         var seed = await SeedAsync();
@@ -191,7 +263,8 @@ public sealed class ApplicationPipelineQueryTests
         IReadOnlyList<(ApplicationStatus To, DateTimeOffset At)> moves,
         (string Body, DateTimeOffset At)? note = null,
         bool archived = false,
-        DateTimeOffset? closedAt = null)
+        DateTimeOffset? closedAt = null,
+        (string Condition, DateTimeOffset At)? remindedCondition = null)
     {
         var id = Guid.CreateVersion7();
         var app = App.Create(id, jobId, moves[0].At.AddMinutes(-1), TransitionSource.Telegram);
@@ -216,6 +289,14 @@ public sealed class ApplicationPipelineQueryTests
         {
             // Archival is an internal state the sweep sets; set it through EF for the read-side test.
             ctx.Entry(app).Property(nameof(App.Archived)).CurrentValue = true;
+        }
+
+        if (remindedCondition is { } r)
+        {
+            // Seed a prior reminder without pushing next_action_at forward, so the row stays due while its
+            // last-reminder condition marks it already-reminded (the suppression case).
+            ctx.Entry(app).Property(nameof(App.LastReminderCondition)).CurrentValue = r.Condition;
+            ctx.Entry(app).Property(nameof(App.LastReminderAt)).CurrentValue = r.At;
         }
 
         await ctx.SaveChangesAsync();
