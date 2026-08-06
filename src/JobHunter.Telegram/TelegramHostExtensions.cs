@@ -64,8 +64,41 @@ public static class TelegramHostExtensions
         services.AddSingleton<CallbackDataCodec>();
         services.AddSingleton<ICallbackRouter, ScopedCallbackRouter>();
 
+        // The command path (T11): the router and its handlers are scoped because a command reads the store,
+        // and the singleton processor dispatches through the scope-opening ScopedCommandDispatcher — the same
+        // singleton-routes / scope-acts split as the callback path. The /search command reuses the F9 handler;
+        // /pipeline is a placeholder until F6 ships. The /help list is derived from the registered set.
+        services.AddScoped<Commands.CommandRouter>(BuildCommandRouter);
+        services.AddSingleton<Commands.ICommandDispatcher, Commands.ScopedCommandDispatcher>();
+
         services.AddHostedService<TelegramLongPollService>();
 
         return services;
+    }
+
+    /// <summary>
+    /// Assembles the command set for a scope: the F5-owned handlers, the F9 <c>/search</c> adapter, and the
+    /// <c>/pipeline</c> placeholder (F6). The <c>/help</c> handler is given a late-bound accessor to the
+    /// router's own derived list, so the cycle between the router and the help handler is broken and the help
+    /// text is exactly the set the router dispatches on (contract §Commands).
+    /// </summary>
+    private static Commands.CommandRouter BuildCommandRouter(IServiceProvider provider)
+    {
+        Commands.CommandRouter? router = null;
+
+        // /digest, /saved and /stats join this set as their handlers land (T11 C2–C4); the order here is the
+        // order they appear in /help.
+        var registrations = new List<Commands.CommandRegistration>
+        {
+            new("/start", "Confirm this chat is authorised", new Commands.StartCommandHandler()),
+            new("/help", "Show this command list", new Commands.HelpCommandHandler(() => router!.HelpList)),
+            new("/pipeline", "Applications by status", new Commands.PlaceholderCommandHandler("Application tracking")),
+            new("/search", "Search live roles", new Commands.SearchCommandAdapter(
+                provider.GetRequiredService<Search.SearchCommandHandler>())),
+        };
+
+        router = new Commands.CommandRouter(
+            registrations, provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.CommandRouter>>());
+        return router;
     }
 }

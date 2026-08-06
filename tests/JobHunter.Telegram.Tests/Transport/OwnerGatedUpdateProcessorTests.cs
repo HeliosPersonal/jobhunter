@@ -19,16 +19,23 @@ public sealed class OwnerGatedUpdateProcessorTests
     private const long OwnerChat = 4242;
 
     private static OwnerGatedUpdateProcessor Build(out CapturingLogger<OwnerAuthorizer> authLog, out RecordingCallbackRouter router)
+        => Build(out authLog, out router, out _);
+
+    private static OwnerGatedUpdateProcessor Build(
+        out CapturingLogger<OwnerAuthorizer> authLog,
+        out RecordingCallbackRouter router,
+        out RecordingCommandDispatcher commands)
     {
         var options = Options.Create(new TelegramOptions { BotToken = "t", AllowedChatIds = [OwnerChat] });
         authLog = new CapturingLogger<OwnerAuthorizer>();
         var authorizer = new OwnerAuthorizer(options, authLog);
         router = new RecordingCallbackRouter();
-        return new OwnerGatedUpdateProcessor(authorizer, router, NullLogger<OwnerGatedUpdateProcessor>.Instance);
+        commands = new RecordingCommandDispatcher();
+        return new OwnerGatedUpdateProcessor(authorizer, router, commands, NullLogger<OwnerGatedUpdateProcessor>.Instance);
     }
 
-    private static TelegramUpdate MessageFrom(long chatId, long updateId = 1) =>
-        new(updateId, new TelegramMessage(new TelegramChat(chatId), "/digest"), null);
+    private static TelegramUpdate MessageFrom(long chatId, long updateId = 1, string text = "/digest") =>
+        new(updateId, new TelegramMessage(new TelegramChat(chatId), text), null);
 
     private static TelegramUpdate CallbackFrom(long chatId, long updateId = 1) =>
         new(updateId, null, new TelegramCallbackQuery("cb1", "ign:ab12", new TelegramMessage(new TelegramChat(chatId), null)));
@@ -86,6 +93,59 @@ public sealed class OwnerGatedUpdateProcessorTests
     }
 
     [Fact]
+    public async Task The_owners_slash_command_message_is_dispatched_to_the_command_path()
+    {
+        var processor = Build(out _, out _, out var commands);
+
+        await processor.ProcessAsync(MessageFrom(OwnerChat, text: "/saved"));
+
+        var dispatched = commands.Dispatched.ShouldHaveSingleItem();
+        dispatched.ChatId.ShouldBe(OwnerChat);
+        dispatched.Text.ShouldBe("/saved");
+    }
+
+    [Fact]
+    public async Task A_leading_and_trailing_whitespace_slash_command_is_still_dispatched()
+    {
+        var processor = Build(out _, out _, out var commands);
+
+        await processor.ProcessAsync(MessageFrom(OwnerChat, text: "  /help  "));
+
+        commands.Dispatched.ShouldHaveSingleItem().Text.ShouldBe("  /help  ");
+    }
+
+    [Fact]
+    public async Task An_owners_non_command_message_is_not_dispatched()
+    {
+        var processor = Build(out _, out _, out var commands);
+
+        await processor.ProcessAsync(MessageFrom(OwnerChat, text: "hello there"));
+
+        commands.Dispatched.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task An_owners_message_with_no_text_is_not_dispatched()
+    {
+        var processor = Build(out _, out _, out var commands);
+        var update = new TelegramUpdate(1, new TelegramMessage(new TelegramChat(OwnerChat), null), null);
+
+        await processor.ProcessAsync(update);
+
+        commands.Dispatched.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task An_unauthorised_slash_command_is_not_dispatched()
+    {
+        var processor = Build(out _, out _, out var commands);
+
+        await processor.ProcessAsync(MessageFrom(9999, text: "/saved"));
+
+        commands.Dispatched.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task An_unauthorised_callback_query_is_not_routed()
     {
         var processor = Build(out _, out var router);
@@ -128,26 +188,43 @@ public sealed class OwnerGatedUpdateProcessorTests
     public void A_null_authorizer_is_rejected()
     {
         Should.Throw<ArgumentNullException>(() =>
-            new OwnerGatedUpdateProcessor(null!, new RecordingCallbackRouter(), NullLogger<OwnerGatedUpdateProcessor>.Instance));
+            new OwnerGatedUpdateProcessor(
+                null!, new RecordingCallbackRouter(), new RecordingCommandDispatcher(), NullLogger<OwnerGatedUpdateProcessor>.Instance));
     }
 
     [Fact]
     public void A_null_router_is_rejected()
     {
-        var options = Options.Create(new TelegramOptions { BotToken = "t", AllowedChatIds = [OwnerChat] });
-        var authorizer = new OwnerAuthorizer(options, new CapturingLogger<OwnerAuthorizer>());
+        var authorizer = NewAuthorizer();
 
         Should.Throw<ArgumentNullException>(() =>
-            new OwnerGatedUpdateProcessor(authorizer, null!, NullLogger<OwnerGatedUpdateProcessor>.Instance));
+            new OwnerGatedUpdateProcessor(
+                authorizer, null!, new RecordingCommandDispatcher(), NullLogger<OwnerGatedUpdateProcessor>.Instance));
+    }
+
+    [Fact]
+    public void A_null_command_dispatcher_is_rejected()
+    {
+        var authorizer = NewAuthorizer();
+
+        Should.Throw<ArgumentNullException>(() =>
+            new OwnerGatedUpdateProcessor(
+                authorizer, new RecordingCallbackRouter(), null!, NullLogger<OwnerGatedUpdateProcessor>.Instance));
     }
 
     [Fact]
     public void A_null_logger_is_rejected()
     {
-        var options = Options.Create(new TelegramOptions { BotToken = "t", AllowedChatIds = [OwnerChat] });
-        var authorizer = new OwnerAuthorizer(options, new CapturingLogger<OwnerAuthorizer>());
+        var authorizer = NewAuthorizer();
 
         Should.Throw<ArgumentNullException>(() =>
-            new OwnerGatedUpdateProcessor(authorizer, new RecordingCallbackRouter(), null!));
+            new OwnerGatedUpdateProcessor(
+                authorizer, new RecordingCallbackRouter(), new RecordingCommandDispatcher(), null!));
+    }
+
+    private static OwnerAuthorizer NewAuthorizer()
+    {
+        var options = Options.Create(new TelegramOptions { BotToken = "t", AllowedChatIds = [OwnerChat] });
+        return new OwnerAuthorizer(options, new CapturingLogger<OwnerAuthorizer>());
     }
 }
