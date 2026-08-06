@@ -23,7 +23,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 |---|---|---|---|---|---|
 | T01 | [[T01-domain-preferences\|Domain: Signal, PreferenceModel, PreferenceWeight]] | domain | — | M | done |
 | T02 | [[T02-preference-persistence\|Migration and repositories]] | infra/db | T01 | S | done |
-| T03 | [[T03-signal-capture\|Signal capture verification]] | app | T02 | S | pending |
+| T03 | [[T03-signal-capture\|Signal capture verification]] | app | T02 | S | done |
 | T04 | [[T04-weight-fitter\|WeightFitter]] | app | T01 | L | pending |
 | T05 | [[T05-preference-learner\|PreferenceLearner and weekly refit]] | app | T04, T02 | M | pending |
 | T06 | [[T06-preference-component\|Preference component and precedence]] | app | T05 | M | pending |

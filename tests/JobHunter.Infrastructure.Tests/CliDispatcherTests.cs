@@ -12,6 +12,7 @@ public sealed class CliDispatcherTests
     [InlineData("replay-dlq", CliCommand.ReplayDlq)]
     [InlineData("reprocess", CliCommand.Reprocess)]
     [InlineData("prune-raw", CliCommand.PruneRaw)]
+    [InlineData("backfill-signals", CliCommand.BackfillSignals)]
     public void A_recognised_verb_maps_to_its_command(string verb, CliCommand expected)
     {
         CliDispatcher.TryGetCommand([verb], out var command).ShouldBeTrue();

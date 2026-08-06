@@ -145,6 +145,10 @@ public static class DependencyInjection
         services.AddScoped<IStaleJobsQuery, StaleJobsQuery>();
         services.AddScoped<IRawPostingReader, RawPostingReaderQuery>();
         services.AddScoped<IReprocessableJobsQuery, ReprocessableJobsQuery>();
+        // F7 signal backfill (T03, done-when 5): the outcome transitions with no captured signal yet, streamed
+        // oldest first. Read-only Dapper anti-join over application_transitions; the backfill-signals CLI verb
+        // drives it through the Application-layer SignalBackfillService.
+        services.AddScoped<IBackfillableOutcomeQuery, BackfillableOutcomeQuery>();
 
         // F2 reprocessing and retention (T09): the offline recompute over stored payloads (zero network) and
         // the 90-day raw-payload prune. Both are resolved by the Worker's operator-scoped CLI verbs.

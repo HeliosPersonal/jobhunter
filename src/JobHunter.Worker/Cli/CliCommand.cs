@@ -20,4 +20,10 @@ public enum CliCommand
 
     /// <summary>Prune raw postings older than the retention window (90 days), then exit (F2 T09, O3).</summary>
     PruneRaw,
+
+    /// <summary>
+    /// Replay application outcomes recorded before signal staging into signals, then exit (F7 T03, done-when 5).
+    /// Idempotent — a re-run captures nothing more. Scope with <c>--since &lt;yyyy-MM-dd&gt;</c>. Operator-scoped.
+    /// </summary>
+    BackfillSignals,
 }

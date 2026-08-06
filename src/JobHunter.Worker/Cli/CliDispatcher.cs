@@ -22,6 +22,7 @@ public static class CliDispatcher
         ["seed"] = CliCommand.Seed,
         ["reprocess"] = CliCommand.Reprocess,
         ["prune-raw"] = CliCommand.PruneRaw,
+        ["backfill-signals"] = CliCommand.BackfillSignals,
     };
 
     /// <summary>
@@ -94,6 +95,7 @@ public static class CliDispatcher
             CliCommand.Seed => await SeedCommand.RunAsync(host.Services, args),
             CliCommand.Reprocess => await ReprocessCommand.RunAsync(host.Services, args),
             CliCommand.PruneRaw => await PruneRawCommand.RunAsync(host.Services),
+            CliCommand.BackfillSignals => await BackfillSignalsCommand.RunAsync(host.Services, args),
             _ => throw new ArgumentOutOfRangeException(nameof(command), command, "Unhandled CLI command."),
         };
     }

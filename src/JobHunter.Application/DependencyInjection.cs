@@ -248,6 +248,13 @@ public static class DependencyInjection
         services.AddSingleton(sp =>
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Applications.ReminderOptions>>().Value.ToPolicy());
 
+        // F7 signal backfill (T03, done-when 5): the one-off complement to the live outcome-signal path. It
+        // replays the outcome transitions that predate signal staging into signals through the same idempotent
+        // Signal.Capture / TryCaptureAsync the live path uses, so a re-run captures nothing more. Resolved by
+        // the Worker's operator-scoped backfill-signals CLI verb; SignalWeights is registered by F6 above and
+        // its collaborators (IBackfillableOutcomeQuery, IJobFactsSnapshotQuery, ISignalRepository) by Infrastructure.
+        services.AddScoped<Preferences.SignalBackfillService>();
+
         return services;
     }
 }
