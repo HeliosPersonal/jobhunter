@@ -87,7 +87,8 @@ public static class WeightFitter
                 accumulator.SignalIds));
         }
 
-        return new FittedModel(fitted, inWindow.Count);
+        var bounded = DimensionBounding.Apply(fitted, options.MaxDimensionShare);
+        return new FittedModel(bounded, inWindow.Count);
     }
 
     /// <summary>
