@@ -102,16 +102,65 @@ internal sealed class TelegramNotifier : INotifier
             $"Telegram send to chat {chatId} was throttled beyond {_maxAttempts} attempts.");
     }
 
+    /// <summary>
+    /// Acknowledges a callback query so the Owner's tap stops spinning (contract §Callback payloads, QG-3).
+    /// The optional <paramref name="text"/> is the toast Telegram shows; the Open action passes none, so the
+    /// URL button opens with no toast. A rejection is a <see cref="TelegramSendException"/>, never a silent
+    /// drop — an unacknowledged tap is a bug the caller surfaces.
+    /// </summary>
+    public async Task AnswerCallbackAsync(string callbackQueryId, string? text, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(callbackQueryId);
+
+        var payload = new AnswerCallbackPayload(callbackQueryId, text);
+        await PostAsync("answerCallbackQuery", payload, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Replaces the inline keyboard of one already-sent card (contract §Callback payloads: the keyboard after
+    /// a tap). Cards are separate messages, so editing <paramref name="messageId"/> touches only the tapped
+    /// card. An empty <paramref name="keyboard"/> clears the buttons. A rejection is a
+    /// <see cref="TelegramSendException"/>.
+    /// </summary>
+    public async Task EditReplyMarkupAsync(
+        long chatId,
+        long messageId,
+        IReadOnlyList<IReadOnlyList<InlineButton>> keyboard,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(keyboard);
+
+        var payload = new EditReplyMarkupPayload(chatId, messageId, BuildKeyboard(keyboard));
+        await PostAsync("editMessageReplyMarkup", payload, cancellationToken).ConfigureAwait(false);
+    }
+
+    // Posts a control request (an ack or a keyboard edit) once. Unlike a send, these are not paced and not
+    // retried: they are the fast reply to a tap, and a failure is surfaced rather than looped.
+    private async Task PostAsync<TPayload>(string endpoint, TPayload payload, CancellationToken cancellationToken)
+    {
+        using var response = await _http
+            .PostAsJsonAsync(endpoint, payload, SerializerOptions, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new TelegramSendException(
+                $"Telegram rejected {endpoint} with status {(int)response.StatusCode}.");
+        }
+    }
+
     private static SendMessagePayload BuildPayload(long chatId, RenderedMessage message)
     {
-        var keyboard = message.HasKeyboard
-            ? new InlineKeyboardMarkup(message.Keyboard
-                .Select(row => row.Select(b => new InlineKeyboardButton(b.Label, b.CallbackData)).ToArray())
-                .ToArray())
-            : null;
-
+        var keyboard = message.HasKeyboard ? BuildKeyboard(message.Keyboard) : null;
         return new SendMessagePayload(chatId, message.Text, "MarkdownV2", keyboard);
     }
+
+    private static InlineKeyboardMarkup BuildKeyboard(IReadOnlyList<IReadOnlyList<InlineButton>> rows) =>
+        new(rows
+            .Select(row => row
+                .Select(b => new InlineKeyboardButton(b.Label, b.CallbackData, b.Url))
+                .ToArray())
+            .ToArray());
 
     // A 4xx other than 429 is the message's fault, not the transport's — a retry sends the same bad request.
     private static bool IsPermanentRejection(HttpStatusCode status) =>
@@ -138,7 +187,17 @@ internal sealed class TelegramNotifier : INotifier
 
     private sealed record InlineKeyboardButton(
         [property: JsonPropertyName("text")] string Text,
-        [property: JsonPropertyName("callback_data")] string CallbackData);
+        [property: JsonPropertyName("callback_data")] string? CallbackData,
+        [property: JsonPropertyName("url")] string? Url);
+
+    private sealed record AnswerCallbackPayload(
+        [property: JsonPropertyName("callback_query_id")] string CallbackQueryId,
+        [property: JsonPropertyName("text")] string? Text);
+
+    private sealed record EditReplyMarkupPayload(
+        [property: JsonPropertyName("chat_id")] long ChatId,
+        [property: JsonPropertyName("message_id")] long MessageId,
+        [property: JsonPropertyName("reply_markup")] InlineKeyboardMarkup ReplyMarkup);
 
     private sealed record TelegramResponse(
         [property: JsonPropertyName("ok")] bool Ok,

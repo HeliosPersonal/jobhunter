@@ -112,6 +112,98 @@ public sealed class TelegramNotifierTests
     }
 
     [Fact]
+    public async Task An_open_button_is_sent_as_a_url_not_a_callback()
+    {
+        var harness = Build((_, _) => Ok());
+        // The Open action is a link, not a callback: Telegram opens it directly, so it carries a url and
+        // never a callback_data — the bot never sees a tap on it (contract §Callback payloads, Open row).
+        var card = new RenderedMessage(
+            "*Staff Engineer*",
+            [[InlineButton.ForUrl("Open", "https://acme.com/apply/1"), new InlineButton("Save", "sav:ab12")]]);
+
+        await harness.Notifier.SendAsync(4242, card);
+
+        var body = harness.Handler.Requests.ShouldHaveSingleItem().Body!;
+        body.ShouldContain("\"url\":\"https://acme.com/apply/1\"");
+        body.ShouldContain("\"callback_data\":\"sav:ab12\"");
+    }
+
+    [Fact]
+    public async Task Answering_a_callback_query_posts_the_relative_endpoint_with_id_and_text()
+    {
+        var harness = Build((_, _) => StubHttpMessageHandler.Json(HttpStatusCode.OK, "{\"ok\":true,\"result\":true}"));
+
+        await harness.Notifier.AnswerCallbackAsync("cb42", "Saved");
+
+        var request = harness.Handler.Requests.ShouldHaveSingleItem();
+        request.Method.ShouldBe(HttpMethod.Post);
+        request.Uri!.AbsoluteUri.ShouldEndWith("/answerCallbackQuery");
+        request.Body.ShouldNotBeNull();
+        request.Body.ShouldContain("\"callback_query_id\":\"cb42\"");
+        request.Body.ShouldContain("Saved");
+        // The token lives only on the base address; an ack path never carries it (invariant 12).
+        request.Body.ShouldNotContain(Token);
+    }
+
+    [Fact]
+    public async Task Answering_a_callback_query_with_no_text_omits_the_text()
+    {
+        var harness = Build((_, _) => StubHttpMessageHandler.Json(HttpStatusCode.OK, "{\"ok\":true,\"result\":true}"));
+
+        // The Open action has no acknowledgement text — the URL button opens directly (contract, Open row).
+        await harness.Notifier.AnswerCallbackAsync("cb42", text: null);
+
+        harness.Handler.Requests.ShouldHaveSingleItem().Body!.ShouldNotContain("\"text\"");
+    }
+
+    [Fact]
+    public async Task A_rejected_callback_answer_is_a_send_fault_not_a_silent_drop()
+    {
+        var harness = Build((_, _) => StubHttpMessageHandler.Json(HttpStatusCode.BadRequest, "{\"ok\":false}"));
+
+        var ex = await Should.ThrowAsync<TelegramSendException>(() => harness.Notifier.AnswerCallbackAsync("cb42", "Saved"));
+
+        ex.Message.ShouldNotContain(Token);
+    }
+
+    [Fact]
+    public async Task Editing_a_reply_markup_posts_the_chat_message_and_keyboard()
+    {
+        var harness = Build((_, _) => StubHttpMessageHandler.Json(HttpStatusCode.OK, "{\"ok\":true,\"result\":{\"message_id\":555}}"));
+
+        await harness.Notifier.EditReplyMarkupAsync(4242, 555, [[new InlineButton("Ignored", "noop")]]);
+
+        var request = harness.Handler.Requests.ShouldHaveSingleItem();
+        request.Method.ShouldBe(HttpMethod.Post);
+        request.Uri!.AbsoluteUri.ShouldEndWith("/editMessageReplyMarkup");
+        var body = request.Body.ShouldNotBeNull();
+        body.ShouldContain("\"chat_id\":4242");
+        body.ShouldContain("\"message_id\":555");
+        body.ShouldContain("inline_keyboard");
+        body.ShouldContain("Ignored");
+        body.ShouldNotContain(Token);
+    }
+
+    [Fact]
+    public async Task A_rejected_reply_markup_edit_is_a_send_fault()
+    {
+        var harness = Build((_, _) => StubHttpMessageHandler.Json(HttpStatusCode.BadRequest, "{\"ok\":false}"));
+
+        var ex = await Should.ThrowAsync<TelegramSendException>(() =>
+            harness.Notifier.EditReplyMarkupAsync(4242, 555, [[new InlineButton("Ignored", "noop")]]));
+
+        ex.Message.ShouldNotContain(Token);
+    }
+
+    [Fact]
+    public async Task A_null_or_empty_callback_query_id_is_rejected()
+    {
+        var harness = Build((_, _) => Ok());
+
+        await Should.ThrowAsync<ArgumentException>(() => harness.Notifier.AnswerCallbackAsync("", "Saved"));
+    }
+
+    [Fact]
     public async Task A_429_is_retried_and_the_retry_after_is_honoured_exactly()
     {
         // First attempt 429 with retry_after=7; second attempt succeeds.

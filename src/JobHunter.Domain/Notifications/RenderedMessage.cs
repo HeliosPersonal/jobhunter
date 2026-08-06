@@ -19,10 +19,17 @@ public sealed record RenderedMessage(string Text, IReadOnlyList<IReadOnlyList<In
 }
 
 /// <summary>
-/// One inline-keyboard button: the visible <see cref="Label"/> and the opaque <see cref="CallbackData"/>
-/// Telegram echoes back on a tap. The callback data is a short id, never a job fact (SAD §6.2); resolving
-/// it to a card is the bot's job, not the button's.
+/// One inline-keyboard button. A button is one of two kinds, exactly as Telegram requires: a callback
+/// button carries an opaque <see cref="CallbackData"/> short id echoed back on a tap (a short id, never a
+/// job fact — SAD §6.2; resolving it to a card is the bot's job, not the button's), or a URL button carries
+/// a <see cref="Url"/> that Telegram opens directly without ever notifying the bot. The Open action is a URL
+/// button — the tap never reaches us — which is why the callback contract has no acknowledgement for it.
 /// </summary>
 /// <param name="Label">The button caption shown to the Owner.</param>
-/// <param name="CallbackData">The opaque token echoed back in the callback query.</param>
-public sealed record InlineButton(string Label, string CallbackData);
+/// <param name="CallbackData">The opaque token echoed back in the callback query; null for a URL button.</param>
+/// <param name="Url">The link a URL button opens; null for a callback button.</param>
+public sealed record InlineButton(string Label, string? CallbackData, string? Url = null)
+{
+    /// <summary>A URL button — the Open action — that Telegram opens directly, with no callback to resolve.</summary>
+    public static InlineButton ForUrl(string label, string url) => new(label, CallbackData: null, Url: url);
+}

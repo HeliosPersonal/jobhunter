@@ -19,10 +19,15 @@ public sealed record TelegramUpdate(
     public long? ChatId => Message?.Chat?.Id ?? CallbackQuery?.Message?.Chat?.Id;
 }
 
-/// <summary>A Telegram message, reduced to its chat and text.</summary>
+/// <summary>
+/// A Telegram message, reduced to its id, chat and text. The <c>message_id</c> is what a callback needs to
+/// edit the right card's keyboard after a tap — cards are sent as separate messages precisely so an edit
+/// touches only the tapped one (contract §Card).
+/// </summary>
 public sealed record TelegramMessage(
     [property: JsonPropertyName("chat")] TelegramChat? Chat,
-    [property: JsonPropertyName("text")] string? Text);
+    [property: JsonPropertyName("text")] string? Text,
+    [property: JsonPropertyName("message_id")] long MessageId = 0);
 
 /// <summary>A callback query from an inline-keyboard tap, reduced to its data and the message it hangs off.</summary>
 public sealed record TelegramCallbackQuery(
