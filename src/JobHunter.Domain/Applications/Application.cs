@@ -16,6 +16,7 @@ namespace JobHunter.Domain.Applications;
 public sealed class Application : Entity
 {
     private readonly List<StatusTransition> _transitions = [];
+    private readonly List<ApplicationNote> _notes = [];
 
     private Application(Guid id, Guid jobId, DateTimeOffset createdAt)
         : base(id)
@@ -57,6 +58,9 @@ public sealed class Application : Entity
 
     /// <summary>The complete, ordered, append-only history (QG-1).</summary>
     public IReadOnlyList<StatusTransition> Transitions => _transitions;
+
+    /// <summary>The Owner's free-text notes, in the order added.</summary>
+    public IReadOnlyList<ApplicationNote> Notes => _notes;
 
     /// <summary>
     /// Creates an application lazily in <see cref="ApplicationStatus.New"/> with its creating transition
@@ -121,6 +125,18 @@ public sealed class Application : Entity
         _transitions.Add(transition);
 
         return Result<StatusTransition>.Success(transition);
+    }
+
+    /// <summary>
+    /// Attaches a free-text note. A note is activity — it advances <see cref="LastActivityAt"/> — but it
+    /// never changes the status. The id is supplied by the caller from <c>IIdGenerator</c>.
+    /// </summary>
+    public ApplicationNote AddNote(Guid id, string body, DateTimeOffset now)
+    {
+        var note = new ApplicationNote(id, Id, body, now);
+        _notes.Add(note);
+        LastActivityAt = now;
+        return note;
     }
 
     /// <summary>

@@ -70,6 +70,11 @@ public static class DependencyInjection
         services.AddScoped<IMatchRepository, MatchRepository>();
         services.AddScoped<IScoreRepository, ScoreRepository>();
 
+        // F6 application tracking (T02): the application aggregate — its append-only transition history and
+        // notes — goes through EF. One application per job is a database constraint (uq_applications_job); the
+        // history has no update or delete path, so a correction is always a new transition (QG-1).
+        services.AddScoped<IApplicationRepository, ApplicationRepository>();
+
         // F5 digest & delivery (T02): the digest aggregate goes through EF (assembled and persisted before
         // any send, SAD S2); the append-only delivery log is a raw ON CONFLICT DO NOTHING upsert whose unique
         // (run_id, chat_id, card_key) constraint is invariant 8 (ADR-F5-0002).

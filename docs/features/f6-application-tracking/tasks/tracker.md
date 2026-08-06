@@ -2,7 +2,7 @@
 status: Draft
 owner: "Viacheslav Melnichenko"
 reviewers: ["Tech Lead (Viacheslav)"]
-updated_at: "2026-08-06"
+updated_at: "2026-08-06T15"
 feature_size: "M"
 stage: "13"
 ticket: ""
@@ -20,7 +20,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | ID | Task | Layer | Deps | Est | Status |
 |---|---|---|---|---|---|
 | T01 | [[T01-domain-application\|Domain: Application, TransitionRules, ReminderPolicy]] | domain | — | M | done |
-| T02 | [[T02-application-persistence\|Migration and repositories]] | infra/db | T01 | S | pending |
+| T02 | [[T02-application-persistence\|Migration and repositories]] | infra/db | T01 | S | done |
 | T03 | [[T03-owner-action-handler\|Owner action handler]] | app | T02 | M | pending |
 | T04 | [[T04-pipeline-query\|Pipeline query and history view]] | app | T02 | M | pending |
 | T05 | [[T05-job-closure\|Job closure handling]] | app | T03 | S | pending |
@@ -72,3 +72,18 @@ See [[../../../IMPLEMENTATION-READINESS]] §4 for the full per-task checklist.
   and never changed; `MarkPostingClosed` sets `posting_closed` without touching the status (AC-07) and
   is idempotent; `next_action_at` is rescheduled from the policy on each change and cleared for a
   status with nothing to chase.
+- **T02** — the F6 persistence. The migration `F6AddApplications` creates `applications`,
+  `application_transitions` and `application_notes` with all six declared indexes, including the two
+  partial indexes on `applications` (`idx_applications_pipeline WHERE NOT archived`,
+  `idx_applications_due WHERE next_action_at IS NOT NULL AND NOT archived`) and the partial
+  `idx_transitions_outcome WHERE to_status IN ('Interview','Offer','Rejected')`. `ApplicationNote` joins
+  the domain (body capped at 4 000 chars, blank rejected, `AddNote` counts as activity without changing
+  status). The EF configs live in `Infrastructure/Persistence/Applications/`, auto-discovered by the
+  assembly scan; transitions and notes are owned children written through the same insert. The
+  `IApplicationRepository` port exposes only `Add`, `FindByJobAsync` and `SaveChangesAsync` — **no update
+  and no delete path** (QG-1), asserted by a reflection test over both the port and its implementation.
+  The integration suite proves against a real database: all six index names exist, an application with its
+  transitions and notes round-trips, `uq_applications_job` rejects a second application for the same job,
+  and the reminder-sweep and pipeline queries are `idx_applications_due`/`idx_applications_pipeline`-covered
+  (query-plan assertions with no `Seq Scan`). The `last_reminder_condition`/`last_reminder_at` columns are
+  deferred to T06, where reminder suppression (QG-3) gives them behaviour and tests.
