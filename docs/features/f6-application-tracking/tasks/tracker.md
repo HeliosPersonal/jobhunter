@@ -2,7 +2,7 @@
 status: Draft
 owner: "Viacheslav Melnichenko"
 reviewers: ["Tech Lead (Viacheslav)"]
-updated_at: "2026-08-06T16"
+updated_at: "2026-08-06T17"
 feature_size: "M"
 stage: "13"
 ticket: ""
@@ -22,7 +22,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T01 | [[T01-domain-application\|Domain: Application, TransitionRules, ReminderPolicy]] | domain | — | M | done |
 | T02 | [[T02-application-persistence\|Migration and repositories]] | infra/db | T01 | S | done |
 | T03 | [[T03-owner-action-handler\|Owner action handler]] | app | T02 | M | done |
-| T04 | [[T04-pipeline-query\|Pipeline query and history view]] | app | T02 | M | pending |
+| T04 | [[T04-pipeline-query\|Pipeline query and history view]] | app | T02 | M | done |
 | T05 | [[T05-job-closure\|Job closure handling]] | app | T03 | S | pending |
 | T06 | [[T06-reminder-sweep\|Reminder sweep]] | app | T04 | M | pending |
 | T07 | [[T07-notes\|Notes]] | app | T04 | S | pending |
@@ -103,3 +103,17 @@ See [[../../../IMPLEMENTATION-READINESS]] §4 for the full per-task checklist.
   handler has no notifier or HTTP dependency, so setting `Applied` can only write a transition and the event.
   The weighted outcome signal (S4) is T08's, which depends on this. `ReminderPolicy.Default` is registered so
   the handler can reschedule `next_action_at`; T06 will bind the thresholds from options.
+- **T04** — the two read sides of F6, both Dapper and read-only (architecture rule 4). `IApplicationPipelineQuery`
+  returns `ApplicationPipeline` (groups → entries): non-archived applications joined to their job, company and
+  latest score, ordered `status, last_activity_at DESC` — the exact shape of the partial
+  `idx_applications_pipeline`, so a preserving group-by yields each status column already most-recently-active
+  first (AC-01), and the read is index-covered (query-plan assertion). `daysInStage` is computed at read time
+  from the caller's `now` and the most recent transition, floored at zero — never stored (contract §Pipeline
+  response, SAD §4 S6 keeps only `next_action_at` as a column). `IApplicationHistoryQuery` returns the single
+  application with its complete ordered transitions (`idx_transitions_application`, oldest first including the
+  creating `New` row, QG-1) and its notes (`idx_notes_application`, newest first) via one `QueryMultiple`;
+  retrievable by id even when archived (SAD §8 Archival), null for an unknown id. The read models live in
+  `Domain/Applications/` (`ApplicationPipeline`/`PipelineGroup`/`PipelineEntry`,
+  `ApplicationHistory`/`HistoryTransition`/`HistoryNote`); both ports in `Domain/Abstractions/`; both
+  implementations in `Infrastructure/Persistence/Queries/`, registered scoped. `now` is passed in, never
+  `DateTime.Now` (coding-standards §IClock). Neither read selects anything about the Owner (F4 invariant).
