@@ -2,7 +2,7 @@
 status: Draft
 owner: "Viacheslav Melnichenko"
 reviewers: ["Tech Lead (Viacheslav)"]
-updated_at: "2026-08-02"
+updated_at: "2026-08-06"
 feature_size: "M"
 stage: "13"
 ticket: ""
@@ -19,7 +19,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 
 | ID | Task | Layer | Deps | Est | Status |
 |---|---|---|---|---|---|
-| T01 | [[T01-domain-application\|Domain: Application, TransitionRules, ReminderPolicy]] | domain | — | M | pending |
+| T01 | [[T01-domain-application\|Domain: Application, TransitionRules, ReminderPolicy]] | domain | — | M | done |
 | T02 | [[T02-application-persistence\|Migration and repositories]] | infra/db | T01 | S | pending |
 | T03 | [[T03-owner-action-handler\|Owner action handler]] | app | T02 | M | pending |
 | T04 | [[T04-pipeline-query\|Pipeline query and history view]] | app | T02 | M | pending |
@@ -55,3 +55,20 @@ graph LR
 - **DoD (every task):** code compiles with zero warnings; the transition matrix suite covers every status pair; the transitions table has no update path; the coverage gate stays green; the tracker row is updated in the same PR.
 
 See [[../../../IMPLEMENTATION-READINESS]] §4 for the full per-task checklist.
+
+## Delivered notes
+
+- **T01** — the `Applications` domain in `JobHunter.Domain/Applications`: the `Application` aggregate
+  (lazily created in `New` with its creating transition, advancing only along permitted moves and
+  recording each as append-only history), `ApplicationStatus` and `TransitionSource` (persisted as
+  `text`), `StatusTransition` (append-only history row, `From` null for the creating step),
+  `TransitionRules` (the permitted `(from, to)` set as a `FrozenSet` **table**, per SAD §5) returning a
+  value-typed `TransitionResult` that carries a per-pair **remedy** on refusal (never an exception —
+  coding-standards §4), and `ReminderPolicy` (status→threshold from configuration, SAD §8 defaults
+  Applied 10 d / Interview 7 d / Saved 5 d, no hard-coded durations). The **transition matrix suite**
+  enumerates the full 7×7 Cartesian product (49 pairs) against
+  [[../contracts/application-api|the contract]] table, and asserts every refusal carries a remedy and
+  the diagonal is always a permitted no-op. `applied_at` is stamped once on first entry to `Applied`
+  and never changed; `MarkPostingClosed` sets `posting_closed` without touching the status (AC-07) and
+  is idempotent; `next_action_at` is rescheduled from the policy on each change and cleared for a
+  status with nothing to chase.
