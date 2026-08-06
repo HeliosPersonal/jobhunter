@@ -86,12 +86,17 @@ public static class TelegramHostExtensions
     {
         Commands.CommandRouter? router = null;
 
-        // /digest, /saved and /stats join this set as their handlers land (T11 C2–C4); the order here is the
-        // order they appear in /help.
+        // /saved and /stats join this set as their handlers land (T11 C3–C4); the order here is the order they
+        // appear in /help.
         var registrations = new List<Commands.CommandRegistration>
         {
             new("/start", "Confirm this chat is authorised", new Commands.StartCommandHandler()),
             new("/help", "Show this command list", new Commands.HelpCommandHandler(() => router!.HelpList)),
+            new("/digest", "Re-read today's digest", new Commands.DigestCommandHandler(
+                provider.GetRequiredService<IRunRepository>(),
+                provider.GetRequiredService<IDigestRepository>(),
+                provider.GetRequiredService<IDigestRenderer>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.DigestCommandHandler>>())),
             new("/pipeline", "Applications by status", new Commands.PlaceholderCommandHandler("Application tracking")),
             new("/search", "Search live roles", new Commands.SearchCommandAdapter(
                 provider.GetRequiredService<Search.SearchCommandHandler>())),
