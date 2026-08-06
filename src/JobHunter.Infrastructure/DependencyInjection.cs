@@ -120,6 +120,11 @@ public static class DependencyInjection
         // opened/ignored/saved/applied reactions from signals — over a half-open window, so the command can
         // compare it against the week before. Read-only Dapper.
         services.AddScoped<IWeeklyStatsQuery, WeeklyStatsQuery>();
+        // F5 digest rendering (T12): the display facts a card shows — the job's title, company, stage,
+        // location, apply URL and published salary, plus its most recent enrichment estimate for the (est)
+        // fallback — joined per job id at render time (the card snapshots only score and reasons). Read-only
+        // Dapper; the production DigestRenderer both the 07:00 delivery and /digest depend on reads through it.
+        services.AddScoped<ICardDisplayQuery, CardDisplayQuery>();
         services.AddScoped<IStaleJobsQuery, StaleJobsQuery>();
         services.AddScoped<IRawPostingReader, RawPostingReaderQuery>();
         services.AddScoped<IReprocessableJobsQuery, ReprocessableJobsQuery>();
