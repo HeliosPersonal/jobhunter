@@ -112,6 +112,10 @@ public static class DependencyInjection
         services.AddScoped<ICurrentMatchQuery, CurrentMatchQuery>();
         services.AddScoped<IJobFactsSnapshotQuery, JobFactsSnapshotQuery>();
         services.AddScoped<ICardResolutionQuery, CardResolutionQuery>();
+        // F5 /saved (T11): the roles the Owner saved — a Saved-kind signal joined back to the job, its company,
+        // its latest score and its current match, newest-first and capped, so /saved renders the same card the
+        // digest did (AC-12). Read-only Dapper; F5 reads the signals F5/F7 write.
+        services.AddScoped<ISavedRolesQuery, SavedRolesQuery>();
         services.AddScoped<IStaleJobsQuery, StaleJobsQuery>();
         services.AddScoped<IRawPostingReader, RawPostingReaderQuery>();
         services.AddScoped<IReprocessableJobsQuery, ReprocessableJobsQuery>();
