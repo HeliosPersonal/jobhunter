@@ -9,6 +9,19 @@ the job's facts **at that moment**, acknowledge within a second and update the k
 the Signal commit in one transaction — capture must not be a separate step that can fail
 independently.
 
+## Delivered
+
+**Status: done.** The `CallbackHandler` parses `{action}:{shortId}`, HMAC-resolves the short id among the
+cards of digests within a caller-owned window (`TelegramOptions.CallbackResolutionWindow`), delegates the
+action-apply and signal-capture transaction to Application's `RecordCardActionHandler`, then acknowledges
+and rewrites the keyboard per the contract table. A narrow internal `ICallbackResponder` (implemented by
+`TelegramNotifier`) makes the handler unit-testable with zero HTTP; `OwnerGatedUpdateProcessor` routes an
+authorised callback through `ICallbackRouter`, whose `ScopedCallbackRouter` opens a DI scope per tap so the
+store write runs scoped under the singleton long-poll loop. F7-T01/T02 were pulled forward (option (a)), so
+AC-08 is truly satisfied. **Known follow-up:** the `Applied` tap's durable record is F6's
+`OwnerActionRecorded`, which F5 does not publish (no outbox in the Telegram host, F6 not built) — deferred
+to F6. See the tracker's Delivered notes.
+
 ## Done when
 
 - All four actions are recorded, acknowledged and reflected in the keyboard (AC-03).

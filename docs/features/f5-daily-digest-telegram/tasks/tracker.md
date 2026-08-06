@@ -28,7 +28,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T07 | [[T07-telegram-host-auth\|Telegram host, allowlist and long polling]] | telegram | — | M | done |
 | T08 | [[T08-delivery-idempotence\|Delivery handler with per-card idempotence]] | app | T02, T06, T07 | L | done |
 | T09 | [[T09-schedule-degraded\|Delivery scheduling and degraded-day variants]] | app | T08, T05 | M | done |
-| T10 | [[T10-callback-actions\|Callback handling, actions and Signal capture]] | telegram | T08 | L | pending |
+| T10 | [[T10-callback-actions\|Callback handling, actions and Signal capture]] | telegram | T08 | L | done |
 | T11 | [[T11-command-set\|Command set]] | telegram | T10 | M | pending |
 | T12 | [[T12-rendering-corpus\|Rendering corpus and live smoke checklist]] | tests | T09, T11 | M | pending |
 | T13 | [[T13-near-duplicate-grouping\|Near-duplicate grouping at digest assembly]] | app | T03 | S | done |
@@ -61,3 +61,17 @@ graph LR
 - **DoD (every task):** code compiles with zero warnings; the rendering corpus and duplicate-delivery suites are green; every degraded path delivers a digest; the coverage gate stays green; the tracker row is updated in the same PR.
 
 See [[../../../IMPLEMENTATION-READINESS]] §4 for the full per-task checklist.
+
+## Delivered notes
+
+- **T10** — the `Signal` domain type and the `signals` table it writes to are owned by F7 and were pulled
+  forward (option (a) in the T10 implementation map): F7-T01 (domain) and F7-T02 (migration
+  `20260806093258_F7AddSignalsAndPreferences`) are on `master`, so AC-08's "a Signal captured in the same
+  transaction, carrying the job's facts at that moment" is truly satisfied rather than gated behind a stub.
+  Card-action taps capture `Ignored` and `Saved` signals; `Open` is a URL button (no callback) and
+  `Applied` is an F6 outcome kind needing an application id F5 lacks, so both return
+  `RecordedElsewhere` and F5 writes no signal for them.
+- **Known follow-up (T10):** the `Applied` tap's durable record is F6's `OwnerActionRecorded` event, which
+  F5 does **not** publish — the Telegram host has no Wolverine outbox and F6 is not yet built. The
+  `CallbackHandler` acknowledges `Applied` and updates the keyboard today; wiring the `OwnerActionRecorded`
+  publication is deferred to F6.
