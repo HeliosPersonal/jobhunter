@@ -40,10 +40,12 @@ public sealed class JobFactsSnapshotQuery(INpgsqlConnectionFactory connectionFac
                    WHERE t.job_id = j.id
                )                 AS Technologies,
                e.company_stage   AS CompanyStage,
-               e.timezone_band   AS TimezoneBand
+               e.timezone_band   AS TimezoneBand,
+               e.ai_usage        AS AiUsage,
+               e.role_family     AS RoleFamily
         FROM jobs j
         LEFT JOIN LATERAL (
-            SELECT ee.company_stage, ee.timezone_band
+            SELECT ee.company_stage, ee.timezone_band, ee.ai_usage, ee.role_family
             FROM enrichments ee
             WHERE ee.job_id = j.id
             ORDER BY ee.created_at DESC
@@ -97,6 +99,18 @@ public sealed class JobFactsSnapshotQuery(INpgsqlConnectionFactory connectionFac
             facts[Dimension.TimezoneBand] = [row.TimezoneBand];
         }
 
+        // AiUsage and RoleFamily (T10, TUNE-08) come from the same latest enrichment: absent when the job
+        // was never enriched, so a signal captured before enrichment simply teaches nothing on these.
+        if (row.AiUsage is not null)
+        {
+            facts[Dimension.AiUsage] = [row.AiUsage];
+        }
+
+        if (row.RoleFamily is not null)
+        {
+            facts[Dimension.RoleFamily] = [row.RoleFamily];
+        }
+
         // JobFacts.Create trims, de-dups and drops blanks; a live job always keeps remote policy and
         // employment type, so the snapshot is never factless.
         return JobFacts.Create(facts);
@@ -142,5 +156,9 @@ public sealed class JobFactsSnapshotQuery(INpgsqlConnectionFactory connectionFac
         public string? CompanyStage { get; init; }
 
         public string? TimezoneBand { get; init; }
+
+        public string? AiUsage { get; init; }
+
+        public string? RoleFamily { get; init; }
     }
 }

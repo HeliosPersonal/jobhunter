@@ -33,9 +33,12 @@ public sealed class JobFactsSnapshotQueryTests
     {
         var seed = await SeedAsync();
         await using var _ = seed.Database;
-        await SeedEnrichmentAsync(seed, CompanyStage.SeriesA, TimezoneBand.AMER, seed.RunId, Now.AddHours(-2));
+        await SeedEnrichmentAsync(
+            seed, CompanyStage.SeriesA, TimezoneBand.AMER, seed.RunId, Now.AddHours(-2),
+            AiUsageLevel.Low, RoleFamily.BackendGeneric);
         // A later enrichment supersedes the earlier one — the snapshot reads this, not the stale row.
-        await SeedSecondEnrichmentAsync(seed, CompanyStage.SeriesB, TimezoneBand.EMEA, Now);
+        await SeedSecondEnrichmentAsync(
+            seed, CompanyStage.SeriesB, TimezoneBand.EMEA, Now, AiUsageLevel.High, RoleFamily.AiPlatform);
 
         var query = new JobFactsSnapshotQuery(new NpgsqlConnectionFactory(seed.Database.ConnectionString));
         var facts = await query.SnapshotAsync(seed.JobId);
@@ -49,6 +52,9 @@ public sealed class JobFactsSnapshotQueryTests
         facts.ValuesFor(Dimension.TimezoneBand).ShouldBe(["EMEA"]);
         facts.ValuesFor(Dimension.RemotePolicy).ShouldBe(["Remote"]);
         facts.ValuesFor(Dimension.EmploymentType).ShouldBe(["FullTime"]);
+        // T10 (TUNE-08): the career-trajectory dimensions come from the latest enrichment too.
+        facts.ValuesFor(Dimension.AiUsage).ShouldBe(["High"]);
+        facts.ValuesFor(Dimension.RoleFamily).ShouldBe(["AiPlatform"]);
     }
 
     [RequiresDockerFact]
@@ -61,9 +67,12 @@ public sealed class JobFactsSnapshotQueryTests
         var facts = await query.SnapshotAsync(seed.JobId);
 
         facts.ShouldNotBeNull();
-        // No enrichment -> no company size, no timezone band; the job's own facts still snapshot.
+        // No enrichment -> no company size, no timezone band, no AI usage or role family; the job's own
+        // columns still snapshot.
         facts!.ValuesFor(Dimension.CompanySize).ShouldBeEmpty();
         facts.ValuesFor(Dimension.TimezoneBand).ShouldBeEmpty();
+        facts.ValuesFor(Dimension.AiUsage).ShouldBeEmpty();
+        facts.ValuesFor(Dimension.RoleFamily).ShouldBeEmpty();
         facts.ValuesFor(Dimension.RemotePolicy).ShouldBe(["Remote"]);
         facts.ValuesFor(Dimension.EmploymentType).ShouldBe(["FullTime"]);
         facts.ValuesFor(Dimension.SalaryBand).ShouldBe(["150-180k"]);
@@ -112,19 +121,21 @@ public sealed class JobFactsSnapshotQueryTests
     }
 
     private static async Task SeedEnrichmentAsync(
-        Seed seed, CompanyStage stage, TimezoneBand band, Guid runId, DateTimeOffset createdAt)
+        Seed seed, CompanyStage stage, TimezoneBand band, Guid runId, DateTimeOffset createdAt,
+        AiUsageLevel aiUsage = AiUsageLevel.None, RoleFamily roleFamily = RoleFamily.Platform)
     {
         var enrichment = new Enrichment(
             Guid.CreateVersion7(), seed.JobId, runId, salary: null,
-            isRemote: true, isContractorFriendly: false, band, AiUsageLevel.None, AiSignals.None,
-            stage, RoleFamily.Platform, technologies: [], reasons: ["Assessed."], "enrich-v1", createdAt);
+            isRemote: true, isContractorFriendly: false, band, aiUsage, AiSignals.None,
+            stage, roleFamily, technologies: [], reasons: ["Assessed."], "enrich-v1", createdAt);
         var repo = new EnrichmentRepository(
             seed.Database.CreateContext(), new NpgsqlConnectionFactory(seed.Database.ConnectionString));
         await repo.UpsertAsync(enrichment);
     }
 
     private static async Task SeedSecondEnrichmentAsync(
-        Seed seed, CompanyStage stage, TimezoneBand band, DateTimeOffset createdAt)
+        Seed seed, CompanyStage stage, TimezoneBand band, DateTimeOffset createdAt,
+        AiUsageLevel aiUsage = AiUsageLevel.None, RoleFamily roleFamily = RoleFamily.Platform)
     {
         // A second enrichment needs a second, terminal Run (the single-active-run index).
         var secondRun = new Run(Guid.CreateVersion7(), Now, Now.AddDays(1), 5m, Now.AddDays(1));
@@ -136,7 +147,7 @@ public sealed class JobFactsSnapshotQueryTests
             await ctx.SaveChangesAsync();
         }
 
-        await SeedEnrichmentAsync(seed, stage, band, secondRun.Id, createdAt);
+        await SeedEnrichmentAsync(seed, stage, band, secondRun.Id, createdAt, aiUsage, roleFamily);
     }
 
     private static async Task<Seed> SeedAsync(string salaryCurrency = "USD")
