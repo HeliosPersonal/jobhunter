@@ -90,6 +90,12 @@ public static class DependencyInjection
         // Worker's next Run. Enqueue is idempotent per open job; the Run drains pending ids and consumes them.
         services.AddScoped<IReMatchBacklog, ReMatchBacklogRepository>();
 
+        // F7 preference persistence (T02): signals are captured with a raw ON CONFLICT DO NOTHING upsert whose
+        // unique (job_id, kind, occurred_at) constraint makes capture idempotent (F5/F6 write, F7 reads); the
+        // preference model goes through EF as an immutable aggregate with its weights as owned children.
+        services.AddScoped<ISignalRepository, SignalRepository>();
+        services.AddScoped<IPreferenceModelRepository, PreferenceModelRepository>();
+
         // F4 CV upload (T03): the in-process, pure-managed text extractor behind the upload service. No
         // shell-out, no OCR — PdfPig reads embedded text, plain/Markdown is decoded as UTF-8.
         services.AddSingleton<ICvTextExtractor, Cv.CvTextExtractor>();

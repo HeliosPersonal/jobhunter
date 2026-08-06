@@ -73,7 +73,7 @@ The evidence. Written by F5 (card actions) and F6 (outcomes); read only by F7.
 |---|---|---|---|
 | `id` | uuid | PK | |
 | `job_id` | uuid | NOT NULL, FK | |
-| `application_id` | uuid | NULL, FK | present for outcome signals |
+| `application_id` | uuid | NULL, FK | present for outcome signals (FK added by F6 when `applications` exists — T02 as-built) |
 | `kind` | text | NOT NULL | `Opened`, `Ignored`, `Saved`, `Applied`, `Interview`, `Offer`, `Rejected`, `Rated` |
 | `weight` | numeric(3,1) | NOT NULL | 1.0 for card actions up to 6.0 for an offer |
 | `job_facts` | jsonb | NOT NULL | **the job's characteristics at the moment of the action** |
@@ -109,7 +109,7 @@ rollback rather than an incident (SAD §4 S6).
 | `dimension` | text | `SalaryBand`, `Country`, `CompanySize`, `Technology`, `TimezoneBand`, `RemotePolicy`, `EmploymentType` (planned: `AiUsage`, `RoleFamily` — TUNE-08 / F7 T10) |
 | `value` | text | e.g. `DE`, `150-180k`, `SeriesB`, `Kafka` |
 | `weight` | numeric(5,4) | −1.00 to +1.00 |
-| `supporting_signal_count` | integer | **≥ 3 required** (AC-03) |
+| `supporting_signal_count` | *(derived)* | **≥ 3 required** (AC-03); not a stored column — derived from `supporting_signal_ids` (T02 as-built) |
 | `supporting_signal_ids` | jsonb | **the whole of QG-1** — the evidence, by id |
 | `positive_rate` | numeric(5,4) | the rate that produced the weight, retained so the explanation can quote it |
 | `disabled` | boolean | Owner override (AC-06) |
