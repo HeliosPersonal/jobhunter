@@ -69,6 +69,28 @@ public sealed class ApplicationPipelineQueryTests
     }
 
     [RequiresDockerFact]
+    public async Task Pipeline_days_in_stage_ignores_a_posting_closure()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+
+        // Entered Applied five days ago; the posting then closed yesterday. The closure is a System
+        // self-transition (T05) — it must not reset the stage clock, which measures time in the *status*.
+        await PersistApplicationAsync(
+            seed.Database,
+            seed.JobId,
+            [(ApplicationStatus.Applied, Now.AddDays(-5))],
+            closedAt: Now.AddDays(-1));
+
+        var query = new ApplicationPipelineQuery(new NpgsqlConnectionFactory(seed.Database.ConnectionString));
+        var pipeline = await query.PipelineAsync(Now);
+
+        var entry = pipeline.Groups.Single(g => g.Status == ApplicationStatus.Applied).Applications.ShouldHaveSingleItem();
+        entry.PostingClosed.ShouldBeTrue();
+        entry.DaysInStage.ShouldBe(5);
+    }
+
+    [RequiresDockerFact]
     public async Task Pipeline_excludes_archived_applications()
     {
         var seed = await SeedAsync();
@@ -168,7 +190,8 @@ public sealed class ApplicationPipelineQueryTests
         Guid jobId,
         IReadOnlyList<(ApplicationStatus To, DateTimeOffset At)> moves,
         (string Body, DateTimeOffset At)? note = null,
-        bool archived = false)
+        bool archived = false,
+        DateTimeOffset? closedAt = null)
     {
         var id = Guid.CreateVersion7();
         var app = App.Create(id, jobId, moves[0].At.AddMinutes(-1), TransitionSource.Telegram);
@@ -180,6 +203,11 @@ public sealed class ApplicationPipelineQueryTests
         if (note is { } n)
         {
             app.AddNote(Guid.CreateVersion7(), n.Body, n.At);
+        }
+
+        if (closedAt is { } c)
+        {
+            app.MarkPostingClosed(c);
         }
 
         await using var ctx = database.CreateContext();

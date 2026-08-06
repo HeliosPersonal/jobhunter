@@ -112,7 +112,7 @@ public sealed class ApplicationTests
     }
 
     [Fact]
-    public void Marking_the_posting_closed_does_not_alter_the_status()
+    public void Marking_the_posting_closed_records_a_system_self_transition_without_changing_status()
     {
         var app = App.Create(Id, Job, T0, TransitionSource.Telegram);
         app.ChangeStatus(ApplicationStatus.Applied, TransitionSource.Telegram, T0.AddMinutes(1), Policy);
@@ -121,22 +121,34 @@ public sealed class ApplicationTests
         app.MarkPostingClosed(T0.AddDays(1));
 
         app.PostingClosed.ShouldBeTrue();
+        // AC-07: the status is untouched — a closed posting tells us nothing about the Owner's application.
         app.Status.ShouldBe(ApplicationStatus.Applied);
-        app.Transitions.Count.ShouldBe(transitionsBefore, "closing a posting is not a status transition");
         app.LastActivityAt.ShouldBe(T0.AddDays(1));
+
+        // The closure is recorded as history: a System-sourced self-transition (from == to) carrying detail,
+        // so a System change is distinguishable from a deliberate one (SAD §8) without fabricating a move.
+        app.Transitions.Count.ShouldBe(transitionsBefore + 1);
+        var closure = app.Transitions[^1];
+        closure.From.ShouldBe(ApplicationStatus.Applied);
+        closure.To.ShouldBe(ApplicationStatus.Applied);
+        closure.Source.ShouldBe(TransitionSource.System);
+        closure.Detail.ShouldBe(App.PostingClosedDetail);
+        closure.OccurredAt.ShouldBe(T0.AddDays(1));
     }
 
     [Fact]
-    public void Marking_the_posting_closed_twice_is_idempotent()
+    public void Marking_the_posting_closed_twice_records_the_closure_once()
     {
         var app = App.Create(Id, Job, T0, TransitionSource.Telegram);
+        var transitionsBefore = app.Transitions.Count;
 
         app.MarkPostingClosed(T0.AddDays(1));
         app.MarkPostingClosed(T0.AddDays(2));
 
         app.PostingClosed.ShouldBeTrue();
-        // The second call is a no-op; last_activity_at is not advanced by re-closing.
+        // The second call is a no-op: last_activity_at is not advanced and no second closure is recorded.
         app.LastActivityAt.ShouldBe(T0.AddDays(1));
+        app.Transitions.Count.ShouldBe(transitionsBefore + 1);
     }
 
     [Fact]
@@ -161,6 +173,37 @@ public sealed class ApplicationTests
         app.ChangeStatus(ApplicationStatus.Rejected, TransitionSource.Telegram, T0.AddDays(1), Policy);
 
         app.NextActionAt.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(ApplicationStatus.Rejected)]
+    [InlineData(ApplicationStatus.Offer)]
+    [InlineData(ApplicationStatus.Ignored)]
+    public void A_reached_outcome_is_terminal(ApplicationStatus terminal)
+    {
+        var app = App.Create(Id, Job, T0, TransitionSource.Telegram);
+        // Offer is only reachable from Applied/Interview (New → Offer is refused), so pass through Applied.
+        app.ChangeStatus(ApplicationStatus.Applied, TransitionSource.Telegram, T0.AddMinutes(1), Policy);
+        app.ChangeStatus(terminal, TransitionSource.Telegram, T0.AddMinutes(2), Policy);
+
+        app.Status.ShouldBe(terminal);
+        app.IsTerminal.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(ApplicationStatus.New)]
+    [InlineData(ApplicationStatus.Saved)]
+    [InlineData(ApplicationStatus.Applied)]
+    [InlineData(ApplicationStatus.Interview)]
+    public void An_open_stage_is_not_terminal(ApplicationStatus open)
+    {
+        var app = App.Create(Id, Job, T0, TransitionSource.Telegram);
+        if (open != ApplicationStatus.New)
+        {
+            app.ChangeStatus(open, TransitionSource.Telegram, T0.AddMinutes(1), Policy);
+        }
+
+        app.IsTerminal.ShouldBeFalse();
     }
 
     [Fact]

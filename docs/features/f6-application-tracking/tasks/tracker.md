@@ -2,7 +2,7 @@
 status: Draft
 owner: "Viacheslav Melnichenko"
 reviewers: ["Tech Lead (Viacheslav)"]
-updated_at: "2026-08-06T17"
+updated_at: "2026-08-06T18"
 feature_size: "M"
 stage: "13"
 ticket: ""
@@ -23,7 +23,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T02 | [[T02-application-persistence\|Migration and repositories]] | infra/db | T01 | S | done |
 | T03 | [[T03-owner-action-handler\|Owner action handler]] | app | T02 | M | done |
 | T04 | [[T04-pipeline-query\|Pipeline query and history view]] | app | T02 | M | done |
-| T05 | [[T05-job-closure\|Job closure handling]] | app | T03 | S | pending |
+| T05 | [[T05-job-closure\|Job closure handling]] | app | T03 | S | done |
 | T06 | [[T06-reminder-sweep\|Reminder sweep]] | app | T04 | M | pending |
 | T07 | [[T07-notes\|Notes]] | app | T04 | S | pending |
 | T08 | [[T08-outcome-signals\|Outcome signals]] | app | T03 | M | pending |
@@ -69,9 +69,11 @@ See [[../../../IMPLEMENTATION-READINESS]] §4 for the full per-task checklist.
   enumerates the full 7×7 Cartesian product (49 pairs) against
   [[../contracts/application-api|the contract]] table, and asserts every refusal carries a remedy and
   the diagonal is always a permitted no-op. `applied_at` is stamped once on first entry to `Applied`
-  and never changed; `MarkPostingClosed` sets `posting_closed` without touching the status (AC-07) and
-  is idempotent; `next_action_at` is rescheduled from the policy on each change and cleared for a
-  status with nothing to chase.
+  and never changed; `MarkPostingClosed` sets `posting_closed` without touching the status (AC-07),
+  recording the closure as a `System` self-transition carrying `Application.PostingClosedDetail`
+  (`posting closed`) — history without a fabricated move (refined in T05) — and is idempotent;
+  `next_action_at` is rescheduled from the policy on each change and cleared for a status with nothing
+  to chase.
 - **T02** — the F6 persistence. The migration `F6AddApplications` creates `applications`,
   `application_transitions` and `application_notes` with all six declared indexes, including the two
   partial indexes on `applications` (`idx_applications_pipeline WHERE NOT archived`,
@@ -108,8 +110,10 @@ See [[../../../IMPLEMENTATION-READINESS]] §4 for the full per-task checklist.
   latest score, ordered `status, last_activity_at DESC` — the exact shape of the partial
   `idx_applications_pipeline`, so a preserving group-by yields each status column already most-recently-active
   first (AC-01), and the read is index-covered (query-plan assertion). `daysInStage` is computed at read time
-  from the caller's `now` and the most recent transition, floored at zero — never stored (contract §Pipeline
-  response, SAD §4 S6 keeps only `next_action_at` as a column). `IApplicationHistoryQuery` returns the single
+  from the caller's `now` and the most recent **stage-entering** transition (`from_status IS DISTINCT FROM
+  to_status`), floored at zero — never stored (contract §Pipeline response, SAD §4 S6 keeps only
+  `next_action_at` as a column). Excluding self-transitions means a further interview round or a T05 posting
+  closure never resets the stage clock. `IApplicationHistoryQuery` returns the single
   application with its complete ordered transitions (`idx_transitions_application`, oldest first including the
   creating `New` row, QG-1) and its notes (`idx_notes_application`, newest first) via one `QueryMultiple`;
   retrievable by id even when archived (SAD §8 Archival), null for an unknown id. The read models live in
@@ -117,3 +121,22 @@ See [[../../../IMPLEMENTATION-READINESS]] §4 for the full per-task checklist.
   `ApplicationHistory`/`HistoryTransition`/`HistoryNote`); both ports in `Domain/Abstractions/`; both
   implementations in `Infrastructure/Persistence/Queries/`, registered scoped. `now` is passed in, never
   `DateTime.Now` (coding-standards §IClock). Neither read selects anything about the Owner (F4 invariant).
+- **T05** — job-closure handling. `JobClosureHandler` (`Application/Applications/`, Wolverine-discovered)
+  consumes `JobClosed` (F1/F2): it loads the application for the job and, if one exists and is not terminal,
+  calls `Application.MarkPostingClosed(closedAt)` and commits. The status is deliberately not changed (AC-07)
+  — a closed posting tells us nothing about the Owner's application, and auto-rejecting would fabricate an
+  outcome that poisons F7's evidence (SAD §6.3). The closure is recorded as history without a fabricated
+  move: `MarkPostingClosed` now appends a `System` self-transition (`from == to`) carrying
+  `Application.PostingClosedDetail` (`posting closed`, the data-model §application_transitions `detail`
+  example), so the event is visible and distinguishable from a deliberate change (SAD §8) — this refines the
+  T01 flag-only behaviour, and the pipeline `daysInStage` (T04) ignores self-transitions so the closure never
+  resets the stage clock. `Application.IsTerminal` (Rejected/Offer/Ignored) gates the no-op for a terminal
+  application; a closure for an untracked job is a no-op, not an error. It publishes nothing (the status did
+  not change) and holds no notifier or HTTP dependency, so it cannot act for the Owner (invariant 7).
+  Idempotence rests on the durable inbox collapsing a redelivered `JobClosed` (`(JobId, ClosedAt)`) and, as a
+  second net, `MarkPostingClosed` being a no-op on an already-closed posting — a redelivered closure records
+  no second transition and advances nothing; the application and its full history are always retained
+  (invariant 8, QG-1). AC-07 is proven end-to-end against a real database
+  (`JobClosureHandlerIntegrationTests`, the test-plan Messaging suite) as well as by the fake-repo unit suite.
+  The point-4 reminder for a `Saved` application whose posting closed belongs to the T06 sweep (SAD §6.2,
+  which reads `posting_closed`); T05 sets the data the sweep reads.

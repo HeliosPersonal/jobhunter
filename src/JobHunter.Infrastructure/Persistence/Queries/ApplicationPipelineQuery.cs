@@ -47,6 +47,10 @@ public sealed class ApplicationPipelineQuery(INpgsqlConnectionFactory connection
             SELECT max(t.occurred_at) AS stage_entered_at
             FROM application_transitions t
             WHERE t.application_id = a.id
+              -- Only genuine stage entries mark when the stage was entered. A self-transition (from == to)
+              -- is a same-status event — a further interview round, or a System posting-closure (F6 T05) —
+              -- and must not reset the days-in-stage clock, which measures time in the current status.
+              AND t.from_status IS DISTINCT FROM t.to_status
         ) st ON TRUE
         WHERE NOT a.archived
         ORDER BY a.status, a.last_activity_at DESC

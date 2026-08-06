@@ -14,6 +14,9 @@ the Owner's application, and auto-rejecting would fabricate an outcome that pois
 - The application and its full history are retained — nothing is deleted.
 - A closure for a terminal or non-existent application is a no-op, not an error.
 - A `Saved` application whose posting closed triggers a reminder suggesting drop or apply elsewhere.
+  *(T05 sets `posting_closed`, the datum the reminder reads; the reminder itself is emitted by the T06
+  sweep — SAD §6.2, which reads `posting_closed` — not by the closure handler, whose §6.3 sequence ends at
+  the database write.)*
 - The handler is idempotent — a redelivered closure changes nothing further.
 
 ## Links

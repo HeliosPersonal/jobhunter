@@ -15,6 +15,9 @@ namespace JobHunter.Domain.Applications;
 /// </summary>
 public sealed class Application : Entity
 {
+    /// <summary>The <see cref="StatusTransition.Detail"/> recorded on the self-transition a closure appends.</summary>
+    public const string PostingClosedDetail = "posting closed";
+
     private readonly List<StatusTransition> _transitions = [];
     private readonly List<ApplicationNote> _notes = [];
 
@@ -40,11 +43,19 @@ public sealed class Application : Entity
 
     public ApplicationStatus Status { get; private set; }
 
-    /// <summary>Set by <see cref="MarkPostingClosed"/>; the status is never changed with it (AC-07).</summary>
+    /// <summary>Set by <see cref="MarkPostingClosed"/>; the status is never changed with it (AC-07), only a
+    /// <see cref="TransitionSource.System"/> self-transition recorded alongside.</summary>
     public bool PostingClosed { get; private set; }
 
     /// <summary>Terminal applications archive after 180 days: hidden from the pipeline, never deleted.</summary>
     public bool Archived { get; private set; }
+
+    /// <summary>
+    /// Whether the application has reached an outcome — <see cref="ApplicationStatus.Rejected"/>,
+    /// <see cref="ApplicationStatus.Offer"/> or <see cref="ApplicationStatus.Ignored"/>. A posting closing on
+    /// a terminal application changes nothing (SAD §6.3): the outcome is already known.
+    /// </summary>
+    public bool IsTerminal => Status is ApplicationStatus.Rejected or ApplicationStatus.Offer or ApplicationStatus.Ignored;
 
     /// <summary>Stamped once, on first entry to <see cref="ApplicationStatus.Applied"/>; never changed.</summary>
     public DateTimeOffset? AppliedAt { get; private set; }
@@ -140,9 +151,13 @@ public sealed class Application : Entity
     }
 
     /// <summary>
-    /// Records that the underlying posting has closed (from <c>JobClosed</c>, F2). This is metadata: the
-    /// status is deliberately not changed (AC-07), because a posting closing tells us nothing about the
-    /// Owner's application. Idempotent — re-closing an already-closed posting is a no-op.
+    /// Records that the underlying posting has closed (from <c>JobClosed</c>, F2). The status is deliberately
+    /// not changed (AC-07): a posting closing tells us nothing about the Owner's application, and collapsing
+    /// the two would fabricate a rejection and poison F7's evidence. The closure is still recorded as
+    /// history — a <see cref="TransitionSource.System"/> self-transition (<see cref="StatusTransition.From"/>
+    /// equal to <see cref="StatusTransition.To"/>) carrying <see cref="PostingClosedDetail"/>, so the event is
+    /// visible in the history without pretending a move happened. Idempotent — re-closing an already-closed
+    /// posting is a no-op that advances nothing and records no second closure.
     /// </summary>
     public void MarkPostingClosed(DateTimeOffset now)
     {
@@ -153,5 +168,14 @@ public sealed class Application : Entity
 
         PostingClosed = true;
         LastActivityAt = now;
+
+        _transitions.Add(new StatusTransition(
+            id: Guid.NewGuid(),
+            applicationId: Id,
+            from: Status,
+            to: Status,
+            source: TransitionSource.System,
+            occurredAt: now,
+            detail: PostingClosedDetail));
     }
 }
