@@ -204,6 +204,25 @@ public static class DependencyInjection
         // discovered by Wolverine, and is registered here; IApplicationRepository is registered by Infrastructure.
         services.AddScoped<Applications.AddNoteHandler>();
 
+        // F6 outcome signals (T08, AC-08): reaching a terminal outcome stages a weighted signals row for F7 in
+        // the same unit of work as the transition. The publisher is a collaborator of the Wolverine-discovered
+        // OwnerActionHandler, registered scoped so it shares the handler's DbContext (via IOutcomeSignalWriter,
+        // registered by Infrastructure) — that shared context is what makes the signal and the transition commit
+        // together. The SAD §8 weights are configuration (done-when 4): SignalWeightOptions binds them (defaults
+        // = the SAD table) and builds the one SignalWeights the publisher resolves each weight through, validated
+        // strictly positive at startup, never at first use. IJobFactsSnapshotQuery is registered by Infrastructure.
+        services.AddOptions<Applications.SignalWeightOptions>()
+            .BindConfiguration(Applications.SignalWeightOptions.SectionName)
+            .Validate(o => o.CardAction > 0m, "SignalWeights:CardAction must be positive.")
+            .Validate(o => o.Applied > 0m, "SignalWeights:Applied must be positive.")
+            .Validate(o => o.Rejected > 0m, "SignalWeights:Rejected must be positive.")
+            .Validate(o => o.Interview > 0m, "SignalWeights:Interview must be positive.")
+            .Validate(o => o.Offer > 0m, "SignalWeights:Offer must be positive.")
+            .ValidateOnStart();
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Applications.SignalWeightOptions>>().Value.ToWeights());
+        services.AddScoped<Applications.OutcomeSignalPublisher>();
+
         // F6 application tracking (T03/T06): the SAD §8 reminder thresholds are configuration, not hard-coded
         // durations. ReminderOptions binds the day counts (defaults = SAD §8: Applied 10 d / Interview 7 d /
         // Saved 5 d) and builds the one ReminderPolicy that both consumers resolve through — the T03

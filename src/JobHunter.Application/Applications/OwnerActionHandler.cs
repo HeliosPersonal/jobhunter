@@ -14,7 +14,9 @@ namespace JobHunter.Application.Applications;
 /// <see cref="TransitionRules"/>, applies it as append-only history (QG-1), and publishes
 /// <see cref="ApplicationStatusChanged"/> so F7 (signal capture) and F9 (index update) react. The status
 /// change, the history row and the outbox message commit together in the one Wolverine EF transaction
-/// (AC-03).
+/// (AC-03). When the target is a terminal outcome, <see cref="OutcomeSignalPublisher"/> stages a weighted
+/// <c>signals</c> row into that same transaction (T08, AC-08), so the evidence and the transition are
+/// all-or-nothing.
 ///
 /// <para>A refused transition changes nothing and publishes nothing (AC-02): <c>ChangeStatus</c> returns a
 /// remedy value rather than throwing, so a nonsensical tap (a Save on a Rejected application) is a logged
@@ -32,11 +34,13 @@ public sealed class OwnerActionHandler(
     IApplicationRepository applications,
     IIdGenerator ids,
     ReminderPolicy reminderPolicy,
+    OutcomeSignalPublisher outcomeSignals,
     ILogger<OwnerActionHandler> logger)
 {
     private readonly IApplicationRepository _applications = applications ?? throw new ArgumentNullException(nameof(applications));
     private readonly IIdGenerator _ids = ids ?? throw new ArgumentNullException(nameof(ids));
     private readonly ReminderPolicy _reminderPolicy = reminderPolicy ?? throw new ArgumentNullException(nameof(reminderPolicy));
+    private readonly OutcomeSignalPublisher _outcomeSignals = outcomeSignals ?? throw new ArgumentNullException(nameof(outcomeSignals));
     private readonly ILogger<OwnerActionHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public async Task Handle(OwnerActionRecorded message, IMessageBus bus, CancellationToken cancellationToken)
@@ -85,6 +89,12 @@ public sealed class OwnerActionHandler(
                 message.Action, message.JobId, result.Error.Code);
             return;
         }
+
+        // T08 / AC-08: stage the weighted outcome signal into the same unit of work as the transition, so the
+        // single SaveChanges below commits both (or neither). Staged before the commit, never after: a signal
+        // is never written for a transition that rolled back. A non-outcome target stages nothing.
+        await _outcomeSignals.StageAsync(application.JobId, application.Id, target.Value, message.OccurredAt, cancellationToken)
+            .ConfigureAwait(false);
 
         await _applications.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 

@@ -1,15 +1,20 @@
 using System.Text;
 using JobHunter.Application.Applications;
+using JobHunter.Contracts.Pipeline;
 using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Applications;
 using JobHunter.Domain.Companies;
 using JobHunter.Domain.Jobs;
 using JobHunter.Domain.Postings;
+using JobHunter.Domain.Preferences;
 using JobHunter.Domain.Sources;
 using JobHunter.Infrastructure.Persistence.Repositories;
 using JobHunter.TestKit;
+using Microsoft.Extensions.Logging.Abstractions;
+using NSubstitute;
 using Npgsql;
 using Shouldly;
+using Wolverine;
 using Xunit;
 using App = JobHunter.Domain.Applications.Application;
 
@@ -194,6 +199,64 @@ public sealed class ApplicationPersistenceTests
         note.CreatedAt.ShouldBe(Now.AddMinutes(5));
         loaded.LastActivityAt.ShouldBe(Now.AddMinutes(5));
         loaded.Status.ShouldBe(ApplicationStatus.New);
+    }
+
+    [RequiresDockerFact]
+    public async Task An_outcome_action_commits_its_weighted_signal_in_the_same_transaction_as_the_transition()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+
+        // The repository and the outcome-signal writer share ONE context: the handler's single SaveChanges
+        // commits the transition and the signal together (SAD §6.1, AC-08). The facts snapshot is a real,
+        // read-only Dapper query over the live seeded job.
+        var context = seed.Database.CreateContext();
+        var repository = new ApplicationRepository(context);
+        var writer = new OutcomeSignalWriter(context);
+        // The facts snapshot is a real, read-only query proven by its own suite (T10); here it is a fixed
+        // stand-in, so this test isolates the T08 concern — that the signal enlists in the transition's
+        // transaction — from the projection of the job's columns into facts.
+        var facts = Substitute.For<IJobFactsSnapshotQuery>();
+        facts.SnapshotAsync(seed.JobId, Arg.Any<CancellationToken>())
+            .Returns(JobFacts.Create(new Dictionary<Dimension, IReadOnlyList<string>>
+            {
+                [Dimension.RemotePolicy] = ["Remote"],
+                [Dimension.Country] = ["Germany"],
+            }));
+        var publisher = new OutcomeSignalPublisher(
+            facts,
+            writer,
+            new SequentialIdGenerator(),
+            SignalWeights.Default,
+            NullLogger<OutcomeSignalPublisher>.Instance);
+        var handler = new OwnerActionHandler(
+            repository, new SequentialIdGenerator(), ReminderPolicy.Default, publisher,
+            NullLogger<OwnerActionHandler>.Instance);
+
+        await handler.Handle(
+            new OwnerActionRecorded(seed.JobId, OwnerActionRecorded.Applied, ChatId: 1, Now),
+            Substitute.For<IMessageBus>(),
+            CancellationToken.None);
+
+        // Read the signal back straight from the database, from a connection the handler never touched: the
+        // Applied signal committed, carrying the outcome weight, the application it came from, and the job's
+        // facts snapshotted at the tap.
+        await using var connection = new NpgsqlConnection(seed.Database.ConnectionString);
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT s.kind, s.weight, s.application_id, s.job_facts, a.job_id " +
+            "FROM signals s JOIN applications a ON a.id = s.application_id WHERE s.job_id = @job";
+        command.Parameters.AddWithValue("job", seed.JobId);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        (await reader.ReadAsync()).ShouldBeTrue();
+        reader.GetString(0).ShouldBe(nameof(SignalKind.Applied));
+        reader.GetDecimal(1).ShouldBe(SignalWeights.Default.Applied);
+        reader.GetGuid(2).ShouldNotBe(Guid.Empty);
+        reader.GetString(3).ShouldNotBeNullOrWhiteSpace();
+        reader.GetGuid(4).ShouldBe(seed.JobId);
+        (await reader.ReadAsync()).ShouldBeFalse();
     }
 
     private static async Task PersistAppliedApplicationAsync(Seed seed)

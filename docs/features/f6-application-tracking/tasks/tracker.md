@@ -2,7 +2,7 @@
 status: Draft
 owner: "Viacheslav Melnichenko"
 reviewers: ["Tech Lead (Viacheslav)"]
-updated_at: "2026-08-06T21"
+updated_at: "2026-08-06T22"
 feature_size: "M"
 stage: "13"
 ticket: ""
@@ -26,7 +26,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T05 | [[T05-job-closure\|Job closure handling]] | app | T03 | S | done |
 | T06 | [[T06-reminder-sweep\|Reminder sweep]] | app | T04 | M | done |
 | T07 | [[T07-notes\|Notes]] | app | T04 | S | done |
-| T08 | [[T08-outcome-signals\|Outcome signals]] | app | T03 | M | pending |
+| T08 | [[T08-outcome-signals\|Outcome signals]] | app | T03 | M | done |
 | T09 | [[T09-commands-and-api\|Telegram commands and API endpoints]] | telegram/api | T04, T06, T07, ⟂F9 T04 | M | pending |
 
 **9 tasks · 3×S + 6×M + 0×L ≈ 3.75 person-days.**
@@ -182,3 +182,26 @@ See [[../../../IMPLEMENTATION-READINESS]] §4 for the full per-task checklist.
   database (`ApplicationPersistenceTests`, the persistence suite): a note added through the real handler over a real
   repository round-trips with its time, advances `last_activity_at`, and leaves the status unchanged. Registered
   scoped in Application DI alongside `RecordCardActionHandler`.
+- **T08** — weighted outcome signals (S4, SAD §6.1). When an owner action reaches a terminal outcome
+  (`Applied`/`Interview`/`Offer`/`Rejected`), `OutcomeSignalPublisher` (`Application/Applications/`) stages a
+  weighted `signals` row **into the same EF unit of work as the transition**, so `OwnerActionHandler`'s single
+  `SaveChanges` commits the evidence and the status change together (or neither) — a signal is never written for a
+  transition that rolled back (done-when 3). The load-bearing distinction: F5's card-action `ISignalRepository`
+  opens its own connection and commits at once, which cannot be atomic with the transition, so T08 introduces a
+  separate write port — `IOutcomeSignalWriter` (`Domain/Abstractions/`) — whose EF impl `OutcomeSignalWriter`
+  (`Infrastructure/Persistence/Repositories/`, `internal`) shares the handler's scoped `JobHunterDbContext` and
+  only **stages** (`context.Add`), never commits; this keeps the pinned `IApplicationRepository` surface untouched
+  (QG-1). A non-outcome action (`Save`/`Ignore`, F5's card-action signals) stages nothing so F6 never double-counts,
+  and `OutcomeSignalPublisher` short-circuits before even reading the snapshot for those. The signal captures the
+  job's `JobFacts` at the moment of the tap through the read-only `IJobFactsSnapshotQuery` (T10), so a later job
+  edit cannot rewrite history; a closed/superseded job snapshots `null` and the publisher stages nothing rather than
+  fabricating a factless signal. The per-kind weights are configuration, not literals (done-when 4):
+  `SignalWeightOptions` (section `SignalWeights`, defaults the SAD §8 table — card action 1.0, applied 2.0,
+  rejected 3.0, interview 4.0, offer 6.0) binds and startup-validates each weight positive and builds the one
+  injected `SignalWeights` the publisher resolves each outcome's weight through. `IsStaged` scans the change tracker
+  for a signal already pending with the same `(job_id, kind, occurred_at)`, the in-memory belt to the database's
+  unique `uq_signals_action`, so a redelivered outcome in one unit of work stages no duplicate. AC-08 is proven
+  end-to-end against a real database (`ApplicationPersistenceTests`): an `Applied` owner action driven through the
+  real handler, repository and writer commits a `signals` row carrying the outcome weight, the originating
+  `application_id` and the job's facts — read back from a connection the handler never touched. No migration: the
+  `signals` table and `Signal` EF mapping already exist from F7 T01/T02.

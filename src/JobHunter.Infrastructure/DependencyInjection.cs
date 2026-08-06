@@ -74,6 +74,10 @@ public static class DependencyInjection
         // notes — goes through EF. One application per job is a database constraint (uq_applications_job); the
         // history has no update or delete path, so a correction is always a new transition (QG-1).
         services.AddScoped<IApplicationRepository, ApplicationRepository>();
+        // F6 outcome signals (T08): unlike F5's SignalRepository (own connection, commits at once), this writer
+        // only STAGES the weighted outcome signal into the shared write context, so the owner-action handler's
+        // one SaveChanges commits the transition and the signal together (SAD §6.1, AC-08).
+        services.AddScoped<IOutcomeSignalWriter, OutcomeSignalWriter>();
 
         // F5 digest & delivery (T02): the digest aggregate goes through EF (assembled and persisted before
         // any send, SAD S2); the append-only delivery log is a raw ON CONFLICT DO NOTHING upsert whose unique

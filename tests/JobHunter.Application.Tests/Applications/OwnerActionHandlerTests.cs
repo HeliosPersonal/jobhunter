@@ -2,6 +2,7 @@ using JobHunter.Application.Applications;
 using JobHunter.Contracts.Pipeline;
 using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Applications;
+using JobHunter.Domain.Preferences;
 using JobHunter.TestKit;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
@@ -32,9 +33,22 @@ public sealed class OwnerActionHandlerTests
     private readonly FakeApplicationRepository _repo = new();
     private readonly SequentialIdGenerator _ids = new();
     private readonly IMessageBus _bus = Substitute.For<IMessageBus>();
+    private readonly IJobFactsSnapshotQuery _facts = Substitute.For<IJobFactsSnapshotQuery>();
+    private readonly FakeOutcomeSignalWriter _signals = new();
 
-    private OwnerActionHandler CreateHandler() =>
-        new(_repo, _ids, ReminderPolicy.Default, NullLogger<OwnerActionHandler>.Instance);
+    private static JobFacts SampleFacts() => JobFacts.Create(new Dictionary<Dimension, IReadOnlyList<string>>
+    {
+        [Dimension.Country] = ["DE"],
+    });
+
+    private OwnerActionHandler CreateHandler()
+    {
+        _facts.SnapshotAsync(Job, Arg.Any<CancellationToken>()).Returns(SampleFacts());
+        var outcomeSignals = new OutcomeSignalPublisher(
+            _facts, _signals, _ids, SignalWeights.Default, NullLogger<OutcomeSignalPublisher>.Instance);
+        return new OwnerActionHandler(
+            _repo, _ids, ReminderPolicy.Default, outcomeSignals, NullLogger<OwnerActionHandler>.Instance);
+    }
 
     private Task Handle(OwnerActionRecorded message) =>
         CreateHandler().Handle(message, _bus, CancellationToken.None);
@@ -171,6 +185,49 @@ public sealed class OwnerActionHandlerTests
         _bus.ReceivedCalls().Count().ShouldBe(1);
     }
 
+    [Fact]
+    public async Task Reaching_an_outcome_stages_a_weighted_signal_in_the_same_unit_of_work_as_the_transition()
+    {
+        // T08 / AC-08: the Applied transition and its signal are staged together, so the single SaveChanges
+        // commits both in one transaction. The signal carries the outcome weight and the application it came
+        // from, with the job's facts snapshotted at that moment.
+        await Handle(Action(OwnerActionRecorded.Applied, T0));
+
+        var app = _repo.Single();
+        var signal = _signals.Staged.ShouldHaveSingleItem();
+        signal.Kind.ShouldBe(SignalKind.Applied);
+        signal.Weight.ShouldBe(SignalWeights.Default.Applied);
+        signal.JobId.ShouldBe(Job);
+        signal.ApplicationId.ShouldBe(app.Id);
+        signal.OccurredAt.ShouldBe(T0);
+        signal.JobFacts.ShouldBe(SampleFacts());
+        // Staged before the one commit — the signal and the transition are one unit of work (done-when 3).
+        _repo.SaveCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task A_non_outcome_action_stages_no_signal()
+    {
+        // Save is a card-action signal (F5's job), not an F6 outcome — F6 stages nothing for it.
+        await Handle(Action(OwnerActionRecorded.Save, T0));
+
+        _signals.Staged.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task A_refused_transition_stages_no_signal()
+    {
+        var existing = App.Create(_ids.NewId(), Job, T0, TransitionSource.Telegram);
+        existing.ChangeStatus(ApplicationStatus.Interview, TransitionSource.Telegram, T0.AddDays(1), ReminderPolicy.Default);
+        _repo.Seed(existing);
+
+        // Applied on an Interview application is refused by the matrix (no going backwards through the funnel);
+        // nothing changes, so nothing is staged.
+        await Handle(Action(OwnerActionRecorded.Applied, T0.AddDays(2)));
+
+        _signals.Staged.ShouldBeEmpty();
+    }
+
     /// <summary>
     /// A stateful in-memory <see cref="IApplicationRepository"/> double: it holds the aggregates added and
     /// returns the same instance by job id, so a redelivered action loads the application it created. It is a
@@ -199,5 +256,20 @@ public sealed class OwnerActionHandlerTests
             SaveCount++;
             return Task.FromResult(0);
         }
+    }
+
+    /// <summary>
+    /// A stateful <see cref="IOutcomeSignalWriter"/> double recording what the publisher staged, so the handler
+    /// test can assert the outcome signal without a database. The real EF writer shares the handler's context,
+    /// so the signal commits in the same transaction as the transition — proven in the integration suite.
+    /// </summary>
+    private sealed class FakeOutcomeSignalWriter : IOutcomeSignalWriter
+    {
+        public List<Signal> Staged { get; } = [];
+
+        public bool IsStaged(Guid jobId, SignalKind kind, DateTimeOffset occurredAt) =>
+            Staged.Any(s => s.JobId == jobId && s.Kind == kind && s.OccurredAt == occurredAt);
+
+        public void Stage(Signal signal) => Staged.Add(signal);
     }
 }
