@@ -126,7 +126,11 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton(sp =>
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Ranking.RankingOptions>>().Value);
-        services.AddSingleton<IPreferenceModelQuery, Ranking.NullPreferenceModelQuery>();
+        // F7 T06: the learned model has landed, so ranking now asks the real query for a per-job preference
+        // component. Scoped, not singleton like the null default it replaces, because it composes the scoped
+        // model and profile repositories and the facts snapshot query; it still answers "no active model" as a
+        // null result, so ranking renormalises the preference weight away until a model is actually activated.
+        services.AddScoped<IPreferenceModelQuery, Preferences.PreferenceModelQuery>();
 
         // F4 pre-match filter (T12, ADR-F4-0003): the factual gate the matching submit handler applies before
         // the deep tier. Its tunables — the Owner's seniority and the two thresholds the PRD leaves as config —
