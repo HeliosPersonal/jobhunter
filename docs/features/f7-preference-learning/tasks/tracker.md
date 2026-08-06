@@ -2,7 +2,7 @@
 status: Draft
 owner: "Viacheslav Melnichenko"
 reviewers: ["Tech Lead (Viacheslav)"]
-updated_at: "2026-08-02"
+updated_at: "2026-08-06"
 feature_size: "M"
 stage: "13"
 ticket: ""
@@ -21,7 +21,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 
 | ID | Task | Layer | Deps | Est | Status |
 |---|---|---|---|---|---|
-| T01 | [[T01-domain-preferences\|Domain: Signal, PreferenceModel, PreferenceWeight]] | domain | — | M | pending |
+| T01 | [[T01-domain-preferences\|Domain: Signal, PreferenceModel, PreferenceWeight]] | domain | — | M | done |
 | T02 | [[T02-preference-persistence\|Migration and repositories]] | infra/db | T01 | S | pending |
 | T03 | [[T03-signal-capture\|Signal capture verification]] | app | T02 | S | pending |
 | T04 | [[T04-weight-fitter\|WeightFitter]] | app | T01 | L | pending |
