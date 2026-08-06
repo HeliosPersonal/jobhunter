@@ -30,7 +30,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T09 | [[T09-schedule-degraded\|Delivery scheduling and degraded-day variants]] | app | T08, T05 | M | done |
 | T10 | [[T10-callback-actions\|Callback handling, actions and Signal capture]] | telegram | T08 | L | done |
 | T11 | [[T11-command-set\|Command set]] | telegram | T10 | M | done |
-| T12 | [[T12-rendering-corpus\|Rendering corpus and live smoke checklist]] | tests | T09, T11 | M | pending |
+| T12 | [[T12-rendering-corpus\|Rendering corpus and live smoke checklist]] | tests | T09, T11 | M | done |
 | T13 | [[T13-near-duplicate-grouping\|Near-duplicate grouping at digest assembly]] | app | T03 | S | done |
 
 **13 tasks · 4×S + 7×M + 2×L ≈ 6.5 person-days.** (T13 is the `NearDuplicateGrouper` relocated from
@@ -84,7 +84,18 @@ See [[../../../IMPLEMENTATION-READINESS]] §4 for the full per-task checklist.
   (`ISavedRolesQuery`) and `/stats` (`IWeeklyStatsQuery`) are Dapper read ports (architecture rule 4 — Dapper
   never writes); `/stats` keeps the week-window, precision and trend arithmetic in the handler against
   `IClock`, leaving only the counts to Postgres.
-- **Known follow-up (T11 → T12):** `/digest` re-renders through the `IDigestRenderer` port, but **no production
-  `IDigestRenderer` implementation exists yet** — only the port and the handler's use of it. The renderer and
-  its rendering-corpus snapshots are T12's remaining scope; `/digest` is wired and unit-tested against a fake
-  renderer today, and becomes end-to-end live once T12 lands.
+- **T12** — the rendering line is complete and the F5 ship-blocker is closed. The production
+  `DigestRenderer : IDigestRenderer` (in `JobHunter.Telegram/Formatting`) both the 07:00 `DeliveryHandler` and
+  `/digest` depend on now exists: it joins each card's display facts fresh through the `ICardDisplayQuery`
+  read port (`CardDisplayQuery`, Dapper, architecture rule 4 — never writes), maps them onto the one shared
+  `CardView`/`CardFormatter`, and emits the header, one message per card and the footer, each carrying the
+  fixed four-button keyboard with the T10 HMAC short id. The rendering corpus is extended to 25 committed
+  `.snapshot.txt` layouts (every header/card/footer variant, degraded day and hostile card in the contract);
+  `MessageSplittingTests` proves the 4096-char boundary is respected just under, at and just over the limit —
+  splitting is structural (one `RenderableMessage` per card, sent atomically) so a card is never fragmented;
+  `HostileInputTests` asserts every row of the contract's escaping table (and the test-plan's extra rows —
+  all-markup title, ZWJ, URL parentheses, flag emoji at the boundary) reaches output with no unescaped
+  MarkdownV2 metacharacter. The whole corpus runs in well under a second (zero network, zero database). The
+  manual [[../contracts/live-smoke-checklist|live-smoke checklist]] exists; its one-time execution against a
+  real test chat (the four buttons in a real client) is the last M4 pre-release gate and is recorded in that
+  doc's execution table.
