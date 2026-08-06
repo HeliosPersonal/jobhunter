@@ -204,6 +204,13 @@ public static class DependencyInjection
         // discovered by Wolverine, and is registered here; IApplicationRepository is registered by Infrastructure.
         services.AddScoped<Applications.AddNoteHandler>();
 
+        // F6 application tracking (T09, AC-10): the shared status-change handler both the API POST …/status and
+        // the Telegram /pipeline callbacks drive. Like AddNoteHandler it is invoked directly (a request-driven
+        // host has no message bus, so it returns a value-typed ChangeApplicationStatusOutcome rather than
+        // publishing), and is registered here; it stages the T08 outcome signal via the OutcomeSignalPublisher
+        // registered below, so its collaborators (IApplicationRepository, IJobFactsSnapshotQuery) are Infrastructure's.
+        services.AddScoped<Applications.ChangeApplicationStatusHandler>();
+
         // F6 outcome signals (T08, AC-08): reaching a terminal outcome stages a weighted signals row for F7 in
         // the same unit of work as the transition. The publisher is a collaborator of the Wolverine-discovered
         // OwnerActionHandler, registered scoped so it shares the handler's DbContext (via IOutcomeSignalWriter,
