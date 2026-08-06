@@ -37,7 +37,11 @@ public sealed class CardDisplayQuery(INpgsqlConnectionFactory connectionFactory)
                e.salary_min::int         AS EstimatedSalaryMin,
                e.salary_max::int         AS EstimatedSalaryMax,
                e.salary_currency         AS EstimatedSalaryCurrency,
-               e.salary_confidence       AS EstimatedSalaryConfidence
+               e.salary_confidence       AS EstimatedSalaryConfidence,
+               COALESCE(
+                   (SELECT array_agg(t.technology ORDER BY t.technology)
+                    FROM job_technologies t WHERE t.job_id = j.id),
+                   ARRAY[]::text[])       AS Highlights
         FROM jobs j
         JOIN companies c ON c.id = j.company_id
         LEFT JOIN LATERAL (
@@ -82,7 +86,8 @@ public sealed class CardDisplayQuery(INpgsqlConnectionFactory connectionFactory)
                 r.EstimatedSalaryMin,
                 r.EstimatedSalaryMax,
                 r.EstimatedSalaryCurrency?.Trim(),
-                r.EstimatedSalaryConfidence))
+                r.EstimatedSalaryConfidence,
+                r.Highlights ?? []))
             .ToDictionary(f => f.JobId);
     }
 
@@ -104,19 +109,39 @@ public sealed class CardDisplayQuery(INpgsqlConnectionFactory connectionFactory)
 
     private sealed record LocationRow(string? Country, string? Region, string? City);
 
-    private sealed record DisplayRow(
-        Guid JobId,
-        string Title,
-        string Company,
-        string? Stage,
-        string? LocationsJson,
-        string RemotePolicy,
-        string ApplyUrl,
-        int? PublishedSalaryMin,
-        int? PublishedSalaryMax,
-        string? PublishedSalaryCurrency,
-        int? EstimatedSalaryMin,
-        int? EstimatedSalaryMax,
-        string? EstimatedSalaryCurrency,
-        decimal? EstimatedSalaryConfidence);
+    // Init-only properties rather than a positional record: Dapper cannot match a constructor parameter to the
+    // text[] Highlights column, so — as JobProjectionQuery does for its technologies array — this row is
+    // materialised by property so the array maps cleanly.
+    private sealed class DisplayRow
+    {
+        public Guid JobId { get; init; }
+
+        public string Title { get; init; } = string.Empty;
+
+        public string Company { get; init; } = string.Empty;
+
+        public string? Stage { get; init; }
+
+        public string? LocationsJson { get; init; }
+
+        public string RemotePolicy { get; init; } = string.Empty;
+
+        public string ApplyUrl { get; init; } = string.Empty;
+
+        public int? PublishedSalaryMin { get; init; }
+
+        public int? PublishedSalaryMax { get; init; }
+
+        public string? PublishedSalaryCurrency { get; init; }
+
+        public int? EstimatedSalaryMin { get; init; }
+
+        public int? EstimatedSalaryMax { get; init; }
+
+        public string? EstimatedSalaryCurrency { get; init; }
+
+        public decimal? EstimatedSalaryConfidence { get; init; }
+
+        public string[]? Highlights { get; init; }
+    }
 }

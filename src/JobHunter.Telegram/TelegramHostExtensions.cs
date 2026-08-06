@@ -64,6 +64,11 @@ public static class TelegramHostExtensions
         services.AddSingleton<CallbackDataCodec>();
         services.AddSingleton<ICallbackRouter, ScopedCallbackRouter>();
 
+        // The production digest renderer (T12): the IDigestRenderer both the 07:00 delivery loop and /digest
+        // depend on. Scoped, because it joins each card's display facts through the scoped ICardDisplayQuery;
+        // the codec it signs callback payloads with is the same singleton the callback path resolves against.
+        services.AddScoped<IDigestRenderer, Formatting.DigestRenderer>();
+
         // The command path (T11): the router and its handlers are scoped because a command reads the store,
         // and the singleton processor dispatches through the scope-opening ScopedCommandDispatcher — the same
         // singleton-routes / scope-acts split as the callback path. The /search command reuses the F9 handler;

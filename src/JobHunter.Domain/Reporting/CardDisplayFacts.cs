@@ -27,6 +27,7 @@ namespace JobHunter.Domain.Reporting;
 /// <param name="EstimatedSalaryMax">The latest enrichment estimate's upper bound, or null when none.</param>
 /// <param name="EstimatedSalaryCurrency">The estimate's currency code, or null/blank.</param>
 /// <param name="EstimatedSalaryConfidence">The estimate's confidence in [0,1], shown as the (est) band.</param>
+/// <param name="Highlights">The job's technologies, for the header top-opportunity's highlight line; empty when none.</param>
 public sealed record CardDisplayFacts(
     Guid JobId,
     string Title,
@@ -41,4 +42,5 @@ public sealed record CardDisplayFacts(
     int? EstimatedSalaryMin,
     int? EstimatedSalaryMax,
     string? EstimatedSalaryCurrency,
-    decimal? EstimatedSalaryConfidence);
+    decimal? EstimatedSalaryConfidence,
+    IReadOnlyList<string> Highlights);

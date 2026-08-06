@@ -50,6 +50,8 @@ public sealed class CardDisplayQueryTests
         card.PublishedSalaryMax.ShouldBe(180_000);
         card.PublishedSalaryCurrency.ShouldBe("USD");
         card.ApplyUrl.ShouldBe($"https://acme.com/apply/{jobId:N}");
+        // The header top-opportunity highlights come from the job's deterministic technology tags, sorted.
+        card.Highlights.ShouldBe(["Go", "Kubernetes"]);
     }
 
     [RequiresDockerFact]
@@ -152,13 +154,16 @@ public sealed class CardDisplayQueryTests
         ctx.Add(new AtsBinding(bindingId, companyId, AtsKind.Greenhouse, $"acme-{jobId:N}", BindingConfidence.TryCreate(0.9m).Value, "{}", FirstSeen));
         ctx.Add(new JobSource(sourceId, companyId, bindingId, $"https://boards-api.greenhouse.io/v1/boards/acme-{jobId:N}/jobs"));
         ctx.Add(new RawPosting(rawPostingId, sourceId, $"job-{jobId:N}", ContentHash.Compute($"{{\"t\":\"{jobId:N}\"}}"), "{\"t\":\"x\"}", 200, FirstSeen));
-        ctx.Add(new Job(
+        var job = new Job(
             jobId, companyId, rawPostingId, Fingerprint.TryCreate(jobId.ToString("N") + Guid.NewGuid().ToString("N")).Value,
             fingerprintVersion: 1, "Staff SRE", normalisedTitle: "staff sre", description: "We keep the lights on.",
             applyUrl: $"https://acme.com/apply/{jobId:N}",
             LocationSet.Of([JobLocation.TryCreate("Germany", city: "Berlin").Value]),
             RemotePolicy.Remote, EmploymentType.FullTime, PostedAtGranularity.Day,
-            firstSeenAt: FirstSeen, lastSeenAt: FirstSeen, salary: salary, status: JobStatus.Live));
+            firstSeenAt: FirstSeen, lastSeenAt: FirstSeen, salary: salary, status: JobStatus.Live);
+        job.AddTechnology("Kubernetes", TechnologyMatch.Description);
+        job.AddTechnology("Go", TechnologyMatch.Vocabulary);
+        ctx.Add(job);
         await ctx.SaveChangesAsync();
         return jobId;
     }
