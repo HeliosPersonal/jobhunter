@@ -113,7 +113,10 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<IWeeklyStatsQuery>(),
                 provider.GetRequiredService<IClock>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.StatsCommandHandler>>())),
-            new("/pipeline", "Applications by status", new Commands.PlaceholderCommandHandler("Application tracking")),
+            new("/pipeline", "Applications by status", new Commands.PipelineCommandHandler(
+                provider.GetRequiredService<IApplicationPipelineQuery>(),
+                provider.GetRequiredService<IClock>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.PipelineCommandHandler>>())),
             new("/search", "Search live roles", new Commands.SearchCommandAdapter(
                 provider.GetRequiredService<Search.SearchCommandHandler>())),
         };
