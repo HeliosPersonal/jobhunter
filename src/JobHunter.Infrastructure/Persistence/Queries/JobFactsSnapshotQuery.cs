@@ -118,15 +118,29 @@ public sealed class JobFactsSnapshotQuery(INpgsqlConnectionFactory connectionFac
         return built.IsSuccess ? built.Value : null;
     }
 
-    private sealed record SnapshotRow(
-        decimal? SalaryMin,
-        decimal? SalaryMax,
-        string? SalaryCurrency,
-        string? SalaryPeriod,
-        string RemotePolicy,
-        string EmploymentType,
-        string[]? Countries,
-        string[]? Technologies,
-        string? CompanyStage,
-        string? TimezoneBand);
+    // Init-only properties rather than a positional record: Dapper cannot match a constructor parameter to the
+    // text[] Countries/Technologies columns, so — as CardDisplayQuery and JobProjectionQuery do for their array
+    // columns — this row is materialised by property so the arrays map cleanly.
+    private sealed class SnapshotRow
+    {
+        public decimal? SalaryMin { get; init; }
+
+        public decimal? SalaryMax { get; init; }
+
+        public string? SalaryCurrency { get; init; }
+
+        public string? SalaryPeriod { get; init; }
+
+        public string RemotePolicy { get; init; } = string.Empty;
+
+        public string EmploymentType { get; init; } = string.Empty;
+
+        public string[]? Countries { get; init; }
+
+        public string[]? Technologies { get; init; }
+
+        public string? CompanyStage { get; init; }
+
+        public string? TimezoneBand { get; init; }
+    }
 }
