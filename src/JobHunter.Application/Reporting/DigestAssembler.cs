@@ -139,7 +139,17 @@ public sealed class DigestAssembler(
         // reproduces it (F5-T13, ADR-F2-0001). A confirmed-unreachable link drops its card and flags the job for
         // closure; a timeout or robots refusal keeps the card, unverified (AC-11).
         var selected = SelectCandidates(candidates);
-        var groups = NearDuplicateGrouper.Group(selected);
+
+        // The card floor (QG-3, F7 T07): learning must never empty the digest. When suppression leaves fewer
+        // than the floor, restore the least-suppressed jobs (those closest to the bar) to reach it. Restoration
+        // is display-only — a restored job's score row stays suppressed, so the footer's count still reconciles
+        // to the database (invariant 11) — and the digest states how many were restored so the intervention is
+        // never silent. It runs before grouping and verification, so restored cards are grouped and probed like
+        // any other.
+        var restored = RestoreToFloor(candidates, selected);
+        var forCards = selected.Concat(restored).ToList();
+
+        var groups = NearDuplicateGrouper.Group(forCards);
         var representatives = groups.Select(g => g.Representative).ToList();
         var verified = await VerifyApplyLinksAsync(representatives, cancellationToken).ConfigureAwait(false);
 
@@ -158,6 +168,11 @@ public sealed class DigestAssembler(
             .Select(v => v.Candidate.JobId)
             .ToList();
 
+        // How many restored jobs actually reached a card — verification may have dropped one — so the digest
+        // states the true number it had to restore, never an intended-but-unrealised count.
+        var restoredJobIds = restored.Select(c => c.JobId).ToHashSet();
+        var restoredCount = cards.Count(c => restoredJobIds.Contains(c.JobId));
+
         // The header shape the Run earned at this point, frozen onto the digest so delivery replays it rather
         // than re-classifying a run that has since moved on (ADR-F5-0001, S2). Suppressed count drives the
         // Full-vs-NothingNew split, so it is computed before the mode.
@@ -174,7 +189,7 @@ public sealed class DigestAssembler(
 
         var digest = await Assemble(
             digestId, run.Id, mode, run.JobsInScope, run.JobsCarriedOver, companiesChecked, analysedCount,
-            candidates, cards, degradedSources, cancellationToken)
+            candidates, cards, degradedSources, restoredCount, cancellationToken)
             .ConfigureAwait(false);
 
         // Persist the whole digest before anything is sent (S2): delivery replays stored state.
@@ -210,6 +225,34 @@ public sealed class DigestAssembler(
             .Where(c => c.Reasons.Any(r => !string.IsNullOrWhiteSpace(r)))
             .Take(_options.MaxCards)
             .ToList();
+
+    /// <summary>
+    /// The card floor (QG-3, F7 T07): learning must never empty the digest. When <paramref name="selected"/>
+    /// falls short of <see cref="DigestOptions.MinCards"/>, this restores the <em>least-suppressed</em> jobs —
+    /// the highest-scoring suppressed ones, closest to the bar — until the floor is met or the suppressed pool
+    /// is exhausted. Only a suppressed candidate that still carries a usable reason can be restored: the floor
+    /// cannot manufacture an explanation (invariant 4), so a reason-less job stays hidden even if the digest is
+    /// thin. Restoration is display-only — the returned candidates remain suppressed score rows, so the footer's
+    /// count still reconciles to the database (invariant 11); the caller records how many were restored so the
+    /// digest can say so.
+    /// </summary>
+    private List<DigestCandidate> RestoreToFloor(
+        IReadOnlyList<DigestCandidate> candidates,
+        List<DigestCandidate> selected)
+    {
+        var shortfall = _options.MinCards - selected.Count;
+        if (shortfall <= 0)
+        {
+            return [];
+        }
+
+        return candidates
+            .Where(c => c.Suppressed && c.Reasons.Any(r => !string.IsNullOrWhiteSpace(r)))
+            .OrderByDescending(c => c.FinalScore)
+            .ThenBy(c => c.JobId)
+            .Take(shortfall)
+            .ToList();
+    }
 
     /// <summary>
     /// Verifies the selected candidates' apply links with bounded parallelism (SAD §11 D3), preserving their
@@ -258,6 +301,7 @@ public sealed class DigestAssembler(
         IReadOnlyList<DigestCandidate> candidates,
         List<DigestCard> cards,
         IReadOnlyList<DegradedSource> degradedSources,
+        int restoredCount,
         CancellationToken cancellationToken)
     {
         var strongMatches = candidates.Count(c => !c.Suppressed && c.FinalScore >= _options.CardScoreThreshold);
@@ -298,7 +342,8 @@ public sealed class DigestAssembler(
             narrative.Source,
             narrative.PromptVersion,
             cards,
-            _clock.UtcNow);
+            _clock.UtcNow,
+            restoredCount);
     }
 
     /// <summary>One selected candidate paired with the verdict of its apply-link probe.</summary>

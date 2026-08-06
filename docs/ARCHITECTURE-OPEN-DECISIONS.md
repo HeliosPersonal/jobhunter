@@ -15,14 +15,14 @@ tags: [architecture, open-decisions, jobhunter]
 >
 > Blast radius: 🔴 rewrite · 🟠 multi-feature refactor · 🟡 single-feature change · 🟢 config · 🔵 unknown
 
-Only **O2** and **O5** are genuinely open and blocking; every other decision below has either been
+Only **O2** is genuinely open and blocking; every other decision below has either been
 resolved by an accepted ADR or settled as fact — see "Decided and closed". `BACKLOG.md` §6 lists only
-O2 and O5 as needing an answer.
+O2 as needing an answer.
 
 | # | Decision | Radius | Blocks | Decide by | Current default |
 |---|---|---|---|---|---|
 | O2 | Is the API internet-facing behind Keycloak, or cluster-internal only | 🟡 | **F9 T04** | M5 start | Internet-facing — a reviewer clicking a live URL is worth the marginal risk |
-| O5 | Salary floor as a hard pre-filter vs a ranking down-weight | 🟡 | **F7 T07** | after 200 Signals | Down-weight only; hard filter requires an explicit Owner opt-in |
+| ~~O5~~ | ~~Salary floor as a hard pre-filter vs a ranking down-weight~~ | 🟡 | ~~F7 T07~~ | **decided 2026-08-07** | Down-weight only; the hard pre-filter is an explicit Owner opt-in, off by default |
 | O7 | Whether `jobhunter-worker` splits into per-stage deployments | 🟠 | — | when a stage saturates | Single worker, one replica (SAD §11 D2) |
 | O9 | Do we store full JD text indefinitely, or hash + excerpt after N days | 🟡 | F2 T9 | M3 | Full text kept; revisit if the table exceeds 5 GB |
 | O11 | Multi-CV / multi-persona targeting (backend vs platform vs AI roles) | 🔴 | — | post-M5 | Out of scope. Would change `Match` from `(job, profile)` to `(job, persona)` |

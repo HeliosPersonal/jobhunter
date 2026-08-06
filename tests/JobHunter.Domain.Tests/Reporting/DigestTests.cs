@@ -38,7 +38,8 @@ public sealed class DigestTests
         string? narrative = "A calm market today.",
         NarrativeSource narrativeSource = NarrativeSource.Model,
         string? promptVersion = "digest-v1",
-        IReadOnlyList<DigestCard>? cards = null)
+        IReadOnlyList<DigestCard>? cards = null,
+        int restoredCount = 0)
     {
         var clock = new FakeClock();
         return new Digest(
@@ -58,7 +59,8 @@ public sealed class DigestTests
             narrativeSource,
             promptVersion,
             cards ?? [],
-            clock.UtcNow);
+            clock.UtcNow,
+            restoredCount);
     }
 
     [Fact]
@@ -248,5 +250,20 @@ public sealed class DigestTests
     public void A_negative_analysed_count_is_rejected()
     {
         Should.Throw<ArgumentOutOfRangeException>(() => NewDigest(analysedCount: -1));
+    }
+
+    [Fact]
+    public void The_restored_count_defaults_to_zero_and_is_exposed()
+    {
+        // The card floor (QG-3) records how many suppressed jobs it had to restore to keep the digest from
+        // emptying, so the digest can say so. A normal day restores nothing.
+        NewDigest().RestoredCount.ShouldBe(0);
+        NewDigest(restoredCount: 2).RestoredCount.ShouldBe(2);
+    }
+
+    [Fact]
+    public void A_negative_restored_count_is_rejected()
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() => NewDigest(restoredCount: -1));
     }
 }

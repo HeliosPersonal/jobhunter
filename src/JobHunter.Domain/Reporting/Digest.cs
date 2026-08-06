@@ -38,7 +38,8 @@ public sealed class Digest : Entity
         NarrativeSource narrativeSource,
         string? promptVersion,
         IReadOnlyList<DigestCard> cards,
-        DateTimeOffset generatedAt)
+        DateTimeOffset generatedAt,
+        int restoredCount = 0)
         : base(id)
     {
         if (runId == Guid.Empty)
@@ -52,6 +53,7 @@ public sealed class Digest : Entity
         ThrowIfNegative(carriedOverCount, nameof(carriedOverCount));
         ThrowIfNegative(companiesChecked, nameof(companiesChecked));
         ThrowIfNegative(analysedCount, nameof(analysedCount));
+        ThrowIfNegative(restoredCount, nameof(restoredCount));
 
         if (avgSalaryUsd is <= 0m)
         {
@@ -136,6 +138,7 @@ public sealed class Digest : Entity
         NarrativeSource = narrativeSource;
         PromptVersion = string.IsNullOrWhiteSpace(promptVersion) ? null : promptVersion.Trim();
         GeneratedAt = generatedAt;
+        RestoredCount = restoredCount;
     }
 
     private Digest()
@@ -176,6 +179,16 @@ public sealed class Digest : Entity
     /// <see cref="DigestMode.BudgetReached"/> day (AC-06). Zero on days where the count is not shown.
     /// </summary>
     public int AnalysedCount { get; private set; }
+
+    /// <summary>
+    /// How many suppressed jobs the card floor had to restore to keep the digest from emptying (QG-3, F7 T07).
+    /// Zero on a normal day. When positive, the digest states it — the least-suppressed were shown despite a
+    /// learned preference, so the floor's intervention is never silent (invariant 11 in spirit: nothing shown
+    /// or hidden without the Owner being told). A restored job's score row stays suppressed, so
+    /// <see cref="SuppressedCount"/> and its breakdown are unchanged — restoration is a display decision, not a
+    /// re-scoring.
+    /// </summary>
+    public int RestoredCount { get; private set; }
 
     /// <summary>The market note; null for an empty digest with nothing to say.</summary>
     public string? Narrative { get; private set; }

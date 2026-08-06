@@ -40,6 +40,7 @@ internal sealed class DigestConfiguration : IEntityTypeConfiguration<Digest>
         b.Property(x => x.CarriedOverCount).HasColumnName("carried_over_count").HasDefaultValue(0).IsRequired();
         b.Property(x => x.CompaniesChecked).HasColumnName("companies_checked").HasDefaultValue(0).IsRequired();
         b.Property(x => x.AnalysedCount).HasColumnName("analysed_count").HasDefaultValue(0).IsRequired();
+        b.Property(x => x.RestoredCount).HasColumnName("restored_count").HasDefaultValue(0).IsRequired();
         b.Property(x => x.Narrative).HasColumnName("narrative");
         b.Property(x => x.NarrativeSource).HasColumnName("narrative_source").IsRequired();
         b.Property(x => x.PromptVersion).HasColumnName("prompt_version");

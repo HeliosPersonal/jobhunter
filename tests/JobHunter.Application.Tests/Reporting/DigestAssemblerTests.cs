@@ -253,6 +253,130 @@ public sealed class DigestAssemblerTests
         digest.SuppressionBreakdown[1].Count.ShouldBe(1);
     }
 
+    // ---- T07: the card floor (QG-3) — learning never empties the digest -----------------------
+
+    // A suppressed candidate that carries a real reason, so it can be restored as a card (invariant 4). The
+    // score is the "least-suppressed" ordering key: a higher score is closer to the bar, restored first.
+    private static DigestCandidate SuppressedRestorable(Guid id, string reason, decimal score) =>
+        new(id, score, Suppressed: true, reason, ["Still a plausible fit"], SalaryUsd: null, ApplyUrlFor(id));
+
+    [Fact]
+    public async Task The_card_floor_restores_the_least_suppressed_to_keep_three_cards()
+    {
+        GivenRun(RankingCompletedRun());
+        var shown = Guid.CreateVersion7();
+        var near = Guid.CreateVersion7();
+        var mid = Guid.CreateVersion7();
+        var far = Guid.CreateVersion7();
+        // One shown card and three suppressed ones; the floor restores the two highest-scoring suppressed
+        // (least-suppressed) to keep the digest at three cards, and leaves the lowest suppressed.
+        GivenCandidates(
+            Shown(shown, 90m),
+            SuppressedRestorable(near, "Below your salary floor", 38m),
+            SuppressedRestorable(mid, "Below your salary floor", 30m),
+            SuppressedRestorable(far, "Below presentation threshold", 12m));
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        var digest = _digests.Saved.ShouldHaveSingleItem();
+        digest.Cards.Select(c => c.JobId).ShouldBe([shown, near, mid]);
+        digest.RestoredCount.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task The_card_floor_restores_nothing_when_three_cards_already_show()
+    {
+        GivenRun(RankingCompletedRun());
+        GivenCandidates(
+            Shown(Guid.CreateVersion7(), 90m),
+            Shown(Guid.CreateVersion7(), 85m),
+            Shown(Guid.CreateVersion7(), 80m),
+            SuppressedRestorable(Guid.CreateVersion7(), "Below your salary floor", 38m));
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        var digest = _digests.Saved.ShouldHaveSingleItem();
+        digest.Cards.Count.ShouldBe(3);
+        digest.RestoredCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task A_restored_card_stays_counted_in_the_suppression_breakdown()
+    {
+        GivenRun(RankingCompletedRun());
+        var shown = Guid.CreateVersion7();
+        var restoredOne = Guid.CreateVersion7();
+        var restoredTwo = Guid.CreateVersion7();
+        GivenCandidates(
+            Shown(shown, 90m),
+            SuppressedRestorable(restoredOne, "Below your salary floor", 38m),
+            SuppressedRestorable(restoredTwo, "Below your salary floor", 30m));
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        var digest = _digests.Saved.ShouldHaveSingleItem();
+        // Restoration is a display decision, not a re-score: the two restored jobs still count as suppressed
+        // score rows, so the count and breakdown reconcile to the database (invariant 11 / QG-2).
+        digest.RestoredCount.ShouldBe(2);
+        digest.SuppressedCount.ShouldBe(2);
+        digest.SuppressionBreakdown.Sum(t => t.Count).ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task The_card_floor_restores_only_up_to_the_floor_leaving_the_rest_suppressed()
+    {
+        GivenRun(RankingCompletedRun());
+        // No shown cards at all; five suppressed. The floor restores exactly three (MinCards), not all five.
+        var suppressed = Enumerable.Range(0, 5)
+            .Select(i => SuppressedRestorable(Guid.CreateVersion7(), "Below your salary floor", 40m - i))
+            .ToArray();
+        GivenCandidates(suppressed);
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        var digest = _digests.Saved.ShouldHaveSingleItem();
+        digest.Cards.Count.ShouldBe(3);
+        digest.RestoredCount.ShouldBe(3);
+        digest.SuppressedCount.ShouldBe(5);
+    }
+
+    [Fact]
+    public async Task A_suppressed_candidate_with_no_reason_cannot_be_restored()
+    {
+        GivenRun(RankingCompletedRun());
+        var reasonless = Guid.CreateVersion7();
+        // A suppressed candidate with no usable reason cannot become a card (invariant 4): the floor cannot
+        // manufacture an explanation, so it restores nothing and the digest stays honest, if thin.
+        GivenCandidates(
+            new DigestCandidate(reasonless, 38m, Suppressed: true, "Below the bar", ["  "], SalaryUsd: null,
+                ApplyUrlFor(reasonless)));
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        var digest = _digests.Saved.ShouldHaveSingleItem();
+        digest.Cards.ShouldBeEmpty();
+        digest.RestoredCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task The_card_floor_is_configurable()
+    {
+        GivenRun(RankingCompletedRun());
+        var shown = Guid.CreateVersion7();
+        GivenCandidates(
+            Shown(shown, 90m),
+            SuppressedRestorable(Guid.CreateVersion7(), "Below your salary floor", 38m),
+            SuppressedRestorable(Guid.CreateVersion7(), "Below your salary floor", 30m));
+
+        // A floor of two needs only one restoration on top of the single shown card.
+        await CreateHandler(new DigestOptions { MinCards = 2 })
+            .Handle(Message(), _bus, CancellationToken.None);
+
+        var digest = _digests.Saved.ShouldHaveSingleItem();
+        digest.Cards.Count.ShouldBe(2);
+        digest.RestoredCount.ShouldBe(1);
+    }
+
     // ---- header counts ------------------------------------------------------------------------
 
     [Fact]
@@ -580,7 +704,9 @@ public sealed class DigestAssemblerTests
         var suppressed = Guid.CreateVersion7();
         GivenCandidates(Shown(carded, 90m), Shown(belowBar, 50m), Suppressed(suppressed, "Below the bar"));
 
-        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+        // A floor of one keeps the card set to just the shown card, so this isolates verification scoping from
+        // the card-floor restoration (which would otherwise legitimately restore and probe the suppressed one).
+        await CreateHandler(new DigestOptions { MinCards = 1 }).Handle(Message(), _bus, CancellationToken.None);
 
         // Verification is a network probe: it runs only on the cards worth showing, never on the whole Run.
         await _verifier.Received(1).VerifyAsync(ApplyUrlFor(carded), Arg.Any<CancellationToken>());

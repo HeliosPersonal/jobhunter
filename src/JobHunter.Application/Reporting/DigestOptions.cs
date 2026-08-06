@@ -26,6 +26,15 @@ public sealed class DigestOptions
     public int MaxCards { get; init; } = 10;
 
     /// <summary>
+    /// The card floor (F7 QG-3): the fewest cards a digest must contain so learning can never empty it. When
+    /// suppression would leave fewer than this, the least-suppressed jobs are restored to reach it and the
+    /// digest states how many (<see cref="Domain.Reporting.Digest.RestoredCount"/>). The default 3 matches the
+    /// SAD's "fewer than three cards" rule. A restoration is display-only: a restored job's score row stays
+    /// suppressed, so the footer's count still reconciles to the database (invariant 11).
+    /// </summary>
+    public int MinCards { get; init; } = 3;
+
+    /// <summary>
     /// The fewest salaried jobs the header's average is built from — below it the average is null, because a
     /// mean of one or two figures is more misleading than absent (data-model §digests, AC on avg_salary).
     /// </summary>
