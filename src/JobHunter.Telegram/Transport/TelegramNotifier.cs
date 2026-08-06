@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Notifications;
+using JobHunter.Telegram.Callbacks;
 
 namespace JobHunter.Telegram.Transport;
 
@@ -19,7 +20,7 @@ namespace JobHunter.Telegram.Transport;
 /// <see cref="NotificationRejectedException"/> instead, so the delivery loop can log that one card as failed
 /// and deliver the rest (AC-05) rather than redeliver the whole digest.
 /// </summary>
-internal sealed class TelegramNotifier : INotifier
+internal sealed class TelegramNotifier : INotifier, ICallbackResponder
 {
     /// <summary>The named client whose base address carries the bot token (never logged).</summary>
     public const string HttpClientName = "telegram-bot";
