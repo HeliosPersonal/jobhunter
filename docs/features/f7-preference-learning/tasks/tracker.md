@@ -25,7 +25,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T02 | [[T02-preference-persistence\|Migration and repositories]] | infra/db | T01 | S | done |
 | T03 | [[T03-signal-capture\|Signal capture verification]] | app | T02 | S | done |
 | T04 | [[T04-weight-fitter\|WeightFitter]] | app | T01 | L | done |
-| T05 | [[T05-preference-learner\|PreferenceLearner and weekly refit]] | app | T04, T02 | M | pending |
+| T05 | [[T05-preference-learner\|PreferenceLearner and weekly refit]] | app | T04, T02 | M | done |
 | T06 | [[T06-preference-component\|Preference component and precedence]] | app | T05 | M | pending |
 | T07 | [[T07-suppression-floor\|Suppression evaluation and the card floor]] | app | T06, **O5 [?]** | M | pending |
 | T08 | [[T08-explainability-overrides\|Explainability view and Owner overrides]] | app/api | T07, ⟂F9 T04 | M | pending |

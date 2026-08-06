@@ -131,4 +131,55 @@ public sealed class RecurringJobApplierTests
         utc.Hour.ShouldBe(expectedUtcHour);
         TimeZoneInfo.ConvertTimeFromUtc(utc, kyiv).Hour.ShouldBe(7);
     }
+
+    // ---- T05: the weekly preference refit (03:00 Monday Kyiv) -----------------------------------
+
+    [Fact]
+    public async Task The_preference_refit_binding_is_declared_and_installed_in_the_kyiv_zone()
+    {
+        var registry = new RecurringJobRegistry();
+        (string Cron, TimeZoneInfo Zone)? applied = null;
+        var binding = new RecurringJobBinding("preference-refit", "0 3 * * 1", (c, z) => applied = (c, z));
+
+        var applier = new RecurringJobApplier(registry, [binding], NullLogger<RecurringJobApplier>.Instance);
+
+        await applier.StartAsync(CancellationToken.None);
+
+        var registration = registry.Registrations.ShouldHaveSingleItem();
+        registration.JobId.ShouldBe("preference-refit");
+        registration.Cron.ShouldBe("0 3 * * 1");           // minute 0, hour 3, any day, any month, Monday
+        registration.TimeZone.ShouldBe(RecurringJobRegistry.Kyiv);
+
+        applied.ShouldNotBeNull();
+        applied!.Value.Cron.ShouldBe("0 3 * * 1");
+        applied.Value.Zone.ShouldBe(RecurringJobRegistry.Kyiv);
+    }
+
+    // The refit fires Monday 03:00 Kyiv. Ukraine's DST transitions both fall on a Sunday (spring-forward
+    // 29 Mar 2026, fall-back 25 Oct 2026), so the Monday-after slot is never inside the 03:00–04:00 gap or
+    // overlap — 03:00 stays a valid, unambiguous wall-clock every week of the year even though its UTC instant
+    // shifts with the season. That is why "weekly at a quiet hour" survives a DST week (T05 done-when 7).
+    [Theory]
+    // The Monday after spring-forward (summer, +03:00): 03:00 Kyiv = 00:00 UTC.
+    [InlineData(2026, 3, 30, 3, 0)]
+    // The Monday after fall-back (winter, +02:00): 03:00 Kyiv = 01:00 UTC.
+    [InlineData(2026, 10, 26, 2, 1)]
+    public void The_monday_three_am_refit_slot_is_stable_across_both_dst_transitions(
+        int year, int month, int day, int expectedOffsetHours, int expectedUtcHour)
+    {
+        var kyiv = RecurringJobRegistry.Kyiv;
+        var threeLocal = new DateTime(year, month, day, 3, 0, 0, DateTimeKind.Unspecified);
+
+        // The DST gap/overlap lands on the preceding Sunday, so a Monday 03:00 is never skipped or doubled.
+        kyiv.IsInvalidTime(threeLocal).ShouldBeFalse();
+        kyiv.IsAmbiguousTime(threeLocal).ShouldBeFalse();
+
+        // The offset flips with the season, proving the zone observes DST rather than a fixed offset.
+        kyiv.GetUtcOffset(threeLocal).ShouldBe(TimeSpan.FromHours(expectedOffsetHours));
+
+        // Yet the UTC firing instant that keeps the refit at 03:00 local shifts by exactly that hour.
+        var utc = TimeZoneInfo.ConvertTimeToUtc(threeLocal, kyiv);
+        utc.Hour.ShouldBe(expectedUtcHour);
+        TimeZoneInfo.ConvertTimeFromUtc(utc, kyiv).Hour.ShouldBe(3);
+    }
 }

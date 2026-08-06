@@ -215,6 +215,7 @@ public static class DependencyInjection
         services.AddScoped<JobLivenessCheckTrigger>();
         services.AddScoped<IndexReconcileTrigger>();
         services.AddScoped<ReminderSweepTrigger>();
+        services.AddScoped<PreferenceRefitTrigger>();
 
         // F5 daily digest schedule (T09): the three Europe/Kyiv ticks that bracket the day — 02:00 opens the
         // Run, 06:45 assembles whatever it produced, 07:00 delivers. Only the Worker's Hangfire server resolves
@@ -333,6 +334,18 @@ public static class DependencyInjection
                 cron,
                 new RecurringJobOptions { TimeZone = timeZone })));
 
+        // The weekly preference refit at 03:00 Monday Kyiv (F7 SAD §6.1, T05): a quiet hour, weekly rather than
+        // continuous so one bad day cannot move the model. It publishes one RecomputePreferencesDue; the learner
+        // loads the 180-day window, fits, inserts a new version and flips activation atomically.
+        services.AddSingleton(new RecurringJobBinding(
+            PreferenceRefitJobId,
+            PreferenceRefitCron,
+            (cron, timeZone) => RecurringJob.AddOrUpdate<PreferenceRefitTrigger>(
+                PreferenceRefitJobId,
+                trigger => trigger.PublishAsync(),
+                cron,
+                new RecurringJobOptions { TimeZone = timeZone })));
+
         services.AddHostedService<RecurringJobApplier>();
     }
 
@@ -371,6 +384,10 @@ public static class DependencyInjection
     /// <summary>The reminder sweep at 08:00 Kyiv (F6 SAD §6.2, T06): an hour after the digest, its own message.</summary>
     private const string ReminderSweepJobId = "reminder-sweep";
     private const string ReminderSweepCron = "0 8 * * *";
+
+    /// <summary>The weekly preference refit at 03:00 Monday Kyiv (F7 SAD §6.1, T05): weekly, so one bad day cannot move the model.</summary>
+    private const string PreferenceRefitJobId = "preference-refit";
+    private const string PreferenceRefitCron = "0 3 * * 1";
 
     /// <summary>
     /// Wires the shared outbound HTTP pipeline (SAD §8, QG-2): the politeness options, the SSRF guard,
