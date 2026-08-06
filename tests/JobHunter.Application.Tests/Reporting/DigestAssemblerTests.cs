@@ -588,6 +588,121 @@ public sealed class DigestAssemblerTests
         await _verifier.DidNotReceive().VerifyAsync(ApplyUrlFor(suppressed), Arg.Any<CancellationToken>());
     }
 
+    // ---- T13: near-duplicate grouping at assembly ---------------------------------------------
+
+    // A shown candidate that carries the (company, normalised title) grouping key T13 collapses on. The
+    // default Shown() leaves both empty, so every existing test's candidates stand alone — grouping is opt-in.
+    private static DigestCandidate ShownFor(
+        Guid id, Guid companyId, string normalisedTitle, decimal score, params string[] reasons) =>
+        new(id, score, Suppressed: false, SuppressionReason: null,
+            reasons.Length == 0 ? ["Strong fit"] : reasons, SalaryUsd: null, ApplyUrlFor(id),
+            companyId, normalisedTitle);
+
+    [Fact]
+    public async Task Two_postings_of_the_same_opening_collapse_to_one_card()
+    {
+        GivenRun(RankingCompletedRun());
+        var company = Guid.CreateVersion7();
+        var top = Guid.CreateVersion7();
+        var dup = Guid.CreateVersion7();
+        // Same company, same normalised title, posted twice — one real opening under two board listings.
+        GivenCandidates(
+            ShownFor(top, company, "staff sre", 90m),
+            ShownFor(dup, company, "staff sre", 85m));
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        var digest = _digests.Saved.ShouldHaveSingleItem();
+        // One card shown — the higher-scored posting is the representative; the duplicate is grouped away, not
+        // a second card, so the Owner never sees the same role twice.
+        var card = digest.Cards.ShouldHaveSingleItem();
+        card.JobId.ShouldBe(top);
+        card.GroupedJobIds.ShouldBe([dup]);
+    }
+
+    [Fact]
+    public async Task Distinct_roles_at_the_same_company_are_not_merged()
+    {
+        GivenRun(RankingCompletedRun());
+        var company = Guid.CreateVersion7();
+        var sre = Guid.CreateVersion7();
+        var backend = Guid.CreateVersion7();
+        GivenCandidates(
+            ShownFor(sre, company, "staff sre", 90m),
+            ShownFor(backend, company, "senior backend engineer", 85m));
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        var digest = _digests.Saved.ShouldHaveSingleItem();
+        // Different titles are different openings: two cards, neither grouping the other away.
+        digest.Cards.Select(c => c.JobId).ShouldBe([sre, backend]);
+        digest.Cards.ShouldAllBe(c => c.GroupedJobIds.Count == 0);
+    }
+
+    [Fact]
+    public async Task The_same_title_at_different_companies_stays_two_cards()
+    {
+        GivenRun(RankingCompletedRun());
+        var acme = Guid.CreateVersion7();
+        var globex = Guid.CreateVersion7();
+        var atAcme = Guid.CreateVersion7();
+        var atGlobex = Guid.CreateVersion7();
+        GivenCandidates(
+            ShownFor(atAcme, acme, "staff sre", 90m),
+            ShownFor(atGlobex, globex, "staff sre", 85m));
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        var digest = _digests.Saved.ShouldHaveSingleItem();
+        // A shared title is not a shared opening across companies: both cards stand.
+        digest.Cards.Select(c => c.JobId).ShouldBe([atAcme, atGlobex]);
+    }
+
+    [Fact]
+    public async Task Grouping_shrinks_the_shown_count_but_keeps_ranks_contiguous()
+    {
+        GivenRun(RankingCompletedRun());
+        var company = Guid.CreateVersion7();
+        var top = Guid.CreateVersion7();
+        var dup = Guid.CreateVersion7();
+        var other = Guid.CreateVersion7();
+        GivenCandidates(
+            ShownFor(top, company, "staff sre", 95m),
+            ShownFor(dup, company, "staff sre", 90m),
+            ShownFor(other, Guid.CreateVersion7(), "principal engineer", 85m));
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        var digest = _digests.Saved.ShouldHaveSingleItem();
+        // Three qualifying candidates, but the two duplicates collapse: the "N shown" count is the two
+        // representatives, ranked 1 then 2 with no gap (AC-04's shown count reflects grouping).
+        digest.Cards.Select(c => (c.JobId, c.Rank)).ShouldBe([(top, 1), (other, 2)]);
+    }
+
+    [Fact]
+    public async Task A_replay_reproduces_the_same_grouping()
+    {
+        GivenRun(RankingCompletedRun());
+        var company = Guid.CreateVersion7();
+        var top = Guid.CreateVersion7();
+        var dup = Guid.CreateVersion7();
+        GivenCandidates(
+            ShownFor(top, company, "staff sre", 90m),
+            ShownFor(dup, company, "staff sre", 85m));
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+        var first = _digests.Saved.ShouldHaveSingleItem();
+
+        // A replayed completion finds the committed digest and re-emits it: the grouping it snapshotted is the
+        // grouping a resumed delivery replays, not a fresh (and possibly different) computation.
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        _digests.Saved.Count.ShouldBe(1);
+        var card = first.Cards.ShouldHaveSingleItem();
+        card.JobId.ShouldBe(top);
+        card.GroupedJobIds.ShouldBe([dup]);
+    }
+
     // ---- idempotence: one digest per Run ------------------------------------------------------
 
     [Fact]

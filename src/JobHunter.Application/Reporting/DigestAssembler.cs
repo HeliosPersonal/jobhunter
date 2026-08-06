@@ -133,16 +133,24 @@ public sealed class DigestAssembler(
 
         var digestId = _ids.NewId();
 
-        // Select the cards, then verify their apply destinations: a confirmed-unreachable link drops its card
-        // and its job is flagged for closure; a timeout or robots refusal keeps the card, unverified (AC-11).
+        // Select the cards, group away near-duplicates, then verify the survivors' apply destinations. Grouping
+        // runs on the selected set, after selection and before verification and persistence, so the same real
+        // opening posted twice becomes one card and the grouping is snapshotted onto the digest — a replay
+        // reproduces it (F5-T13, ADR-F2-0001). A confirmed-unreachable link drops its card and flags the job for
+        // closure; a timeout or robots refusal keeps the card, unverified (AC-11).
         var selected = SelectCandidates(candidates);
-        var verified = await VerifyApplyLinksAsync(selected, cancellationToken).ConfigureAwait(false);
+        var groups = NearDuplicateGrouper.Group(selected);
+        var representatives = groups.Select(g => g.Representative).ToList();
+        var verified = await VerifyApplyLinksAsync(representatives, cancellationToken).ConfigureAwait(false);
+
+        var groupedByJob = groups.ToDictionary(g => g.Representative.JobId, g => g.GroupedJobIds);
 
         var cards = verified
             .Where(v => v.Status != ApplyLinkStatus.ConfirmedUnreachable)
             .Select((v, index) => new DigestCard(
                 _ids.NewId(), digestId, v.Candidate.JobId, run.Id, rank: index + 1, v.Candidate.FinalScore,
-                v.Candidate.Reasons, applyUrlVerified: v.Status == ApplyLinkStatus.Reachable))
+                v.Candidate.Reasons, applyUrlVerified: v.Status == ApplyLinkStatus.Reachable,
+                groupedJobIds: groupedByJob[v.Candidate.JobId]))
             .ToList();
 
         var unreachableJobIds = verified

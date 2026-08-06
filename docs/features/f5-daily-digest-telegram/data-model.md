@@ -48,6 +48,7 @@ erDiagram
     numeric score
     jsonb reasons
     boolean apply_url_verified
+    jsonb grouped_job_ids
   }
   DELIVERY_LOG {
     uuid id PK
@@ -99,6 +100,7 @@ fallback is a different artifact from a model narrative and should be distinguis
 | `score` | numeric(5,2) | NOT NULL | snapshotted from `scores`, so the card is stable even if scoring is re-run |
 | `reasons` | jsonb | NOT NULL | **non-empty** — invariant 4, AC-02 |
 | `apply_url_verified` | boolean | NOT NULL | false-verified cards are not delivered (AC-11) |
+| `grouped_job_ids` | jsonb | NOT NULL, default `[]` | the near-duplicate jobs this card groups away (T13) — a same-opening posting collapsed onto this representative at assembly, kept queryable, never dropped |
 
 **Constraints:** unique `(digest_id, job_id)` and unique `(digest_id, card_key)`.
 

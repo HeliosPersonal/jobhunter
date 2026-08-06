@@ -58,6 +58,26 @@ public sealed class DigestScopeQueryTests
     }
 
     [RequiresDockerFact]
+    public async Task Candidates_projects_the_company_and_normalised_title_the_grouper_keys_on()
+    {
+        var database = await TestDatabase.CreateAsync();
+        await using var _ = database;
+        var companyId = await SeedCompanyAsync(database);
+        var runId = await SeedRunAsync(database);
+        var jobId = await SeedJobAsync(database, companyId);
+        await SeedScoreAsync(database, jobId, runId, finalScore: 80m, suppressed: false);
+
+        var query = new DigestScopeQuery(new NpgsqlConnectionFactory(database.ConnectionString));
+        var candidates = await query.CandidatesAsync(runId);
+
+        // The near-duplicate grouper collapses on (company, normalised title) at assembly (F5-T13): the query
+        // must surface both, or every candidate would look unique and never group.
+        var candidate = candidates.ShouldHaveSingleItem();
+        candidate.CompanyId.ShouldBe(companyId);
+        candidate.NormalisedTitle.ShouldBe("staff sre");
+    }
+
+    [RequiresDockerFact]
     public async Task Candidates_returns_a_suppressed_score_so_the_breakdown_reconciles()
     {
         var database = await TestDatabase.CreateAsync();

@@ -2,7 +2,7 @@
 status: Draft
 owner: "Viacheslav Melnichenko"
 reviewers: ["Tech Lead (Viacheslav)"]
-updated_at: "2026-08-02"
+updated_at: "2026-08-06"
 feature_size: "M"
 stage: "13"
 ticket: ""
@@ -31,7 +31,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T10 | [[T10-callback-actions\|Callback handling, actions and Signal capture]] | telegram | T08 | L | pending |
 | T11 | [[T11-command-set\|Command set]] | telegram | T10 | M | pending |
 | T12 | [[T12-rendering-corpus\|Rendering corpus and live smoke checklist]] | tests | T09, T11 | M | pending |
-| T13 | [[T13-near-duplicate-grouping\|Near-duplicate grouping at digest assembly]] | app | T03 | S | pending |
+| T13 | [[T13-near-duplicate-grouping\|Near-duplicate grouping at digest assembly]] | app | T03 | S | done |
 
 **13 tasks · 4×S + 7×M + 2×L ≈ 6.5 person-days.** (T13 is the `NearDuplicateGrouper` relocated from
 F2 per [[../../f2-normalization-dedup/adr/0001-conservative-fingerprint|ADR-F2-0001]], adding 0.25 to

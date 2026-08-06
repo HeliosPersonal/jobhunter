@@ -23,6 +23,17 @@ namespace JobHunter.Domain.Reporting;
 /// the card links to, not the CV or anything about the Owner — the CV crosses exactly one boundary, and it is
 /// not this one (F4 invariant).
 /// </param>
+/// <param name="CompanyId">
+/// The job's company, one half of the conservative near-duplicate key (F5-T13, ADR-F2-0001). Two candidates
+/// that share a company and a normalised title are the same real opening shown twice, and are grouped into one
+/// card at assembly. Defaults to empty for the many read paths that do not group.
+/// </param>
+/// <param name="NormalisedTitle">
+/// The job's comparison-form title (never displayed — the card shows the published title). The other half of
+/// the near-duplicate key: grouping is by <c>(CompanyId, NormalisedTitle)</c>, and a blank title never groups,
+/// so a missing title is a distinct card, not a false merge (the F2 "zero false merges" floor, realised at
+/// display time). Defaults to empty for the read paths that do not group.
+/// </param>
 public sealed record DigestCandidate(
     Guid JobId,
     decimal FinalScore,
@@ -30,4 +41,6 @@ public sealed record DigestCandidate(
     string? SuppressionReason,
     IReadOnlyList<string> Reasons,
     decimal? SalaryUsd,
-    string ApplyUrl);
+    string ApplyUrl,
+    Guid CompanyId = default,
+    string NormalisedTitle = "");

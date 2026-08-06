@@ -22,6 +22,11 @@ internal sealed class DigestCardConfiguration : IEntityTypeConfiguration<DigestC
         list => list.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode(StringComparison.Ordinal))),
         list => list.ToList());
 
+    private static readonly ValueComparer<List<Guid>> GuidListComparer = new(
+        (left, right) => (left ?? new List<Guid>()).SequenceEqual(right ?? new List<Guid>()),
+        list => list.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode())),
+        list => list.ToList());
+
     public void Configure(EntityTypeBuilder<DigestCard> b)
     {
         b.ToTable("digest_cards");
@@ -44,7 +49,16 @@ internal sealed class DigestCardConfiguration : IEntityTypeConfiguration<DigestC
             .HasConversion(v => StringListJson.Serialize(v), v => StringListJson.Deserialize(v), StringListComparer)
             .IsRequired();
 
+        // The near-duplicate jobs this card groups away (F5-T13). A jsonb array, empty for a card that groups
+        // nothing, so grouped-away jobs remain queryable and are snapshotted onto the digest like everything else.
+        b.Property<List<Guid>>("_groupedJobIds")
+            .HasColumnName("grouped_job_ids")
+            .HasColumnType("jsonb")
+            .HasConversion(v => GuidListJson.Serialize(v), v => GuidListJson.Deserialize(v), GuidListComparer)
+            .IsRequired();
+
         b.Ignore(x => x.Reasons);
+        b.Ignore(x => x.GroupedJobIds);
 
         b.HasOne<Job>()
             .WithMany()

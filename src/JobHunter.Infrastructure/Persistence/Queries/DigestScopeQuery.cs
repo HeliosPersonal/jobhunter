@@ -37,7 +37,9 @@ public sealed class DigestScopeQuery(INpgsqlConnectionFactory connectionFactory)
                    THEN (m.salary_expectation_min + m.salary_expectation_max) / 2
                    ELSE NULL
                END                AS SalaryUsd,
-               j.apply_url        AS ApplyUrl
+               j.apply_url        AS ApplyUrl,
+               j.company_id       AS CompanyId,
+               j.normalised_title AS NormalisedTitle
         FROM scores s
         JOIN jobs j ON j.id = s.job_id
         LEFT JOIN LATERAL (
@@ -72,7 +74,9 @@ public sealed class DigestScopeQuery(INpgsqlConnectionFactory connectionFactory)
                 r.SuppressionReason,
                 StringListJson.Deserialize(r.ReasonsJson),
                 r.SalaryUsd,
-                r.ApplyUrl))
+                r.ApplyUrl,
+                r.CompanyId,
+                r.NormalisedTitle))
             .ToList();
     }
 
@@ -83,5 +87,7 @@ public sealed class DigestScopeQuery(INpgsqlConnectionFactory connectionFactory)
         string? SuppressionReason,
         string? ReasonsJson,
         decimal? SalaryUsd,
-        string ApplyUrl);
+        string ApplyUrl,
+        Guid CompanyId,
+        string NormalisedTitle);
 }

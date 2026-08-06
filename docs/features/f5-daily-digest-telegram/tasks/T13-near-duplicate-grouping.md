@@ -65,6 +65,30 @@ is already computed on the job. **When in doubt, do not group** (a false merge h
 **Est is S** — this is a pure function + one assembler splice + a domain field. Do not over-build; no new
 pipeline stage, no message, no F2 change.
 
+## As built
+
+- **Grouping key: `(CompanyId, NormalisedTitle)`.** Both halves required and non-blank; a candidate
+  missing either stands alone. This is coarser than F2's `Fingerprint` (a SHA-256 over canonical domain,
+  normalised title and sorted locations — unique per job, so identical fingerprints never co-occur) and
+  deliberately so: two boards can post one opening under different location strings, which the fingerprint
+  splits but a human reads as one card. The title is trimmed and lowered with `ToLowerInvariant`; the
+  existing `normalised_title` column is reused, so no new normaliser was invented.
+- **Slot: `DigestAssembler.AssembleForRunAsync`, on the *selected* set, after `SelectCandidates` and
+  before verification and persistence.** Grouping runs before apply-link verification so only
+  representatives are probed, and the grouping is snapshotted onto the persisted digest — a replayed
+  `RankingCompleted` finds the committed digest and re-emits it, reproducing the grouping.
+- **Data threading.** Neither read model carried company/title, so `CompanyId`/`NormalisedTitle` were
+  added to `DigestCandidate` (projected in `DigestScopeQuery` from `jobs.company_id`/`normalised_title`,
+  Dapper read-only) and `GroupedJobIds` to `DigestCard`, persisted as a `jsonb` array
+  (`digest_cards.grouped_job_ids`, migration `F5AddGroupedJobIds`, serialised via `GuidListJson`). Both
+  new fields are optional constructor parameters, so no existing call site changed.
+- **`StrongMatches` intentionally left counting *all* strong scores, not representatives.** The map
+  suggested representatives, but a deliberate T03 test (`Strong_matches_counts_every_shown_score...`)
+  asserts the header counts every score at or above the threshold beyond the ten-card cap — grouping is a
+  *display* concern and does not change how many strong matches the day actually produced. The binding
+  "Done when" is that the **shown count** reflects grouping, and it does: `cards.Count` is the
+  representative count once grouped-away cards leave the list. `StrongMatches` was left untouched.
+
 ## Links
 
 [[../sad]] §6.1 · [[../../f2-normalization-dedup/adr/0001-conservative-fingerprint|ADR-F2-0001]] ·

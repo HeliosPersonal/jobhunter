@@ -85,6 +85,44 @@ public sealed class DigestPersistenceTests
     }
 
     [RequiresDockerFact]
+    public async Task A_cards_grouped_away_jobs_round_trip_through_the_jsonb_column()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+        var groupedAway = new[] { Guid.CreateVersion7(), Guid.CreateVersion7() };
+
+        var repo = new DigestRepository(seed.Database.CreateContext());
+        repo.Add(seed.NewDigest(groupedJobIds: groupedAway));
+        await repo.SaveChangesAsync();
+
+        var read = new DigestRepository(seed.Database.CreateContext());
+        var loaded = await read.FindByRunAsync(seed.RunId);
+
+        // The near-duplicate jobs a card grouped away survive the round-trip (F5-T13): grouped, never dropped,
+        // so they stay queryable off the persisted digest.
+        loaded.ShouldNotBeNull();
+        loaded.Cards.ShouldHaveSingleItem().GroupedJobIds.ShouldBe(groupedAway);
+    }
+
+    [RequiresDockerFact]
+    public async Task A_card_that_groups_nothing_round_trips_an_empty_list()
+    {
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+
+        var repo = new DigestRepository(seed.Database.CreateContext());
+        repo.Add(seed.NewDigest());
+        await repo.SaveChangesAsync();
+
+        var read = new DigestRepository(seed.Database.CreateContext());
+        var loaded = await read.FindByRunAsync(seed.RunId);
+
+        // The common case — a card that stands alone — stores and reads back an empty jsonb array, not null.
+        loaded.ShouldNotBeNull();
+        loaded.Cards.ShouldHaveSingleItem().GroupedJobIds.ShouldBeEmpty();
+    }
+
+    [RequiresDockerFact]
     public async Task A_second_digest_for_the_same_run_is_rejected_by_uq_digests_run()
     {
         var seed = await SeedAsync();
@@ -230,12 +268,13 @@ public sealed class DigestPersistenceTests
 
     private sealed record Seed(TestDatabase Database, Guid JobId, Guid RunId, long ChatId)
     {
-        public Digest NewDigest()
+        public Digest NewDigest(IReadOnlyList<Guid>? groupedJobIds = null)
         {
             var digestId = Guid.CreateVersion7();
             var card = new DigestCard(
                 Guid.CreateVersion7(), digestId, JobId, RunId, rank: 1, score: 82m,
-                reasons: ["Strong platform-engineering overlap."], applyUrlVerified: true);
+                reasons: ["Strong platform-engineering overlap."], applyUrlVerified: true,
+                groupedJobIds: groupedJobIds);
             return new Digest(
                 digestId, RunId, DigestMode.Full, totalNewJobs: 10, strongMatches: 1, avgSalaryUsd: 120000m,
                 suppressedCount: 3,

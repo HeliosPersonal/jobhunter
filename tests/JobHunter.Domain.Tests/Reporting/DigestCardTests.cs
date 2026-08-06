@@ -15,7 +15,8 @@ public sealed class DigestCardTests
         int rank = 1,
         decimal score = 82.5m,
         IReadOnlyList<string>? reasons = null,
-        bool applyUrlVerified = true) =>
+        bool applyUrlVerified = true,
+        IReadOnlyList<Guid>? groupedJobIds = null) =>
         new(
             CardId,
             DigestId,
@@ -24,7 +25,8 @@ public sealed class DigestCardTests
             rank,
             score,
             reasons ?? ["Strong platform-engineering overlap."],
-            applyUrlVerified);
+            applyUrlVerified,
+            groupedJobIds);
 
     [Fact]
     public void A_valid_card_exposes_its_fields()
@@ -97,6 +99,38 @@ public sealed class DigestCardTests
     public void A_card_may_be_unverified()
     {
         NewCard(applyUrlVerified: false).ApplyUrlVerified.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void A_card_groups_nothing_by_default()
+    {
+        NewCard().GroupedJobIds.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void A_card_keeps_the_grouped_away_jobs_it_represents()
+    {
+        var a = Guid.CreateVersion7();
+        var b = Guid.CreateVersion7();
+
+        NewCard(groupedJobIds: [a, b]).GroupedJobIds.ShouldBe([a, b]);
+    }
+
+    [Fact]
+    public void The_representative_job_is_never_listed_among_its_own_grouped_jobs()
+    {
+        var other = Guid.CreateVersion7();
+
+        // A card cannot be a near-duplicate of itself; the representative's own job id is dropped.
+        NewCard(groupedJobIds: [JobId, other]).GroupedJobIds.ShouldBe([other]);
+    }
+
+    [Fact]
+    public void Grouped_job_ids_are_de_duplicated_and_empty_ids_dropped()
+    {
+        var a = Guid.CreateVersion7();
+
+        NewCard(groupedJobIds: [a, a, Guid.Empty]).GroupedJobIds.ShouldBe([a]);
     }
 
     [Fact]

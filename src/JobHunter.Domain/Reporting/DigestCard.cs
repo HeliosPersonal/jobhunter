@@ -22,6 +22,7 @@ public sealed class DigestCard : Entity
     public const decimal MaxScore = 100m;
 
     private readonly List<string> _reasons = [];
+    private readonly List<Guid> _groupedJobIds = [];
 
     public DigestCard(
         Guid id,
@@ -31,7 +32,8 @@ public sealed class DigestCard : Entity
         int rank,
         decimal score,
         IReadOnlyList<string> reasons,
-        bool applyUrlVerified)
+        bool applyUrlVerified,
+        IReadOnlyList<Guid>? groupedJobIds = null)
         : base(id)
     {
         if (digestId == Guid.Empty)
@@ -77,7 +79,17 @@ public sealed class DigestCard : Entity
                 nameof(reasons));
         }
 
+        // The grouped-away jobs this card represents (F5-T13): near-duplicates of the same real opening, shown
+        // as one card so the digest never surfaces the same role twice, kept here so they remain queryable and
+        // are not lost. The representative's own job id is never one of them, and the set is de-duplicated and
+        // order-stable so a replay reproduces the grouping exactly.
+        var cleanedGrouped = (groupedJobIds ?? [])
+            .Where(g => g != Guid.Empty && g != jobId)
+            .Distinct()
+            .ToList();
+
         _reasons = cleanedReasons;
+        _groupedJobIds = cleanedGrouped;
         DigestId = digestId;
         JobId = jobId;
         Rank = rank;
@@ -108,4 +120,12 @@ public sealed class DigestCard : Entity
 
     /// <summary>Non-empty by construction — invariant 4.</summary>
     public IReadOnlyList<string> Reasons => new ReadOnlyCollection<string>(_reasons);
+
+    /// <summary>
+    /// The near-duplicate jobs this card stands in for (F5-T13): the same real opening posted under a slightly
+    /// different title or on a second board, grouped into this one presented card so the Owner never sees the
+    /// role twice. Empty for a card that groups nothing. The grouped-away jobs stay queryable through this set
+    /// — they are grouped, never dropped (the F2 grouping property, realised at display time).
+    /// </summary>
+    public IReadOnlyList<Guid> GroupedJobIds => new ReadOnlyCollection<Guid>(_groupedJobIds);
 }
