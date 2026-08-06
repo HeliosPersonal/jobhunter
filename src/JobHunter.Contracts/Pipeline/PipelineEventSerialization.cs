@@ -26,4 +26,5 @@ namespace JobHunter.Contracts.Pipeline;
 [JsonSerializable(typeof(ApplyDestinationUnreachable))]
 [JsonSerializable(typeof(OwnerActionRecorded))]
 [JsonSerializable(typeof(ApplicationStatusChanged))]
+[JsonSerializable(typeof(PreferenceModelUpdated))]
 public sealed partial class PipelineEventContext : JsonSerializerContext;
