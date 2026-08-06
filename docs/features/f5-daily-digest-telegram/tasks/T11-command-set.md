@@ -73,6 +73,31 @@ Reuse `Formatting/CardFormatter.cs` + `CardView.cs` — do not invent a second l
 **Gotchas:** no LLM in the command path (assert the client is never called, like invariant-6 tests); no
 CV anywhere; structured logging only.
 
+## Delivered
+
+Shipped in five commits on `master`:
+
+- `a182a14` — `CommandRouter` + `StartCommandHandler`, `HelpCommandHandler`, `PlaceholderCommandHandler`
+  and the `SearchCommandAdapter`; the singleton-routes / scope-acts split (`ICommandDispatcher` /
+  `ScopedCommandDispatcher` open a scope per command, the router and handlers are scoped) and the
+  unknown-command fallback (one line + the derived help list, **no conversational fallback, no LLM** —
+  ADR-F10-0002).
+- `7e65651` — `/digest` re-renders today's digest through `IDigestRenderer` **without touching the delivery
+  log and without re-sending** through the delivery path.
+- `f69e630` — `/saved`: `ISavedRolesQuery` read port + `SavedRolesQuery` Dapper impl (signals → jobs →
+  companies → scores → matches), roles newest-first in the digest card layout.
+- `8bede47` — `/stats`: `IWeeklyStatsQuery` read port + `WeeklyStatsQuery` Dapper impl over `delivery_log`
+  + `signals`; the week window, precision and trend are computed in the handler against `IClock`.
+- (this commit) — docs + tracker row to `done`.
+
+All seven commands (`/start`, `/help`, `/digest`, `/saved`, `/stats`, `/pipeline`, `/search`) render through
+the digest's `CardFormatter` / `CardView` (AC-12). The command path is deterministic: no LLM is resolved or
+called, and no CV is read. The read ports are read-only (Dapper never writes — architecture rule 4).
+
+**Deferred to T12:** there is **no production `IDigestRenderer` implementation yet** — only the port and
+`/digest`'s use of it (unit-tested against a fake renderer). T12 owns the concrete renderer and the
+rendering-corpus snapshots, after which `/digest` is live end-to-end.
+
 ## Links
 
 [[../contracts/telegram-messages]] §Commands ·

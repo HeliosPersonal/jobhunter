@@ -29,7 +29,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T08 | [[T08-delivery-idempotence\|Delivery handler with per-card idempotence]] | app | T02, T06, T07 | L | done |
 | T09 | [[T09-schedule-degraded\|Delivery scheduling and degraded-day variants]] | app | T08, T05 | M | done |
 | T10 | [[T10-callback-actions\|Callback handling, actions and Signal capture]] | telegram | T08 | L | done |
-| T11 | [[T11-command-set\|Command set]] | telegram | T10 | M | pending |
+| T11 | [[T11-command-set\|Command set]] | telegram | T10 | M | done |
 | T12 | [[T12-rendering-corpus\|Rendering corpus and live smoke checklist]] | tests | T09, T11 | M | pending |
 | T13 | [[T13-near-duplicate-grouping\|Near-duplicate grouping at digest assembly]] | app | T03 | S | done |
 
@@ -75,3 +75,16 @@ See [[../../../IMPLEMENTATION-READINESS]] §4 for the full per-task checklist.
   F5 does **not** publish — the Telegram host has no Wolverine outbox and F6 is not yet built. The
   `CallbackHandler` acknowledges `Applied` and updates the keyboard today; wiring the `OwnerActionRecorded`
   publication is deferred to F6.
+- **T11** — the seven-command set ships behind the same singleton-routes / scope-acts split as the callback
+  path (`ICommandDispatcher`/`ScopedCommandDispatcher` singleton opens a DI scope per command; `CommandRouter`
+  and its handlers are scoped because a command reads the store). F5 implements `/start`, `/help`, `/digest`,
+  `/saved` and `/stats`; `/pipeline` is a `PlaceholderCommandHandler` until F6 ships and `/search` reuses the
+  F9 handler through `SearchCommandAdapter`. Every command renders through the digest's `CardFormatter`/`CardView`
+  (AC-12) — no second layout — and the path is deterministic: no LLM (ADR-F10-0002) and no CV. `/saved`
+  (`ISavedRolesQuery`) and `/stats` (`IWeeklyStatsQuery`) are Dapper read ports (architecture rule 4 — Dapper
+  never writes); `/stats` keeps the week-window, precision and trend arithmetic in the handler against
+  `IClock`, leaving only the counts to Postgres.
+- **Known follow-up (T11 → T12):** `/digest` re-renders through the `IDigestRenderer` port, but **no production
+  `IDigestRenderer` implementation exists yet** — only the port and the handler's use of it. The renderer and
+  its rendering-corpus snapshots are T12's remaining scope; `/digest` is wired and unit-tested against a fake
+  renderer today, and becomes end-to-end live once T12 lands.
