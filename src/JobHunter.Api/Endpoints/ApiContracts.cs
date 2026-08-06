@@ -194,6 +194,96 @@ public sealed record ReprocessRequest(DateTimeOffset? FirstSeenFrom);
 public sealed record UnquarantineResponse(Guid SourceId, string Outcome);
 
 /// <summary>
+/// One application in the pipeline view (<c>GET /api/applications</c>, F6 AC-01). The card display fields the
+/// Owner scans by — the title, company, score and stage age — plus the timestamps rendered as Unix seconds. It
+/// carries <strong>no CV-derived value and no match reason</strong> (the CV crosses exactly one boundary, and it
+/// is not this one). <see cref="Status"/> is the group's status; <c>daysInStage</c> is computed at read time.
+/// </summary>
+public sealed record ApplicationEntryResponse(
+    Guid Id,
+    Guid JobId,
+    string Title,
+    string Company,
+    decimal Score,
+    bool PostingClosed,
+    long? AppliedAt,
+    long LastActivityAt,
+    long? NextActionAt,
+    int DaysInStage);
+
+/// <summary>One status column of the pipeline and the applications currently in it, newest activity first.</summary>
+public sealed record ApplicationGroupResponse(string Status, IReadOnlyList<ApplicationEntryResponse> Applications);
+
+/// <summary>
+/// The pipeline read model (<c>GET /api/applications</c>, F6 AC-01): the non-archived applications grouped by
+/// status, and the per-status counts derived from the group sizes so a client can render the header without a
+/// second pass. Keyed by the status name so the shape matches the contract's <c>counts</c> object exactly.
+/// </summary>
+public sealed record ApplicationPipelineResponse(
+    IReadOnlyDictionary<string, int> Counts,
+    IReadOnlyList<ApplicationGroupResponse> Groups);
+
+/// <summary>One recorded status change on an application's history (<c>GET /api/applications/{id}</c>, AC-03).</summary>
+public sealed record ApplicationTransitionResponse(
+    string? From,
+    string To,
+    string Source,
+    string? Detail,
+    long OccurredAt);
+
+/// <summary>One free-text note the Owner attached, and when (AC-03). The body is the Owner's text, never logged.</summary>
+public sealed record ApplicationNoteResponse(string Body, long CreatedAt);
+
+/// <summary>
+/// The full detail of one application (<c>GET /api/applications/{id}</c>, AC-03): its current state, its complete
+/// ordered transition history and its notes — retrievable by id even after it archives out of the pipeline view.
+/// It carries <strong>nothing about the Owner</strong> (the CV-leakage invariant) and no match reason.
+/// </summary>
+public sealed record ApplicationDetailResponse(
+    Guid Id,
+    Guid JobId,
+    string Title,
+    string Company,
+    string Status,
+    bool PostingClosed,
+    bool Archived,
+    long? AppliedAt,
+    long LastActivityAt,
+    long? NextActionAt,
+    IReadOnlyList<ApplicationTransitionResponse> Transitions,
+    IReadOnlyList<ApplicationNoteResponse> Notes);
+
+/// <summary>
+/// One application the reminder sweep found due (<c>GET /api/applications/due</c>, T06): enough to name it and
+/// suggest an action — the title, company, current status, apply-url and whether the posting has closed.
+/// </summary>
+public sealed record DueReminderResponse(
+    Guid ApplicationId,
+    Guid JobId,
+    string Title,
+    string Company,
+    string ApplyUrl,
+    string Status,
+    bool PostingClosed);
+
+/// <summary>
+/// The request body for <c>POST /api/applications/{id}/status</c> (AC-10): the target status and an optional note
+/// recorded on the transition. An unrecognised <see cref="ToStatus"/> is a 400; a permitted move a 200; a refused
+/// one a 409 that names the rule and the remedy.
+/// </summary>
+public sealed record StatusChangeRequest(string ToStatus, string? Detail);
+
+/// <summary>The request body for <c>POST /api/applications/{id}/notes</c> (AC-06): the free text the Owner typed.</summary>
+public sealed record AddNoteRequest(string Body);
+
+/// <summary>
+/// The <c>409</c> body for a refused status change (contract §Status change): it states the rule, not just the
+/// refusal — the attempted <see cref="From"/>→<see cref="To"/> transition and the <see cref="Reason"/> that names
+/// what to do instead (AC-10), because a refusal without a remedy is just an obstacle.
+/// </summary>
+public sealed record TransitionNotPermittedResponse(string Error, string From, string To, string Reason);
+
+/// <summary>
 /// The corpus snapshot from <c>GET /api/admin/stats</c>: the authoritative live-job count in PostgreSQL,
 /// the index document count (null when the index is unreachable), the drift between them (null likewise)
 /// and whether the index answered. The cost trend F3 owns is a deferred, empty slot until F3 merges (the

@@ -57,6 +57,24 @@ public sealed class EndpointsHostFactory : WebApplicationFactory<Program>
     /// <summary>The re-match backlog the scheduler enqueues recent live jobs onto when a new CV version activates.</summary>
     public IReMatchBacklog ReMatchBacklog { get; } = Substitute.For<IReMatchBacklog>();
 
+    /// <summary>The pipeline read model behind <c>GET /api/applications</c> (F6 T09, AC-01).</summary>
+    public IApplicationPipelineQuery ApplicationPipeline { get; } = Substitute.For<IApplicationPipelineQuery>();
+
+    /// <summary>The single-application history read behind <c>GET /api/applications/{id}</c> and the id→job bridge (AC-03).</summary>
+    public IApplicationHistoryQuery ApplicationHistory { get; } = Substitute.For<IApplicationHistoryQuery>();
+
+    /// <summary>The due-reminder read behind <c>GET /api/applications/due</c> (T06).</summary>
+    public IDueReminderQuery DueReminders { get; } = Substitute.For<IDueReminderQuery>();
+
+    /// <summary>The application write repository behind the status-change and note handlers (job-keyed, QG-1).</summary>
+    public IApplicationRepository Applications { get; } = Substitute.For<IApplicationRepository>();
+
+    /// <summary>The job-facts snapshot the outcome-signal publisher stages a weighted signal from (T08).</summary>
+    public IJobFactsSnapshotQuery JobFacts { get; } = Substitute.For<IJobFactsSnapshotQuery>();
+
+    /// <summary>The outcome-signal writer the status-change handler stages an F7 signal into (T08).</summary>
+    public IOutcomeSignalWriter OutcomeSignals { get; } = Substitute.For<IOutcomeSignalWriter>();
+
     /// <summary>A client presenting a valid Owner token with the given scope (read by default).</summary>
     public HttpClient OwnerClient(string scope = "jobhunter:read")
     {
@@ -124,6 +142,23 @@ public sealed class EndpointsHostFactory : WebApplicationFactory<Program>
             services.AddScoped(_ => Matches);
             services.RemoveAll<IReMatchBacklog>();
             services.AddScoped(_ => ReMatchBacklog);
+
+            // F6 application-tracking ports (T09): the three read models the endpoints project and the write
+            // side the status-change and note handlers drive. The ChangeApplicationStatusHandler is the real
+            // one — its logic is under test — so its collaborators (the repository, the facts snapshot and the
+            // outcome-signal writer behind the OutcomeSignalPublisher) are substituted to keep it offline.
+            services.RemoveAll<IApplicationPipelineQuery>();
+            services.AddScoped(_ => ApplicationPipeline);
+            services.RemoveAll<IApplicationHistoryQuery>();
+            services.AddScoped(_ => ApplicationHistory);
+            services.RemoveAll<IDueReminderQuery>();
+            services.AddScoped(_ => DueReminders);
+            services.RemoveAll<IApplicationRepository>();
+            services.AddScoped(_ => Applications);
+            services.RemoveAll<IJobFactsSnapshotQuery>();
+            services.AddScoped(_ => JobFacts);
+            services.RemoveAll<IOutcomeSignalWriter>();
+            services.AddScoped(_ => OutcomeSignals);
         });
     }
 }

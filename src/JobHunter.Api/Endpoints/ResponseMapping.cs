@@ -1,3 +1,4 @@
+using JobHunter.Domain.Applications;
 using JobHunter.Domain.Companies;
 using JobHunter.Domain.Jobs;
 using JobHunter.Domain.Search;
@@ -122,4 +123,60 @@ internal static class ResponseMapping
         ApplyUrl: job.ApplyUrl,
         FirstSeenAt: job.FirstSeenAt.ToUnixTimeSeconds(),
         LastSeenAt: job.LastSeenAt.ToUnixTimeSeconds());
+
+    // --- F6 application tracking (T09) -------------------------------------------------------------
+
+    public static ApplicationPipelineResponse ToPipeline(ApplicationPipeline pipeline) => new(
+        // The per-status counts the header shows, derived from the group sizes rather than a second read.
+        Counts: pipeline.Groups.ToDictionary(g => g.Status.ToString(), g => g.Applications.Count, StringComparer.Ordinal),
+        Groups: [.. pipeline.Groups.Select(ToApplicationGroup)]);
+
+    public static ApplicationGroupResponse ToApplicationGroup(PipelineGroup group) => new(
+        Status: group.Status.ToString(),
+        Applications: [.. group.Applications.Select(ToApplicationEntry)]);
+
+    public static ApplicationEntryResponse ToApplicationEntry(PipelineEntry entry) => new(
+        Id: entry.Id,
+        JobId: entry.JobId,
+        Title: entry.Title,
+        Company: entry.Company,
+        Score: entry.Score,
+        PostingClosed: entry.PostingClosed,
+        AppliedAt: entry.AppliedAt?.ToUnixTimeSeconds(),
+        LastActivityAt: entry.LastActivityAt.ToUnixTimeSeconds(),
+        NextActionAt: entry.NextActionAt?.ToUnixTimeSeconds(),
+        DaysInStage: entry.DaysInStage);
+
+    public static ApplicationDetailResponse ToApplicationDetail(ApplicationHistory history) => new(
+        Id: history.Id,
+        JobId: history.JobId,
+        Title: history.Title,
+        Company: history.Company,
+        Status: history.Status.ToString(),
+        PostingClosed: history.PostingClosed,
+        Archived: history.Archived,
+        AppliedAt: history.AppliedAt?.ToUnixTimeSeconds(),
+        LastActivityAt: history.LastActivityAt.ToUnixTimeSeconds(),
+        NextActionAt: history.NextActionAt?.ToUnixTimeSeconds(),
+        Transitions: [.. history.Transitions.Select(ToApplicationTransition)],
+        Notes: [.. history.Notes.Select(ToApplicationNote)]);
+
+    public static ApplicationTransitionResponse ToApplicationTransition(HistoryTransition transition) => new(
+        From: transition.From?.ToString(),
+        To: transition.To.ToString(),
+        Source: transition.Source.ToString(),
+        Detail: transition.Detail,
+        OccurredAt: transition.OccurredAt.ToUnixTimeSeconds());
+
+    public static ApplicationNoteResponse ToApplicationNote(HistoryNote note) =>
+        new(note.Body, note.CreatedAt.ToUnixTimeSeconds());
+
+    public static DueReminderResponse ToDueReminder(DueReminder reminder) => new(
+        ApplicationId: reminder.ApplicationId,
+        JobId: reminder.JobId,
+        Title: reminder.Title,
+        Company: reminder.Company,
+        ApplyUrl: reminder.ApplyUrl,
+        Status: reminder.Status.ToString(),
+        PostingClosed: reminder.PostingClosed);
 }

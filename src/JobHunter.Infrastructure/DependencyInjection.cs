@@ -126,6 +126,9 @@ public static class DependencyInjection
         // ordered transitions and notes, retrievable by id even when archived (AC-03). Read-only Dapper.
         services.AddScoped<IApplicationPipelineQuery, ApplicationPipelineQuery>();
         services.AddScoped<IApplicationHistoryQuery, ApplicationHistoryQuery>();
+        // F6 T06/T09: the due-reminder read — one indexed range over idx_applications_due for what needs
+        // attention now, behind both the reminder sweep and GET /api/applications/due. Read-only Dapper.
+        services.AddScoped<IDueReminderQuery, DueReminderQuery>();
         // F5 /saved (T11): the roles the Owner saved — a Saved-kind signal joined back to the job, its company,
         // its latest score and its current match, newest-first and capped, so /saved renders the same card the
         // digest did (AC-12). Read-only Dapper; F5 reads the signals F5/F7 write.

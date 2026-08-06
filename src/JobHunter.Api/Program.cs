@@ -67,6 +67,10 @@ app.MapCvEndpoints();
 // its jobhunter:admin scope explicitly (endpoint-convention gate) so recovery never needs database access.
 app.MapAdminEndpoints();
 
+// F6 application tracking (T09): the pipeline, one application's history, the two owner writes (status and
+// note) and the what-needs-attention read. The reads declare jobhunter:read, the writes jobhunter:admin.
+app.MapApplicationEndpoints();
+
 await app.RunAsync();
 
 namespace JobHunter.Api
