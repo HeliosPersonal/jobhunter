@@ -2,7 +2,7 @@
 status: Draft
 owner: "Viacheslav Melnichenko"
 reviewers: ["Tech Lead (Viacheslav)"]
-updated_at: "2026-08-06T18"
+updated_at: "2026-08-06T20"
 feature_size: "M"
 stage: "13"
 ticket: ""
@@ -24,7 +24,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T03 | [[T03-owner-action-handler\|Owner action handler]] | app | T02 | M | done |
 | T04 | [[T04-pipeline-query\|Pipeline query and history view]] | app | T02 | M | done |
 | T05 | [[T05-job-closure\|Job closure handling]] | app | T03 | S | done |
-| T06 | [[T06-reminder-sweep\|Reminder sweep]] | app | T04 | M | pending |
+| T06 | [[T06-reminder-sweep\|Reminder sweep]] | app | T04 | M | done |
 | T07 | [[T07-notes\|Notes]] | app | T04 | S | pending |
 | T08 | [[T08-outcome-signals\|Outcome signals]] | app | T03 | M | pending |
 | T09 | [[T09-commands-and-api\|Telegram commands and API endpoints]] | telegram/api | T04, T06, T07, ⟂F9 T04 | M | pending |
@@ -140,3 +140,27 @@ See [[../../../IMPLEMENTATION-READINESS]] §4 for the full per-task checklist.
   (`JobClosureHandlerIntegrationTests`, the test-plan Messaging suite) as well as by the fake-repo unit suite.
   The point-4 reminder for a `Saved` application whose posting closed belongs to the T06 sweep (SAD §6.2,
   which reads `posting_closed`); T05 sets the data the sweep reads.
+- **T06** — the reminder sweep (SAD §6.2). A thin `ReminderSweepTrigger` (`Infrastructure/Scheduling/`,
+  DI-registered scoped) fires on the 08:00 Europe/Kyiv cron — an hour after the 07:00 digest, deliberately
+  separate so the morning message stays about opportunities (done-when 6) — and does nothing but publish one
+  `ReminderSweepDue(SweptAt)` onto the durable bus, stamping the instant from `IClock`. The Wolverine-discovered
+  `ReminderSweepHandler` (`Application/Applications/`) reads the due applications through the read-only
+  `IDueReminderQuery` (`idx_applications_due`-covered, done-when 5 — the `DueReminder` now also carries the job's
+  `apply_url` for the "open posting" link) and, for each one not already reminded for its current condition
+  (`DueReminder.IsAlreadyReminded`, decided from the read model without loading the aggregate), sends the Owner
+  one nudge and records the reminder. Suppression is one reminder per `(application, condition)` until it clears
+  or recurs (QG-3, done-when 1): the send is ordered send-then-record, so a crash in the window re-nudges once on
+  resume rather than dropping it; the mutation goes only through the aggregate's `RecordReminder` →
+  `SaveChangesAsync` write path (QG-1 — no new repository method). The `IReminderRenderer` (port in `Domain`,
+  `Telegram/Formatting/ReminderRenderer` the impl, registered alongside the digest renderer) reads only the
+  public job facts on the `DueReminder` and shares the one MarkdownV2 escaper — a closed posting suggests
+  "drop it or apply elsewhere" and shows no open button, an open one suggests a stage-appropriate chase with an
+  "Open posting" URL button — so a hostile title cannot break the send and the CV never crosses this boundary
+  (invariant 7, F4 invariant). The SAD §8 thresholds are now configuration: `ReminderOptions`
+  (`Application/Applications/`, section `Reminders`, defaults Applied 10 d / Interview 7 d / Saved 5 d) binds and
+  startup-validates the day counts and builds the one `ReminderPolicy` both the T03 owner-action handler and this
+  sweep resolve through — and because both read the policy at use time, a threshold change takes effect on the
+  next sweep with no per-application rescheduling (done-when 4). The suppression rule is proven end-to-end against
+  a real database (`ReminderSweepSuppressionTests`, the test-plan sweep suite): a stale application is reminded
+  exactly once across seven consecutive daily sweeps, an Owner action that clears the condition the same day takes
+  the reminder away, and a shortened threshold governs only the next reschedule, never the already-parked row.

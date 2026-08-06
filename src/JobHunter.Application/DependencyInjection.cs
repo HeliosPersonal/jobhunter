@@ -198,13 +198,23 @@ public static class DependencyInjection
         // registered by Infrastructure.
         services.AddScoped<Actions.RecordCardActionHandler>();
 
-        // F6 application tracking (T03): OwnerActionHandler is discovered by Wolverine for OwnerActionRecorded
-        // like every other pipeline handler, so it is not registered here; only its ReminderPolicy dependency
-        // needs to be resolvable. The SAD §8 thresholds are configuration — until the reminder sweep (T06)
-        // binds them from options, the handler resolves the documented defaults (Applied 10 d / Interview 7 d /
-        // Saved 5 d) so a permitted transition can reschedule next_action_at. Its IApplicationRepository is
-        // registered by Infrastructure.
-        services.AddSingleton(Domain.Applications.ReminderPolicy.Default);
+        // F6 application tracking (T03/T06): the SAD §8 reminder thresholds are configuration, not hard-coded
+        // durations. ReminderOptions binds the day counts (defaults = SAD §8: Applied 10 d / Interview 7 d /
+        // Saved 5 d) and builds the one ReminderPolicy that both consumers resolve through — the T03
+        // OwnerActionHandler (to reschedule next_action_at on a permitted transition) and the T06 reminder
+        // sweep (to push next_action_at forward when it nudges). Because both read the policy at use time, a
+        // threshold change takes effect on the next sweep with no per-application rescheduling (done-when 4).
+        // BindConfiguration resolves the host's IConfiguration from DI, so this stays a no-IConfiguration method
+        // like the DiscoveryOptions registration above; the days are validated positive at startup, never at
+        // first use. IApplicationRepository is registered by Infrastructure.
+        services.AddOptions<Applications.ReminderOptions>()
+            .BindConfiguration(Applications.ReminderOptions.SectionName)
+            .Validate(o => o.AppliedDays > 0, "Reminders:AppliedDays must be positive.")
+            .Validate(o => o.InterviewDays > 0, "Reminders:InterviewDays must be positive.")
+            .Validate(o => o.SavedDays > 0, "Reminders:SavedDays must be positive.")
+            .ValidateOnStart();
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Applications.ReminderOptions>>().Value.ToPolicy());
 
         return services;
     }

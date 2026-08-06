@@ -202,6 +202,7 @@ public sealed class ApplicationPipelineQueryTests
         reminder.JobId.ShouldBe(dueJob);
         reminder.Title.ShouldBe("Staff SRE");
         reminder.Company.ShouldBe("Acme");
+        reminder.ApplyUrl.ShouldNotBeNullOrWhiteSpace();
         reminder.Status.ShouldBe(ApplicationStatus.Applied);
         reminder.PostingClosed.ShouldBeFalse();
         reminder.LastReminderCondition.ShouldBeNull();

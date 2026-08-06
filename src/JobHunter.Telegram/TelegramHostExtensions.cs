@@ -69,6 +69,11 @@ public static class TelegramHostExtensions
         // the codec it signs callback payloads with is the same singleton the callback path resolves against.
         services.AddScoped<IDigestRenderer, Formatting.DigestRenderer>();
 
+        // The reminder renderer (F6 T06): the IReminderRenderer the 08:00 reminder sweep nudges through. It
+        // reads only the public job facts on the DueReminder and shares the one MarkdownV2 escaper, so a
+        // hostile title cannot break the send. Stateless, so a singleton is enough.
+        services.AddSingleton<IReminderRenderer, Formatting.ReminderRenderer>();
+
         // The command path (T11): the router and its handlers are scoped because a command reads the store,
         // and the singleton processor dispatches through the scope-opening ScopedCommandDispatcher — the same
         // singleton-routes / scope-acts split as the callback path. The /search command reuses the F9 handler;

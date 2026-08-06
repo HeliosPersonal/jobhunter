@@ -16,6 +16,7 @@ namespace JobHunter.Domain.Applications;
 /// <param name="JobId">The job it tracks, for the apply-url the nudge links to.</param>
 /// <param name="Title">The job title (raw board text; escaped and truncated by the renderer).</param>
 /// <param name="Company">The company display name.</param>
+/// <param name="ApplyUrl">The posting's apply-url — the "open posting" link a still-open nudge offers.</param>
 /// <param name="Status">The status the application is currently in.</param>
 /// <param name="PostingClosed">Whether the posting has closed — decides the suggested action.</param>
 /// <param name="LastReminderCondition">The condition the last reminder fired for, or null — the suppression key.</param>
@@ -24,6 +25,7 @@ public sealed record DueReminder(
     Guid JobId,
     string Title,
     string Company,
+    string ApplyUrl,
     ApplicationStatus Status,
     bool PostingClosed,
     string? LastReminderCondition)

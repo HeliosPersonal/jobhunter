@@ -24,6 +24,7 @@ public sealed class DueReminderQuery(INpgsqlConnectionFactory connectionFactory)
                a.job_id                 AS JobId,
                j.title                  AS Title,
                c.display_name           AS Company,
+               j.apply_url              AS ApplyUrl,
                a.status                 AS Status,
                a.posting_closed         AS PostingClosed,
                a.last_reminder_condition AS LastReminderCondition
@@ -51,6 +52,7 @@ public sealed class DueReminderQuery(INpgsqlConnectionFactory connectionFactory)
                 r.JobId,
                 r.Title,
                 r.Company,
+                r.ApplyUrl,
                 Enum.Parse<ApplicationStatus>(r.Status),
                 r.PostingClosed,
                 r.LastReminderCondition))
@@ -66,6 +68,8 @@ public sealed class DueReminderQuery(INpgsqlConnectionFactory connectionFactory)
         public string Title { get; init; } = string.Empty;
 
         public string Company { get; init; } = string.Empty;
+
+        public string ApplyUrl { get; init; } = string.Empty;
 
         public string Status { get; init; } = string.Empty;
 
