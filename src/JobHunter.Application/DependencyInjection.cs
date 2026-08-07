@@ -279,6 +279,14 @@ public static class DependencyInjection
         // is registered here alongside the disable handler.
         services.AddScoped<Preferences.ResetPreferenceModelHandler>();
 
+        // F7 explainability overrides (T08, done-when 4, AC-07): the runtime learning master switch. Unlike the
+        // LearningOptions seed above — read once at startup — the live state is a persisted flag the Owner flips
+        // through the API learning endpoint or the Telegram override command, so turning learning off takes
+        // effect on the next ranking and is stated on the next digest. This handler is the shared write path;
+        // ILearningSwitch (the persisted read/write port both PreferenceModelQuery and DigestAssembler consult)
+        // is registered by Infrastructure, seeded from LearningOptions.
+        services.AddScoped<Preferences.SetLearningEnabledHandler>();
+
         return services;
     }
 }

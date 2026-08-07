@@ -105,6 +105,11 @@ public static class DependencyInjection
         // preference model goes through EF as an immutable aggregate with its weights as owned children.
         services.AddScoped<ISignalRepository, SignalRepository>();
         services.AddScoped<IPreferenceModelRepository, PreferenceModelRepository>();
+        // F7 T08 C4 (AC-07): the persisted, runtime-flippable master learning switch both PreferenceModelQuery
+        // and the digest assembler consult. The single learning_state row is the live source of truth; its
+        // absence falls back to the LearningOptions seed default (registered in Application DI). Scoped because
+        // it writes through the shared EF context.
+        services.AddScoped<ILearningSwitch, JobHunter.Infrastructure.Persistence.Preferences.PersistentLearningSwitch>();
 
         // F4 CV upload (T03): the in-process, pure-managed text extractor behind the upload service. No
         // shell-out, no OCR — PdfPig reads embedded text, plain/Markdown is decoded as UTF-8.

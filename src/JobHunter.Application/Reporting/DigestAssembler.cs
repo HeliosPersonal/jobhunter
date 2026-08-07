@@ -51,7 +51,7 @@ public sealed class DigestAssembler(
     IIdGenerator ids,
     DigestOptions options,
     ApplyVerificationOptions applyVerification,
-    Preferences.LearningOptions learning,
+    ILearningSwitch learning,
     IClock clock,
     ILogger<DigestAssembler> logger)
 {
@@ -69,7 +69,7 @@ public sealed class DigestAssembler(
     private readonly DigestOptions _options = options ?? throw new ArgumentNullException(nameof(options));
     private readonly ApplyVerificationOptions _applyVerification = applyVerification
         ?? throw new ArgumentNullException(nameof(applyVerification));
-    private readonly Preferences.LearningOptions _learning = learning ?? throw new ArgumentNullException(nameof(learning));
+    private readonly ILearningSwitch _learning = learning ?? throw new ArgumentNullException(nameof(learning));
     private readonly IClock _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     private readonly ILogger<DigestAssembler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -189,9 +189,14 @@ public sealed class DigestAssembler(
             : 0;
         var analysedCount = mode == DigestMode.BudgetReached ? candidates.Count : 0;
 
+        // The runtime learning switch (AC-07, T08): its live state — not a boot-time config value — is frozen
+        // onto the digest so the footer states whether learning was on when the digest was built, and a replay
+        // renders the same statement even if the Owner flips it later.
+        var learningEnabled = await _learning.IsEnabledAsync(cancellationToken).ConfigureAwait(false);
+
         var digest = await Assemble(
             digestId, run.Id, mode, run.JobsInScope, run.JobsCarriedOver, companiesChecked, analysedCount,
-            candidates, cards, degradedSources, restoredCount, cancellationToken)
+            candidates, cards, degradedSources, restoredCount, learningEnabled, cancellationToken)
             .ConfigureAwait(false);
 
         // Persist the whole digest before anything is sent (S2): delivery replays stored state.
@@ -304,6 +309,7 @@ public sealed class DigestAssembler(
         List<DigestCard> cards,
         IReadOnlyList<DegradedSource> degradedSources,
         int restoredCount,
+        bool learningEnabled,
         CancellationToken cancellationToken)
     {
         var strongMatches = candidates.Count(c => !c.Suppressed && c.FinalScore >= _options.CardScoreThreshold);
@@ -346,7 +352,7 @@ public sealed class DigestAssembler(
             cards,
             _clock.UtcNow,
             restoredCount,
-            _learning.Enabled);
+            learningEnabled);
     }
 
     /// <summary>One selected candidate paired with the verdict of its apply-link probe.</summary>

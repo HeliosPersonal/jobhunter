@@ -1,4 +1,3 @@
-using JobHunter.Application.Preferences;
 using JobHunter.Application.Reporting;
 using JobHunter.Contracts.Pipeline;
 using JobHunter.Domain.Abstractions;
@@ -86,10 +85,14 @@ public sealed class DigestAssemblerTests
 #pragma warning restore CA2012
     }
 
-    private DigestAssembler CreateHandler(DigestOptions? options = null, LearningOptions? learning = null) =>
-        new(_runs, _scope, _degraded, _activeCompanies, _digests, _verifier, _narrative, _ids,
-            options ?? new DigestOptions(), new ApplyVerificationOptions(), learning ?? new LearningOptions(), _clock,
+    private DigestAssembler CreateHandler(DigestOptions? options = null, bool learningEnabled = true)
+    {
+        var learning = Substitute.For<ILearningSwitch>();
+        learning.IsEnabledAsync(Arg.Any<CancellationToken>()).Returns(learningEnabled);
+        return new(_runs, _scope, _degraded, _activeCompanies, _digests, _verifier, _narrative, _ids,
+            options ?? new DigestOptions(), new ApplyVerificationOptions(), learning, _clock,
             NullLogger<DigestAssembler>.Instance);
+    }
 
     private static Run RankingCompletedRun(int jobsInScope = 20, int carriedOver = 0)
     {
@@ -399,7 +402,7 @@ public sealed class DigestAssemblerTests
         GivenRun(RankingCompletedRun());
         GivenCandidates(Shown(Guid.CreateVersion7(), 90m));
 
-        await CreateHandler(learning: new LearningOptions { Enabled = false })
+        await CreateHandler(learningEnabled: false)
             .Handle(Message(), _bus, CancellationToken.None);
 
         _digests.Saved.ShouldHaveSingleItem().LearningEnabled.ShouldBeFalse();

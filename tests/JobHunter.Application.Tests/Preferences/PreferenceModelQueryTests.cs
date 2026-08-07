@@ -28,9 +28,13 @@ public sealed class PreferenceModelQueryTests
     private readonly IPreferenceModelRepository _models = Substitute.For<IPreferenceModelRepository>();
     private readonly IProfileRepository _profiles = Substitute.For<IProfileRepository>();
     private readonly IJobFactsSnapshotQuery _facts = Substitute.For<IJobFactsSnapshotQuery>();
+    private readonly ILearningSwitch _learning = Substitute.For<ILearningSwitch>();
 
-    private PreferenceModelQuery CreateQuery(LearningOptions? options = null) =>
-        new(_models, _profiles, _facts, options ?? new LearningOptions(), NullLogger<PreferenceModelQuery>.Instance);
+    private PreferenceModelQuery CreateQuery(bool learningEnabled = true)
+    {
+        _learning.IsEnabledAsync(Arg.Any<CancellationToken>()).Returns(learningEnabled);
+        return new(_models, _profiles, _facts, _learning, NullLogger<PreferenceModelQuery>.Instance);
+    }
 
     private static PreferenceModel ActiveModel(params PreferenceWeight[] weights)
     {
@@ -67,7 +71,7 @@ public sealed class PreferenceModelQueryTests
     {
         // AC-07: learning off means only explicit preferences apply. The active model is not even loaded —
         // ranking renormalises the preference weight away, exactly as if no model had ever been fitted.
-        var result = await CreateQuery(new LearningOptions { Enabled = false })
+        var result = await CreateQuery(learningEnabled: false)
             .FindActiveAsync([KafkaJob], CancellationToken.None);
 
         result.ShouldBeNull();
