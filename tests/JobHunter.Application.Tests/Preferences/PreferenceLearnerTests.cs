@@ -150,6 +150,31 @@ public sealed class PreferenceLearnerTests
         _models.SaveCount.ShouldBe(1);
     }
 
+    [Fact]
+    public async Task It_carries_a_disabled_weight_forward_when_its_evidence_has_not_doubled()
+    {
+        // The Owner switched Kafka off with a baseline that the fresh 200-signal window (200 supporting) cannot
+        // yet double, so the refit must not silently relearn it: the new active version keeps it, still disabled.
+        var priorId = Guid.CreateVersion7();
+        var disabled = new PreferenceWeight(
+            Guid.CreateVersion7(), priorId, Dimension.Technology, "Kafka", 0.6m,
+            [.. Enumerable.Range(0, PreferenceModel.ActivationThreshold).Select(_ => Guid.CreateVersion7())],
+            0.8m, FittedAt.AddDays(-7));
+        disabled.Disable(FittedAt.AddDays(-3));
+        var prior = new PreferenceModel(priorId, version: 1, signalCount: 250, [disabled], FittedAt.AddDays(-7));
+        prior.Activate(FittedAt.AddDays(-7));
+        _models.Seed(prior);
+        WindowOf(PreferenceModel.ActivationThreshold);
+
+        await Handle();
+
+        var carried = _models.Added.ShouldHaveSingleItem().Weights
+            .ShouldHaveSingleItem();
+        carried.Dimension.ShouldBe(Dimension.Technology);
+        carried.Value.ShouldBe("Kafka");
+        carried.Disabled.ShouldBeTrue();
+    }
+
     /// <summary>
     /// An in-memory <see cref="IPreferenceModelRepository"/>: <c>Add</c> stages, <c>SaveChangesAsync</c>
     /// commits the staged models into the queryable set in one call, so a test can assert the deactivate/activate

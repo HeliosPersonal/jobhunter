@@ -67,17 +67,18 @@ public sealed class PreferenceLearner(
             return;
         }
 
-        var weights = fitted.Weights
-            .Select(w => new PreferenceWeight(
-                _ids.NewId(), modelId, w.Dimension, w.Value, w.Weight, w.SupportingSignalIds,
-                w.PositiveRate, message.FittedAt))
-            .ToList();
-
-        var model = new PreferenceModel(modelId, version, fitted.SignalCount, weights, message.FittedAt);
-
         // Deactivate the prior active model and activate the new one in the same save (S6): the flip is atomic,
         // so a concurrent ranking sees exactly one active model — old or new, never zero and never two.
         var prior = await _models.FindActiveAsync(cancellationToken).ConfigureAwait(false);
+
+        // Reconcile the fresh fit against the Owner's explicit switch-offs (T08, AC-06): a disabled weight is
+        // carried forward, still disabled, until its supporting evidence has doubled — a refit must not silently
+        // relearn a preference the Owner turned off.
+        var weights = DisabledWeightCarryForward.Apply(
+            prior, modelId, fitted.Weights, _ids.NewId, message.FittedAt);
+
+        var model = new PreferenceModel(modelId, version, fitted.SignalCount, weights, message.FittedAt);
+
         prior?.Deactivate();
         model.Activate(message.FittedAt);
         _models.Add(model);
