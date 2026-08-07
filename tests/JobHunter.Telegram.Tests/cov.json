@@ -1,0 +1,2980 @@
+{
+  "JobHunter.Application.dll": {},
+  "JobHunter.Contracts.dll": {},
+  "JobHunter.Domain.dll": {},
+  "JobHunter.Infrastructure.dll": {},
+  "JobHunter.Search.dll": {},
+  "JobHunter.ServiceDefaults.dll": {},
+  "JobHunter.Telegram.dll": {
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\CompanyCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.CompanyCommandHandler": {
+        "System.Boolean JobHunter.Telegram.Commands.CompanyCommandHandler::IsStale(JobHunter.Domain.Reporting.ResearchDossierSnapshot,System.DateTimeOffset)": {
+          "Lines": {
+            "82": 2,
+            "83": 2,
+            "84": 2,
+            "85": 2,
+            "86": 2,
+            "88": 2,
+            "89": 2
+          },
+          "Branches": []
+        },
+        "JobHunter.Telegram.Formatting.DossierView JobHunter.Telegram.Commands.CompanyCommandHandler::ToView(System.String,JobHunter.Domain.Reporting.ResearchDossierSnapshot)": {
+          "Lines": {
+            "91": 2,
+            "92": 2,
+            "93": 2,
+            "94": 2,
+            "95": 2,
+            "96": 2,
+            "97": 2
+          },
+          "Branches": []
+        },
+        "JobHunter.Domain.Notifications.RenderedMessage JobHunter.Telegram.Commands.CompanyCommandHandler::Plain(System.String)": {
+          "Lines": {
+            "101": 6
+          },
+          "Branches": []
+        },
+        "System.Void JobHunter.Telegram.Commands.CompanyCommandHandler::.ctor(JobHunter.Domain.Abstractions.ICompanyResearchQuery,JobHunter.Domain.Abstractions.IClock,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.CompanyCommandHandler>)": {
+          "Lines": {
+            "25": 8,
+            "26": 8,
+            "27": 8,
+            "28": 8,
+            "30": 11,
+            "31": 10,
+            "32": 9
+          },
+          "Branches": [
+            {
+              "Line": 30,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 30,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 10
+            },
+            {
+              "Line": 31,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 31,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 9
+            },
+            {
+              "Line": 32,
+              "Offset": 47,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 32,
+              "Offset": 47,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 8
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\CostCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.CostCommandHandler": {
+        "System.Boolean JobHunter.Telegram.Commands.CostCommandHandler::TryResolveMonth(System.String,System.DateTimeOffset&)": {
+          "Lines": {
+            "57": 8,
+            "58": 8,
+            "59": 8,
+            "60": 6,
+            "61": 6,
+            "62": 6,
+            "63": 6,
+            "66": 2,
+            "67": 2,
+            "68": 2,
+            "69": 1,
+            "70": 1,
+            "71": 1,
+            "74": 1,
+            "75": 1,
+            "76": 8
+          },
+          "Branches": [
+            {
+              "Line": 58,
+              "Offset": 2,
+              "EndOffset": 4,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 6
+            },
+            {
+              "Line": 58,
+              "Offset": 2,
+              "EndOffset": 7,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 2
+            },
+            {
+              "Line": 59,
+              "Offset": 22,
+              "EndOffset": 24,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 6
+            },
+            {
+              "Line": 59,
+              "Offset": 22,
+              "EndOffset": 76,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 2
+            },
+            {
+              "Line": 66,
+              "Offset": 100,
+              "EndOffset": 102,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 66,
+              "Offset": 100,
+              "EndOffset": 142,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 1
+            }
+          ]
+        },
+        "System.String JobHunter.Telegram.Commands.CostCommandHandler::Render(System.DateTimeOffset,System.Collections.Generic.IReadOnlyList`1<JobHunter.Domain.Reporting.CostBreakdownRow>)": {
+          "Lines": {
+            "82": 7,
+            "83": 7,
+            "84": 7,
+            "85": 7,
+            "86": 7,
+            "88": 7,
+            "89": 1,
+            "90": 1,
+            "91": 1,
+            "94": 32,
+            "95": 7,
+            "96": 7,
+            "97": 7,
+            "98": 7,
+            "100": 7,
+            "101": 2,
+            "102": 2,
+            "103": 2,
+            "104": 7,
+            "106": 6,
+            "107": 7
+          },
+          "Branches": [
+            {
+              "Line": 88,
+              "Offset": 71,
+              "EndOffset": 73,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 88,
+              "Offset": 71,
+              "EndOffset": 110,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 6
+            },
+            {
+              "Line": 94,
+              "Offset": 348,
+              "EndOffset": 123,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 7
+            },
+            {
+              "Line": 100,
+              "Offset": 303,
+              "EndOffset": 305,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 2
+            },
+            {
+              "Line": 100,
+              "Offset": 303,
+              "EndOffset": 341,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 7
+            },
+            {
+              "Line": 94,
+              "Offset": 348,
+              "EndOffset": 353,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 6
+            }
+          ]
+        },
+        "System.Boolean JobHunter.Telegram.Commands.CostCommandHandler::IsDrifting(JobHunter.Domain.Reporting.CostBreakdownRow)": {
+          "Lines": {
+            "112": 7,
+            "113": 7,
+            "114": 1,
+            "115": 1,
+            "118": 6,
+            "119": 7
+          },
+          "Branches": [
+            {
+              "Line": 113,
+              "Offset": 19,
+              "EndOffset": 21,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 113,
+              "Offset": 19,
+              "EndOffset": 41,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 6
+            }
+          ]
+        },
+        "System.String JobHunter.Telegram.Commands.CostCommandHandler::DriftPercent(JobHunter.Domain.Reporting.CostBreakdownRow)": {
+          "Lines": {
+            "124": 2,
+            "125": 2,
+            "126": 1,
+            "127": 1,
+            "130": 1,
+            "131": 1,
+            "132": 2
+          },
+          "Branches": [
+            {
+              "Line": 125,
+              "Offset": 19,
+              "EndOffset": 21,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 125,
+              "Offset": 19,
+              "EndOffset": 30,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 1
+            }
+          ]
+        },
+        "System.String JobHunter.Telegram.Commands.CostCommandHandler::Money(System.Decimal)": {
+          "Lines": {
+            "136": 14
+          },
+          "Branches": []
+        },
+        "System.Void JobHunter.Telegram.Commands.CostCommandHandler::.ctor(JobHunter.Domain.Abstractions.IMonthlyCostQuery,JobHunter.Domain.Abstractions.IClock,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.CostCommandHandler>)": {
+          "Lines": {
+            "23": 9,
+            "24": 9,
+            "25": 9,
+            "26": 9,
+            "31": 12,
+            "32": 11,
+            "33": 10
+          },
+          "Branches": [
+            {
+              "Line": 31,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 31,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 11
+            },
+            {
+              "Line": 32,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 32,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 10
+            },
+            {
+              "Line": 33,
+              "Offset": 47,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 33,
+              "Offset": 47,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 9
+            }
+          ]
+        },
+        "System.Void JobHunter.Telegram.Commands.CostCommandHandler::.cctor()": {
+          "Lines": {
+            "29": 0
+          },
+          "Branches": []
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\CvCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.CvCommandHandler": {
+        "JobHunter.Domain.Notifications.RenderedMessage JobHunter.Telegram.Commands.CvCommandHandler::Plain(System.String)": {
+          "Lines": {
+            "47": 3
+          },
+          "Branches": []
+        },
+        "System.Void JobHunter.Telegram.Commands.CvCommandHandler::.ctor(JobHunter.Domain.Abstractions.ICvStatusQuery,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.CvCommandHandler>)": {
+          "Lines": {
+            "19": 4,
+            "20": 4,
+            "22": 6,
+            "23": 5
+          },
+          "Branches": [
+            {
+              "Line": 22,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 22,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 5
+            },
+            {
+              "Line": 23,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 23,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 4
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\DigestCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.DigestCommandHandler": {
+        "JobHunter.Domain.Notifications.RenderedMessage JobHunter.Telegram.Commands.DigestCommandHandler::NothingYet()": {
+          "Lines": {
+            "57": 2
+          },
+          "Branches": []
+        },
+        "System.Void JobHunter.Telegram.Commands.DigestCommandHandler::.ctor(JobHunter.Domain.Abstractions.IRunRepository,JobHunter.Domain.Abstractions.IDigestRepository,JobHunter.Domain.Abstractions.IDigestRenderer,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.DigestCommandHandler>)": {
+          "Lines": {
+            "18": 5,
+            "19": 5,
+            "20": 5,
+            "21": 5,
+            "22": 5,
+            "24": 9,
+            "25": 8,
+            "26": 7,
+            "27": 6
+          },
+          "Branches": [
+            {
+              "Line": 24,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 24,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 8
+            },
+            {
+              "Line": 25,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 25,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 7
+            },
+            {
+              "Line": 26,
+              "Offset": 47,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 26,
+              "Offset": 47,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 6
+            },
+            {
+              "Line": 27,
+              "Offset": 70,
+              "EndOffset": 72,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 1
+            },
+            {
+              "Line": 27,
+              "Offset": 70,
+              "EndOffset": 84,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 5
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\DueCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.DueCommandHandler": {
+        "System.Void JobHunter.Telegram.Commands.DueCommandHandler::.ctor(JobHunter.Domain.Abstractions.IDueReminderQuery,JobHunter.Domain.Abstractions.IReminderRenderer,JobHunter.Domain.Abstractions.IClock,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.DueCommandHandler>)": {
+          "Lines": {
+            "21": 4,
+            "22": 4,
+            "25": 8,
+            "26": 7,
+            "27": 6,
+            "28": 5
+          },
+          "Branches": [
+            {
+              "Line": 25,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 25,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 7
+            },
+            {
+              "Line": 26,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 26,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 6
+            },
+            {
+              "Line": 27,
+              "Offset": 47,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 27,
+              "Offset": 47,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 5
+            },
+            {
+              "Line": 28,
+              "Offset": 70,
+              "EndOffset": 72,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 1
+            },
+            {
+              "Line": 28,
+              "Offset": 70,
+              "EndOffset": 84,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 4
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\FloorCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.FloorCommandHandler": {
+        "JobHunter.Domain.Notifications.RenderedMessage JobHunter.Telegram.Commands.FloorCommandHandler::Usage()": {
+          "Lines": {
+            "112": 4,
+            "113": 4
+          },
+          "Branches": []
+        },
+        "System.Boolean JobHunter.Telegram.Commands.FloorCommandHandler::IsIsoCurrency(System.String)": {
+          "Lines": {
+            "117": 4,
+            "118": 4,
+            "119": 1,
+            "120": 1,
+            "123": 27,
+            "124": 9,
+            "125": 9,
+            "126": 0,
+            "127": 0,
+            "129": 9,
+            "131": 3,
+            "132": 4
+          },
+          "Branches": [
+            {
+              "Line": 118,
+              "Offset": 15,
+              "EndOffset": 17,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 118,
+              "Offset": 15,
+              "EndOffset": 22,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 3
+            },
+            {
+              "Line": 123,
+              "Offset": 86,
+              "EndOffset": 29,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 9
+            },
+            {
+              "Line": 125,
+              "Offset": 43,
+              "EndOffset": 45,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 9
+            },
+            {
+              "Line": 125,
+              "Offset": 43,
+              "EndOffset": 53,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 125,
+              "Offset": 49,
+              "EndOffset": 53,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 125,
+              "Offset": 49,
+              "EndOffset": 58,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 9
+            },
+            {
+              "Line": 125,
+              "Offset": 67,
+              "EndOffset": 69,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 125,
+              "Offset": 67,
+              "EndOffset": 74,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 9
+            },
+            {
+              "Line": 123,
+              "Offset": 86,
+              "EndOffset": 88,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 3
+            }
+          ]
+        },
+        "System.Void JobHunter.Telegram.Commands.FloorCommandHandler::.ctor(JobHunter.Domain.Abstractions.ISalaryFloorPreviewQuery,JobHunter.Domain.Abstractions.IConversationStateStore,JobHunter.Domain.Abstractions.IClock,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.FloorCommandHandler>)": {
+          "Lines": {
+            "29": 7,
+            "30": 7,
+            "31": 7,
+            "32": 7,
+            "33": 7,
+            "48": 7,
+            "49": 7,
+            "50": 7,
+            "51": 7
+          },
+          "Branches": [
+            {
+              "Line": 48,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 48,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 7
+            },
+            {
+              "Line": 49,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 49,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 7
+            },
+            {
+              "Line": 50,
+              "Offset": 47,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 50,
+              "Offset": 47,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 7
+            },
+            {
+              "Line": 51,
+              "Offset": 70,
+              "EndOffset": 72,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 51,
+              "Offset": 70,
+              "EndOffset": 84,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 7
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\ForgetCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.ForgetCommandHandler": {
+        "System.Boolean JobHunter.Telegram.Commands.ForgetCommandHandler::TryParseDimension(System.String,JobHunter.Domain.Preferences.Dimension&)": {
+          "Lines": {
+            "91": 4,
+            "92": 4,
+            "93": 37,
+            "94": 14,
+            "95": 14,
+            "96": 14,
+            "97": 3,
+            "98": 3,
+            "99": 3,
+            "101": 11,
+            "103": 1,
+            "104": 4
+          },
+          "Branches": [
+            {
+              "Line": 93,
+              "Offset": 80,
+              "EndOffset": 15,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 14
+            },
+            {
+              "Line": 95,
+              "Offset": 33,
+              "EndOffset": 35,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 11
+            },
+            {
+              "Line": 95,
+              "Offset": 33,
+              "EndOffset": 57,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 3
+            },
+            {
+              "Line": 95,
+              "Offset": 60,
+              "EndOffset": 62,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 3
+            },
+            {
+              "Line": 95,
+              "Offset": 60,
+              "EndOffset": 71,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 11
+            },
+            {
+              "Line": 93,
+              "Offset": 80,
+              "EndOffset": 82,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            }
+          ]
+        },
+        "System.String JobHunter.Telegram.Commands.ForgetCommandHandler::FriendlyName(JobHunter.Domain.Preferences.Dimension)": {
+          "Lines": {
+            "106": 21,
+            "107": 21,
+            "108": 8,
+            "109": 6,
+            "110": 1,
+            "111": 1,
+            "112": 1,
+            "113": 1,
+            "114": 1,
+            "115": 1,
+            "116": 1,
+            "117": 0,
+            "118": 21
+          },
+          "Branches": [
+            {
+              "Line": 106,
+              "Offset": 5,
+              "EndOffset": 48,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 8
+            },
+            {
+              "Line": 106,
+              "Offset": 5,
+              "EndOffset": 56,
+              "Path": 2,
+              "Ordinal": 2,
+              "Hits": 6
+            },
+            {
+              "Line": 106,
+              "Offset": 5,
+              "EndOffset": 64,
+              "Path": 3,
+              "Ordinal": 3,
+              "Hits": 1
+            },
+            {
+              "Line": 106,
+              "Offset": 5,
+              "EndOffset": 72,
+              "Path": 4,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 106,
+              "Offset": 5,
+              "EndOffset": 80,
+              "Path": 5,
+              "Ordinal": 5,
+              "Hits": 1
+            },
+            {
+              "Line": 106,
+              "Offset": 5,
+              "EndOffset": 88,
+              "Path": 6,
+              "Ordinal": 6,
+              "Hits": 1
+            },
+            {
+              "Line": 106,
+              "Offset": 5,
+              "EndOffset": 96,
+              "Path": 7,
+              "Ordinal": 7,
+              "Hits": 1
+            },
+            {
+              "Line": 106,
+              "Offset": 5,
+              "EndOffset": 104,
+              "Path": 8,
+              "Ordinal": 8,
+              "Hits": 1
+            },
+            {
+              "Line": 106,
+              "Offset": 5,
+              "EndOffset": 112,
+              "Path": 9,
+              "Ordinal": 9,
+              "Hits": 1
+            },
+            {
+              "Line": 106,
+              "Offset": 5,
+              "EndOffset": 120,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.String JobHunter.Telegram.Commands.ForgetCommandHandler::PickList(System.Collections.Generic.List`1<JobHunter.Domain.Preferences.Dimension>)": {
+          "Lines": {
+            "121": 3,
+            "122": 3,
+            "123": 3
+          },
+          "Branches": [
+            {
+              "Line": 121,
+              "Offset": 6,
+              "EndOffset": 8,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 3
+            },
+            {
+              "Line": 121,
+              "Offset": 6,
+              "EndOffset": 68,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "JobHunter.Domain.Notifications.RenderedMessage JobHunter.Telegram.Commands.ForgetCommandHandler::Plain(System.String)": {
+          "Lines": {
+            "127": 6
+          },
+          "Branches": []
+        },
+        "System.Void JobHunter.Telegram.Commands.ForgetCommandHandler::.ctor(JobHunter.Application.Preferences.ActiveWeightsQuery,JobHunter.Application.Preferences.DisablePreferenceWeightHandler,JobHunter.Domain.Abstractions.IClock,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.ForgetCommandHandler>)": {
+          "Lines": {
+            "22": 7,
+            "23": 7,
+            "24": 7,
+            "25": 7,
+            "26": 7,
+            "28": 11,
+            "29": 10,
+            "30": 9,
+            "31": 8
+          },
+          "Branches": [
+            {
+              "Line": 28,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 28,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 10
+            },
+            {
+              "Line": 29,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 29,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 9
+            },
+            {
+              "Line": 30,
+              "Offset": 47,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 30,
+              "Offset": 47,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 8
+            },
+            {
+              "Line": 31,
+              "Offset": 70,
+              "EndOffset": 72,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 1
+            },
+            {
+              "Line": 31,
+              "Offset": 70,
+              "EndOffset": 84,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 7
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\HelpCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.HelpCommandHandler": {
+        "System.Threading.Tasks.Task`1<System.Collections.Generic.IReadOnlyList`1<JobHunter.Domain.Notifications.RenderedMessage>> JobHunter.Telegram.Commands.HelpCommandHandler::HandleAsync(JobHunter.Telegram.Commands.CommandRequest,System.Threading.CancellationToken)": {
+          "Lines": {
+            "20": 2,
+            "21": 2,
+            "23": 1,
+            "24": 1,
+            "25": 1
+          },
+          "Branches": []
+        },
+        "System.Void JobHunter.Telegram.Commands.HelpCommandHandler::.ctor(System.Func`1<System.String>)": {
+          "Lines": {
+            "15": 3,
+            "16": 3
+          },
+          "Branches": [
+            {
+              "Line": 16,
+              "Offset": 10,
+              "EndOffset": 12,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 16,
+              "Offset": 10,
+              "EndOffset": 24,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 2
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\HiddenCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.HiddenCommandHandler": {
+        "JobHunter.Domain.Notifications.RenderedMessage JobHunter.Telegram.Commands.HiddenCommandHandler::RenderHeader(System.String,System.Int32,System.Int32)": {
+          "Lines": {
+            "70": 5,
+            "71": 5,
+            "72": 5,
+            "73": 5,
+            "74": 5,
+            "75": 5,
+            "77": 5,
+            "78": 5
+          },
+          "Branches": []
+        },
+        "System.Collections.Generic.IEnumerable`1<System.ValueTuple`2<System.String,System.Collections.Generic.List`1<JobHunter.Domain.Reporting.HiddenJob>>> JobHunter.Telegram.Commands.HiddenCommandHandler::GroupByReason(System.Collections.Generic.IReadOnlyList`1<JobHunter.Domain.Reporting.HiddenJob>)": {
+          "Lines": {
+            "81": 3,
+            "82": 3,
+            "83": 3,
+            "84": 21,
+            "85": 6,
+            "86": 6,
+            "87": 5,
+            "88": 5,
+            "89": 5,
+            "90": 5,
+            "91": 5,
+            "93": 6,
+            "94": 6,
+            "96": 3,
+            "97": 3
+          },
+          "Branches": [
+            {
+              "Line": 84,
+              "Offset": 133,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 6
+            },
+            {
+              "Line": 86,
+              "Offset": 73,
+              "EndOffset": 75,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 5
+            },
+            {
+              "Line": 86,
+              "Offset": 73,
+              "EndOffset": 117,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 6
+            },
+            {
+              "Line": 84,
+              "Offset": 133,
+              "EndOffset": 135,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 3
+            }
+          ]
+        },
+        "JobHunter.Telegram.Formatting.CardView JobHunter.Telegram.Commands.HiddenCommandHandler::ToCard(JobHunter.Domain.Reporting.HiddenJob)": {
+          "Lines": {
+            "101": 6,
+            "102": 6,
+            "103": 6
+          },
+          "Branches": []
+        },
+        "System.Void JobHunter.Telegram.Commands.HiddenCommandHandler::.ctor(JobHunter.Domain.Abstractions.IHiddenJobsQuery,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.HiddenCommandHandler>)": {
+          "Lines": {
+            "23": 6,
+            "24": 6,
+            "35": 8,
+            "36": 7
+          },
+          "Branches": [
+            {
+              "Line": 35,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 35,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 7
+            },
+            {
+              "Line": 36,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 36,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 6
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\MoreCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.MoreCommandHandler": {
+        "System.Int32 JobHunter.Telegram.Commands.MoreCommandHandler::ResolveCount(System.String)": {
+          "Lines": {
+            "69": 8,
+            "70": 8,
+            "71": 8,
+            "72": 5,
+            "73": 5,
+            "76": 3,
+            "77": 8
+          },
+          "Branches": [
+            {
+              "Line": 70,
+              "Offset": 7,
+              "EndOffset": 9,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 4
+            },
+            {
+              "Line": 70,
+              "Offset": 7,
+              "EndOffset": 33,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 4
+            },
+            {
+              "Line": 70,
+              "Offset": 36,
+              "EndOffset": 38,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 5
+            },
+            {
+              "Line": 70,
+              "Offset": 36,
+              "EndOffset": 43,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 3
+            }
+          ]
+        },
+        "JobHunter.Telegram.Formatting.CardView JobHunter.Telegram.Commands.MoreCommandHandler::ToView(JobHunter.Domain.Reporting.MoreCard)": {
+          "Lines": {
+            "81": 3,
+            "82": 3,
+            "83": 3,
+            "84": 3,
+            "85": 3,
+            "86": 3,
+            "87": 3,
+            "88": 3
+          },
+          "Branches": []
+        },
+        "System.String JobHunter.Telegram.Commands.MoreCommandHandler::LocationSummary(JobHunter.Domain.Reporting.CardDisplayFacts)": {
+          "Lines": {
+            "91": 3,
+            "92": 3,
+            "93": 3
+          },
+          "Branches": [
+            {
+              "Line": 91,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 91,
+              "Offset": 12,
+              "EndOffset": 22,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 3
+            }
+          ]
+        },
+        "JobHunter.Telegram.Formatting.CardSalary JobHunter.Telegram.Commands.MoreCommandHandler::BuildSalary(JobHunter.Domain.Reporting.CardDisplayFacts)": {
+          "Lines": {
+            "96": 3,
+            "99": 3,
+            "100": 3,
+            "101": 3,
+            "104": 0,
+            "105": 0,
+            "106": 0,
+            "107": 0,
+            "108": 0,
+            "111": 0,
+            "112": 3
+          },
+          "Branches": [
+            {
+              "Line": 99,
+              "Offset": 16,
+              "EndOffset": 18,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 3
+            },
+            {
+              "Line": 99,
+              "Offset": 41,
+              "EndOffset": 43,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 3
+            },
+            {
+              "Line": 99,
+              "Offset": 41,
+              "EndOffset": 54,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 99,
+              "Offset": 16,
+              "EndOffset": 57,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 99,
+              "Offset": 62,
+              "EndOffset": 64,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 3
+            },
+            {
+              "Line": 99,
+              "Offset": 62,
+              "EndOffset": 84,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 104,
+              "Offset": 99,
+              "EndOffset": 101,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 104,
+              "Offset": 124,
+              "EndOffset": 126,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 0
+            },
+            {
+              "Line": 104,
+              "Offset": 124,
+              "EndOffset": 137,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 0
+            },
+            {
+              "Line": 104,
+              "Offset": 99,
+              "EndOffset": 140,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 0
+            },
+            {
+              "Line": 104,
+              "Offset": 145,
+              "EndOffset": 147,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 0
+            },
+            {
+              "Line": 104,
+              "Offset": 145,
+              "EndOffset": 177,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.String JobHunter.Telegram.Commands.MoreCommandHandler::ConfidenceBand(System.Nullable`1<System.Decimal>)": {
+          "Lines": {
+            "114": 0,
+            "115": 0,
+            "116": 0,
+            "117": 0,
+            "118": 0,
+            "119": 0,
+            "120": 0
+          },
+          "Branches": [
+            {
+              "Line": 114,
+              "Offset": 11,
+              "EndOffset": 13,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 114,
+              "Offset": 37,
+              "EndOffset": 39,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 0
+            },
+            {
+              "Line": 114,
+              "Offset": 11,
+              "EndOffset": 59,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 114,
+              "Offset": 37,
+              "EndOffset": 63,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 114,
+              "Offset": 55,
+              "EndOffset": 71,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 0
+            },
+            {
+              "Line": 114,
+              "Offset": 55,
+              "EndOffset": 79,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void JobHunter.Telegram.Commands.MoreCommandHandler::.ctor(JobHunter.Domain.Abstractions.IMoreCardsQuery,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.MoreCommandHandler>)": {
+          "Lines": {
+            "24": 9,
+            "25": 9,
+            "34": 11,
+            "35": 10
+          },
+          "Branches": [
+            {
+              "Line": 34,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 34,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 10
+            },
+            {
+              "Line": 35,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 35,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 9
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\NoteCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.NoteCommandHandler": {
+        "System.String JobHunter.Telegram.Commands.NoteCommandHandler::ConfirmationFor(JobHunter.Application.Applications.AddNoteOutcome,JobHunter.Domain.Applications.PipelineEntry)": {
+          "Lines": {
+            "102": 1,
+            "103": 1,
+            "104": 1,
+            "105": 1,
+            "106": 1,
+            "107": 0,
+            "108": 1,
+            "109": 0,
+            "110": 1,
+            "111": 1,
+            "112": 0,
+            "113": 1
+          },
+          "Branches": [
+            {
+              "Line": 102,
+              "Offset": 5,
+              "EndOffset": 31,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 1
+            },
+            {
+              "Line": 102,
+              "Offset": 5,
+              "EndOffset": 126,
+              "Path": 3,
+              "Ordinal": 3,
+              "Hits": 0
+            },
+            {
+              "Line": 102,
+              "Offset": 5,
+              "EndOffset": 208,
+              "Path": 4,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 102,
+              "Offset": 5,
+              "EndOffset": 315,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 102,
+              "Offset": 5,
+              "EndOffset": 315,
+              "Path": 2,
+              "Ordinal": 2,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void JobHunter.Telegram.Commands.NoteCommandHandler::.ctor(JobHunter.Domain.Abstractions.IApplicationPipelineQuery,JobHunter.Application.Applications.AddNoteHandler,JobHunter.Domain.Abstractions.IConversationStateStore,JobHunter.Domain.Abstractions.IClock,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.NoteCommandHandler>)": {
+          "Lines": {
+            "31": 4,
+            "32": 4,
+            "33": 4,
+            "34": 4,
+            "35": 4,
+            "36": 4,
+            "47": 9,
+            "48": 8,
+            "49": 7,
+            "50": 6,
+            "51": 5
+          },
+          "Branches": [
+            {
+              "Line": 47,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 47,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 8
+            },
+            {
+              "Line": 48,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 48,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 7
+            },
+            {
+              "Line": 49,
+              "Offset": 47,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 49,
+              "Offset": 47,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 6
+            },
+            {
+              "Line": 50,
+              "Offset": 70,
+              "EndOffset": 72,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 1
+            },
+            {
+              "Line": 50,
+              "Offset": 70,
+              "EndOffset": 84,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 5
+            },
+            {
+              "Line": 51,
+              "Offset": 93,
+              "EndOffset": 95,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 1
+            },
+            {
+              "Line": 51,
+              "Offset": 93,
+              "EndOffset": 107,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 4
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\PipelineCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.PipelineCommandHandler": {
+        "System.Collections.Generic.IReadOnlyList`1<System.Collections.Generic.IReadOnlyList`1<JobHunter.Domain.Notifications.InlineButton>> JobHunter.Telegram.Commands.PipelineCommandHandler::TransitionKeyboard(JobHunter.Domain.Applications.ApplicationStatus,System.Guid)": {
+          "Lines": {
+            "68": 7,
+            "69": 7,
+            "70": 7,
+            "71": 7,
+            "73": 7,
+            "74": 7
+          },
+          "Branches": [
+            {
+              "Line": 73,
+              "Offset": 45,
+              "EndOffset": 47,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 7
+            },
+            {
+              "Line": 73,
+              "Offset": 45,
+              "EndOffset": 57,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "JobHunter.Telegram.Formatting.CardView JobHunter.Telegram.Commands.PipelineCommandHandler::ToCard(JobHunter.Domain.Applications.PipelineEntry)": {
+          "Lines": {
+            "76": 7,
+            "77": 7,
+            "78": 7,
+            "79": 7,
+            "80": 7,
+            "81": 7,
+            "82": 7,
+            "83": 7,
+            "84": 7,
+            "85": 7
+          },
+          "Branches": [
+            {
+              "Line": 76,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 6
+            },
+            {
+              "Line": 76,
+              "Offset": 12,
+              "EndOffset": 22,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 1
+            }
+          ]
+        },
+        "System.Void JobHunter.Telegram.Commands.PipelineCommandHandler::.ctor(JobHunter.Domain.Abstractions.IApplicationPipelineQuery,JobHunter.Domain.Abstractions.IClock,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.PipelineCommandHandler>)": {
+          "Lines": {
+            "23": 8,
+            "24": 8,
+            "33": 11,
+            "34": 10,
+            "35": 9
+          },
+          "Branches": [
+            {
+              "Line": 33,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 33,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 10
+            },
+            {
+              "Line": 34,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 34,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 9
+            },
+            {
+              "Line": 35,
+              "Offset": 47,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 35,
+              "Offset": 47,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 8
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\PlaceholderCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.PlaceholderCommandHandler": {
+        "System.Threading.Tasks.Task`1<System.Collections.Generic.IReadOnlyList`1<JobHunter.Domain.Notifications.RenderedMessage>> JobHunter.Telegram.Commands.PlaceholderCommandHandler::HandleAsync(JobHunter.Telegram.Commands.CommandRequest,System.Threading.CancellationToken)": {
+          "Lines": {
+            "24": 2,
+            "25": 2,
+            "27": 1,
+            "28": 1,
+            "29": 1,
+            "30": 1
+          },
+          "Branches": []
+        },
+        "System.Void JobHunter.Telegram.Commands.PlaceholderCommandHandler::.ctor(System.String)": {
+          "Lines": {
+            "16": 4,
+            "17": 4,
+            "18": 4,
+            "19": 2,
+            "20": 2
+          },
+          "Branches": []
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\PrefsCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.PrefsCommandHandler": {
+        "JobHunter.Domain.Notifications.RenderedMessage JobHunter.Telegram.Commands.PrefsCommandHandler::Plain(System.String)": {
+          "Lines": {
+            "66": 5
+          },
+          "Branches": []
+        },
+        "System.Void JobHunter.Telegram.Commands.PrefsCommandHandler::.ctor(JobHunter.Application.Preferences.ActiveWeightsQuery,JobHunter.Domain.Abstractions.IPreferenceStatusQuery,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.PrefsCommandHandler>)": {
+          "Lines": {
+            "24": 5,
+            "25": 5,
+            "26": 5,
+            "27": 5,
+            "29": 8,
+            "30": 7,
+            "31": 6
+          },
+          "Branches": [
+            {
+              "Line": 29,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 29,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 7
+            },
+            {
+              "Line": 30,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 30,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 6
+            },
+            {
+              "Line": 31,
+              "Offset": 47,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 31,
+              "Offset": 47,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 5
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\RedeliverCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.RedeliverCommandHandler": {
+        "JobHunter.Domain.Notifications.RenderedMessage JobHunter.Telegram.Commands.RedeliverCommandHandler::Nothing(System.String)": {
+          "Lines": {
+            "100": 2
+          },
+          "Branches": []
+        },
+        "System.Void JobHunter.Telegram.Commands.RedeliverCommandHandler::.ctor(JobHunter.Domain.Abstractions.IRunRepository,JobHunter.Domain.Abstractions.IDigestRepository,JobHunter.Domain.Abstractions.IDigestRenderer,JobHunter.Domain.Abstractions.IDeliveryLog,JobHunter.Domain.Abstractions.IConversationStateStore,JobHunter.Domain.Abstractions.IClock,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.RedeliverCommandHandler>)": {
+          "Lines": {
+            "23": 8,
+            "24": 8,
+            "25": 8,
+            "26": 8,
+            "27": 8,
+            "28": 8,
+            "29": 8,
+            "30": 8,
+            "41": 15,
+            "42": 14,
+            "43": 13,
+            "44": 12,
+            "45": 11,
+            "46": 10,
+            "47": 9
+          },
+          "Branches": [
+            {
+              "Line": 41,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 41,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 14
+            },
+            {
+              "Line": 42,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 42,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 13
+            },
+            {
+              "Line": 43,
+              "Offset": 47,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 43,
+              "Offset": 47,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 12
+            },
+            {
+              "Line": 44,
+              "Offset": 70,
+              "EndOffset": 72,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 1
+            },
+            {
+              "Line": 44,
+              "Offset": 70,
+              "EndOffset": 84,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 11
+            },
+            {
+              "Line": 45,
+              "Offset": 93,
+              "EndOffset": 95,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 1
+            },
+            {
+              "Line": 45,
+              "Offset": 93,
+              "EndOffset": 107,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 10
+            },
+            {
+              "Line": 46,
+              "Offset": 116,
+              "EndOffset": 118,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 1
+            },
+            {
+              "Line": 46,
+              "Offset": 116,
+              "EndOffset": 130,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 9
+            },
+            {
+              "Line": 47,
+              "Offset": 139,
+              "EndOffset": 141,
+              "Path": 0,
+              "Ordinal": 12,
+              "Hits": 1
+            },
+            {
+              "Line": 47,
+              "Offset": 139,
+              "EndOffset": 153,
+              "Path": 1,
+              "Ordinal": 13,
+              "Hits": 8
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\ResearchCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.ResearchCommandHandler": {
+        "System.Boolean JobHunter.Telegram.Commands.ResearchCommandHandler::IsStale(JobHunter.Domain.Reporting.ResearchDossierSnapshot,System.DateTimeOffset)": {
+          "Lines": {
+            "82": 2,
+            "83": 2,
+            "84": 2,
+            "85": 2,
+            "86": 2,
+            "88": 2,
+            "89": 2
+          },
+          "Branches": []
+        },
+        "JobHunter.Domain.Notifications.RenderedMessage JobHunter.Telegram.Commands.ResearchCommandHandler::Plain(System.String)": {
+          "Lines": {
+            "93": 7
+          },
+          "Branches": []
+        },
+        "System.Void JobHunter.Telegram.Commands.ResearchCommandHandler::.ctor(JobHunter.Domain.Abstractions.ICompanyResearchQuery,JobHunter.Domain.Abstractions.IResearchRequestWriter,JobHunter.Domain.Abstractions.IClock,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.ResearchCommandHandler>)": {
+          "Lines": {
+            "25": 8,
+            "26": 8,
+            "27": 8,
+            "28": 8,
+            "29": 8,
+            "31": 12,
+            "32": 11,
+            "33": 10,
+            "34": 9
+          },
+          "Branches": [
+            {
+              "Line": 31,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 31,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 11
+            },
+            {
+              "Line": 32,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 32,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 10
+            },
+            {
+              "Line": 33,
+              "Offset": 47,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 33,
+              "Offset": 47,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 9
+            },
+            {
+              "Line": 34,
+              "Offset": 70,
+              "EndOffset": 72,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 1
+            },
+            {
+              "Line": 34,
+              "Offset": 70,
+              "EndOffset": 84,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 8
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\RunCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.RunCommandHandler": {
+        "System.Void JobHunter.Telegram.Commands.RunCommandHandler::.ctor(JobHunter.Domain.Abstractions.IRunRepository,JobHunter.Domain.Abstractions.ILiveJobsQuery,JobHunter.Domain.Abstractions.IConversationStateStore,JobHunter.Domain.Abstractions.IClock,JobHunter.Application.Enrichment.RunOptions,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.RunCommandHandler>)": {
+          "Lines": {
+            "27": 8,
+            "28": 8,
+            "29": 8,
+            "30": 8,
+            "31": 8,
+            "32": 8,
+            "33": 8,
+            "41": 14,
+            "42": 13,
+            "43": 12,
+            "44": 11,
+            "45": 10,
+            "46": 9
+          },
+          "Branches": [
+            {
+              "Line": 41,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 41,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 13
+            },
+            {
+              "Line": 42,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 42,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 12
+            },
+            {
+              "Line": 43,
+              "Offset": 47,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 43,
+              "Offset": 47,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 11
+            },
+            {
+              "Line": 44,
+              "Offset": 70,
+              "EndOffset": 72,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 1
+            },
+            {
+              "Line": 44,
+              "Offset": 70,
+              "EndOffset": 84,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 10
+            },
+            {
+              "Line": 45,
+              "Offset": 93,
+              "EndOffset": 95,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 1
+            },
+            {
+              "Line": 45,
+              "Offset": 93,
+              "EndOffset": 107,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 9
+            },
+            {
+              "Line": 46,
+              "Offset": 116,
+              "EndOffset": 118,
+              "Path": 0,
+              "Ordinal": 10,
+              "Hits": 1
+            },
+            {
+              "Line": 46,
+              "Offset": 116,
+              "EndOffset": 130,
+              "Path": 1,
+              "Ordinal": 11,
+              "Hits": 8
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\SavedCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.SavedCommandHandler": {
+        "JobHunter.Telegram.Formatting.CardView JobHunter.Telegram.Commands.SavedCommandHandler::ToCard(JobHunter.Domain.Reporting.SavedRole)": {
+          "Lines": {
+            "43": 3,
+            "44": 3,
+            "45": 3,
+            "46": 3,
+            "47": 3,
+            "48": 3,
+            "49": 3,
+            "50": 3
+          },
+          "Branches": [
+            {
+              "Line": 43,
+              "Offset": 30,
+              "EndOffset": 32,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 0
+            },
+            {
+              "Line": 43,
+              "Offset": 30,
+              "EndOffset": 40,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 3
+            }
+          ]
+        },
+        "JobHunter.Telegram.Formatting.CardSalary JobHunter.Telegram.Commands.SavedCommandHandler::ToSalary(JobHunter.Domain.Reporting.SavedRole)": {
+          "Lines": {
+            "53": 3,
+            "54": 3,
+            "55": 3
+          },
+          "Branches": [
+            {
+              "Line": 53,
+              "Offset": 14,
+              "EndOffset": 16,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 3
+            },
+            {
+              "Line": 53,
+              "Offset": 38,
+              "EndOffset": 40,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 3
+            },
+            {
+              "Line": 53,
+              "Offset": 14,
+              "EndOffset": 50,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 53,
+              "Offset": 38,
+              "EndOffset": 50,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.Void JobHunter.Telegram.Commands.SavedCommandHandler::.ctor(JobHunter.Domain.Abstractions.ISavedRolesQuery,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.SavedCommandHandler>)": {
+          "Lines": {
+            "17": 5,
+            "18": 5,
+            "23": 7,
+            "24": 6
+          },
+          "Branches": [
+            {
+              "Line": 23,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 23,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 6
+            },
+            {
+              "Line": 24,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 24,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 5
+            }
+          ]
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\SourcesCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.SourcesCommandHandler": {
+        "JobHunter.Domain.Notifications.RenderedMessage JobHunter.Telegram.Commands.SourcesCommandHandler::HealthMessage(System.Collections.Generic.IReadOnlyList`1<JobHunter.Domain.Sources.SourceHealth>)": {
+          "Lines": {
+            "65": 5,
+            "66": 5,
+            "67": 2,
+            "68": 2,
+            "69": 2,
+            "72": 3,
+            "73": 3,
+            "74": 17,
+            "75": 4,
+            "76": 4,
+            "77": 4,
+            "78": 4,
+            "79": 4,
+            "81": 3,
+            "82": 5
+          },
+          "Branches": [
+            {
+              "Line": 66,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 2
+            },
+            {
+              "Line": 66,
+              "Offset": 12,
+              "EndOffset": 51,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 3
+            },
+            {
+              "Line": 74,
+              "Offset": 239,
+              "EndOffset": 101,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 4
+            },
+            {
+              "Line": 74,
+              "Offset": 239,
+              "EndOffset": 244,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 3
+            }
+          ]
+        },
+        "System.Void JobHunter.Telegram.Commands.SourcesCommandHandler::.ctor(JobHunter.Domain.Abstractions.ISourceHealthQuery,JobHunter.Domain.Abstractions.IDegradedCoverageQuery,JobHunter.Domain.Abstractions.IClock,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.SourcesCommandHandler>)": {
+          "Lines": {
+            "22": 6,
+            "23": 6,
+            "24": 6,
+            "25": 6,
+            "26": 6,
+            "37": 10,
+            "38": 9,
+            "39": 9,
+            "40": 8,
+            "41": 7
+          },
+          "Branches": [
+            {
+              "Line": 37,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 37,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 9
+            },
+            {
+              "Line": 38,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 38,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 8
+            },
+            {
+              "Line": 40,
+              "Offset": 47,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 40,
+              "Offset": 47,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 7
+            },
+            {
+              "Line": 41,
+              "Offset": 70,
+              "EndOffset": 72,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 1
+            },
+            {
+              "Line": 41,
+              "Offset": 70,
+              "EndOffset": 84,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 6
+            }
+          ]
+        },
+        "System.Void JobHunter.Telegram.Commands.SourcesCommandHandler::.cctor()": {
+          "Lines": {
+            "29": 1
+          },
+          "Branches": []
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\StartCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.StartCommandHandler": {
+        "System.Threading.Tasks.Task`1<System.Collections.Generic.IReadOnlyList`1<JobHunter.Domain.Notifications.RenderedMessage>> JobHunter.Telegram.Commands.StartCommandHandler::HandleAsync(JobHunter.Telegram.Commands.CommandRequest,System.Threading.CancellationToken)": {
+          "Lines": {
+            "17": 2,
+            "18": 2,
+            "20": 1,
+            "21": 1,
+            "23": 1,
+            "24": 1,
+            "25": 1
+          },
+          "Branches": []
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\StatsCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.StatsCommandHandler": {
+        "System.String JobHunter.Telegram.Commands.StatsCommandHandler::Render(JobHunter.Domain.Reporting.WeeklyEngagement,JobHunter.Domain.Reporting.WeeklyEngagement)": {
+          "Lines": {
+            "54": 3,
+            "55": 3,
+            "56": 3,
+            "57": 3,
+            "58": 3,
+            "59": 3,
+            "60": 3,
+            "61": 3,
+            "62": 3,
+            "63": 3,
+            "64": 3,
+            "66": 3,
+            "67": 3
+          },
+          "Branches": []
+        },
+        "System.String JobHunter.Telegram.Commands.StatsCommandHandler::FormatPercent(System.Nullable`1<System.Decimal>)": {
+          "Lines": {
+            "70": 3,
+            "71": 3,
+            "72": 3
+          },
+          "Branches": [
+            {
+              "Line": 70,
+              "Offset": 7,
+              "EndOffset": 9,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 3
+            },
+            {
+              "Line": 70,
+              "Offset": 7,
+              "EndOffset": 19,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            }
+          ]
+        },
+        "System.String JobHunter.Telegram.Commands.StatsCommandHandler::Trend(JobHunter.Domain.Reporting.WeeklyEngagement,JobHunter.Domain.Reporting.WeeklyEngagement)": {
+          "Lines": {
+            "76": 3,
+            "77": 3,
+            "78": 1,
+            "79": 1,
+            "82": 2,
+            "83": 2,
+            "84": 2,
+            "85": 3
+          },
+          "Branches": [
+            {
+              "Line": 77,
+              "Offset": 15,
+              "EndOffset": 17,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 3
+            },
+            {
+              "Line": 77,
+              "Offset": 39,
+              "EndOffset": 41,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 2
+            },
+            {
+              "Line": 77,
+              "Offset": 39,
+              "EndOffset": 52,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 1
+            },
+            {
+              "Line": 77,
+              "Offset": 15,
+              "EndOffset": 58,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 0
+            },
+            {
+              "Line": 77,
+              "Offset": 61,
+              "EndOffset": 63,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 77,
+              "Offset": 61,
+              "EndOffset": 73,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 2
+            },
+            {
+              "Line": 82,
+              "Offset": 80,
+              "EndOffset": 82,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 1
+            },
+            {
+              "Line": 82,
+              "Offset": 89,
+              "EndOffset": 91,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 1
+            },
+            {
+              "Line": 82,
+              "Offset": 89,
+              "EndOffset": 98,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 0
+            },
+            {
+              "Line": 82,
+              "Offset": 80,
+              "EndOffset": 105,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 1
+            }
+          ]
+        },
+        "System.Void JobHunter.Telegram.Commands.StatsCommandHandler::.ctor(JobHunter.Domain.Abstractions.IWeeklyStatsQuery,JobHunter.Domain.Abstractions.IClock,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.StatsCommandHandler>)": {
+          "Lines": {
+            "20": 6,
+            "21": 6,
+            "26": 9,
+            "27": 8,
+            "28": 7
+          },
+          "Branches": [
+            {
+              "Line": 26,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 26,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 8
+            },
+            {
+              "Line": 27,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 27,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 7
+            },
+            {
+              "Line": 28,
+              "Offset": 47,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 28,
+              "Offset": 47,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 6
+            }
+          ]
+        },
+        "System.Void JobHunter.Telegram.Commands.StatsCommandHandler::.cctor()": {
+          "Lines": {
+            "24": 1
+          },
+          "Branches": []
+        }
+      }
+    },
+    "C:\\git\\jobhunter\\src\\JobHunter.Telegram\\Commands\\StatusCommandHandler.cs": {
+      "JobHunter.Telegram.Commands.StatusCommandHandler": {
+        "System.String JobHunter.Telegram.Commands.StatusCommandHandler::Elapsed(JobHunter.Domain.Pipeline.Run)": {
+          "Lines": {
+            "91": 5,
+            "92": 5,
+            "93": 1,
+            "94": 1,
+            "97": 4,
+            "98": 4,
+            "99": 0,
+            "100": 0,
+            "101": 0,
+            "103": 4,
+            "104": 4,
+            "105": 4,
+            "106": 4,
+            "107": 4,
+            "108": 5
+          },
+          "Branches": [
+            {
+              "Line": 92,
+              "Offset": 16,
+              "EndOffset": 18,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 4
+            },
+            {
+              "Line": 92,
+              "Offset": 16,
+              "EndOffset": 29,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 1
+            },
+            {
+              "Line": 92,
+              "Offset": 37,
+              "EndOffset": 39,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 92,
+              "Offset": 37,
+              "EndOffset": 48,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 4
+            },
+            {
+              "Line": 98,
+              "Offset": 76,
+              "EndOffset": 78,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 0
+            },
+            {
+              "Line": 98,
+              "Offset": 76,
+              "EndOffset": 86,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 4
+            },
+            {
+              "Line": 105,
+              "Offset": 105,
+              "EndOffset": 107,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 0
+            },
+            {
+              "Line": 105,
+              "Offset": 105,
+              "EndOffset": 147,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 4
+            }
+          ]
+        },
+        "System.String JobHunter.Telegram.Commands.StatusCommandHandler::DegradedLine(System.Collections.Generic.IReadOnlyList`1<JobHunter.Domain.Sources.DegradedSource>)": {
+          "Lines": {
+            "113": 5,
+            "114": 5,
+            "115": 4,
+            "116": 4,
+            "119": 1,
+            "120": 1,
+            "121": 1,
+            "122": 5
+          },
+          "Branches": [
+            {
+              "Line": 114,
+              "Offset": 12,
+              "EndOffset": 14,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 4
+            },
+            {
+              "Line": 114,
+              "Offset": 12,
+              "EndOffset": 28,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 1
+            }
+          ]
+        },
+        "System.String JobHunter.Telegram.Commands.StatusCommandHandler::Money(System.Decimal)": {
+          "Lines": {
+            "126": 10
+          },
+          "Branches": []
+        },
+        "System.Void JobHunter.Telegram.Commands.StatusCommandHandler::.ctor(JobHunter.Domain.Abstractions.IRunRepository,JobHunter.Domain.Abstractions.IDigestRepository,JobHunter.Domain.Abstractions.IDegradedCoverageQuery,JobHunter.Domain.Abstractions.IClock,Microsoft.Extensions.Logging.ILogger`1<JobHunter.Telegram.Commands.StatusCommandHandler>)": {
+          "Lines": {
+            "24": 7,
+            "25": 7,
+            "26": 7,
+            "27": 7,
+            "28": 7,
+            "29": 7,
+            "31": 12,
+            "32": 11,
+            "33": 10,
+            "34": 10,
+            "35": 9,
+            "36": 8
+          },
+          "Branches": [
+            {
+              "Line": 31,
+              "Offset": 3,
+              "EndOffset": 5,
+              "Path": 0,
+              "Ordinal": 0,
+              "Hits": 1
+            },
+            {
+              "Line": 31,
+              "Offset": 3,
+              "EndOffset": 17,
+              "Path": 1,
+              "Ordinal": 1,
+              "Hits": 11
+            },
+            {
+              "Line": 32,
+              "Offset": 25,
+              "EndOffset": 27,
+              "Path": 0,
+              "Ordinal": 2,
+              "Hits": 1
+            },
+            {
+              "Line": 32,
+              "Offset": 25,
+              "EndOffset": 39,
+              "Path": 1,
+              "Ordinal": 3,
+              "Hits": 10
+            },
+            {
+              "Line": 33,
+              "Offset": 47,
+              "EndOffset": 49,
+              "Path": 0,
+              "Ordinal": 4,
+              "Hits": 1
+            },
+            {
+              "Line": 33,
+              "Offset": 47,
+              "EndOffset": 61,
+              "Path": 1,
+              "Ordinal": 5,
+              "Hits": 9
+            },
+            {
+              "Line": 35,
+              "Offset": 70,
+              "EndOffset": 72,
+              "Path": 0,
+              "Ordinal": 6,
+              "Hits": 1
+            },
+            {
+              "Line": 35,
+              "Offset": 70,
+              "EndOffset": 84,
+              "Path": 1,
+              "Ordinal": 7,
+              "Hits": 8
+            },
+            {
+              "Line": 36,
+              "Offset": 93,
+              "EndOffset": 95,
+              "Path": 0,
+              "Ordinal": 8,
+              "Hits": 1
+            },
+            {
+              "Line": 36,
+              "Offset": 93,
+              "EndOffset": 107,
+              "Path": 1,
+              "Ordinal": 9,
+              "Hits": 7
+            }
+          ]
+        }
+      }
+    }
+  },
+  "JobHunter.TestKit.dll": {}
+}

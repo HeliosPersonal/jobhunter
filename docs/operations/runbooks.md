@@ -43,6 +43,12 @@ kubectl get pods -n $NS -l app=jobhunter-telegram
 | `Failed` | Read `failure_reason` | Fix the cause, then `POST /api/runs/{id}/resume` |
 | No row for today | The schedule did not fire | Check Hangfire: `kubectl port-forward -n $NS deploy/jobhunter-worker 8080:8080` → `/hangfire` |
 
+**From the chat, without a terminal (F10-T09).** The first three questions above have a Telegram
+equivalent, so triage does not need `kubectl`: `/status` reports the last Run's outcome, its spend
+against the ceiling, the counts and any degraded sources; `/redeliver` re-sends today's digest and
+states how many cards *would actually go out* — usually zero, because the `delivery_log` skips every
+logged Card (invariant 8), which is the point. `/redeliver` asks for confirmation before it acts.
+
 **Recovery is always safe.** Resuming a Run re-enters the state machine at its current state; it
 never resubmits a completed Batch and never re-delivers a logged Card.
 
@@ -127,6 +133,13 @@ curl -X POST https://jobhunter.devoverflow.org/api/admin/sources/<source-id>/unq
 ```
 The endpoint requires the `jobhunter:admin` scope. Prefer it to a direct `UPDATE job_sources` — the
 aggregate also resets the consecutive-failure counter so the next cycle starts clean.
+
+**From the chat, without a terminal (F10-T09).** `/sources` lists per-provider fetch health and every
+quarantined source with a release button, so the diagnosis and the un-quarantine above are both reachable
+from Telegram; the release button confirms before it lifts the hold, through the same aggregate path the
+admin endpoint uses. `/cost` breaks this month's spend down by stage and tier and flags any line whose
+actual has drifted more than 20% above its estimate — the stale-pricing symptom R3 diagnoses — without
+the SQL.
 
 ---
 
