@@ -168,6 +168,10 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<IDegradedCoverageQuery>(),
                 provider.GetRequiredService<IClock>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.StatusCommandHandler>>())),
+            new("/cost", "This month's spend by stage and tier, flagging estimate-vs-actual drift", new Commands.CostCommandHandler(
+                provider.GetRequiredService<IMonthlyCostQuery>(),
+                provider.GetRequiredService<IClock>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.CostCommandHandler>>())),
             new("/sources", "Per-provider fetch health and quarantined sources", new Commands.SourcesCommandHandler(
                 provider.GetRequiredService<ISourceHealthQuery>(),
                 provider.GetRequiredService<IDegradedCoverageQuery>(),
