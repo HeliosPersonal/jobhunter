@@ -115,6 +115,10 @@ public static class DependencyInjection
         // F8 T09 C3: the write side of /company — queue an on-demand research request for the next cycle. The
         // ON CONFLICT DO NOTHING upsert against uq_research_requests_open makes a repeat enqueue idempotent.
         services.AddScoped<IResearchRequestWriter, Persistence.Repositories.ResearchRequestWriter>();
+        // F10 T03: the append-only command-invocation audit the dispatcher writes for every command attempt —
+        // command, outcome, duration and argument count only, never argument content (data-model, SAD §8). One
+        // plain INSERT per dispatch; the table F10 owns and the usage metric ([[PRD]] §7) reads elsewhere.
+        services.AddScoped<ICommandInvocationLog, CommandInvocationLog>();
         // F7 T08 C4 (AC-07): the persisted, runtime-flippable master learning switch both PreferenceModelQuery
         // and the digest assembler consult. The single learning_state row is the live source of truth; its
         // absence falls back to the LearningOptions seed default (registered in Application DI). Scoped because
