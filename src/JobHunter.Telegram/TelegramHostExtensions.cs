@@ -122,6 +122,11 @@ public static class TelegramHostExtensions
             new("/hidden", "What today's ranking suppressed, by reason", new Commands.HiddenCommandHandler(
                 provider.GetRequiredService<IHiddenJobsQuery>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.HiddenCommandHandler>>())),
+            new("/company", "Research a company by name", new Commands.CompanyCommandHandler(
+                provider.GetRequiredService<ICompanyResearchQuery>(),
+                provider.GetRequiredService<IResearchRequestWriter>(),
+                provider.GetRequiredService<IClock>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.CompanyCommandHandler>>())),
         };
 
         router = new Commands.CommandRouter(
