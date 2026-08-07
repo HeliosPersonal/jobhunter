@@ -25,7 +25,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T04 | [[T04-category-fetchers\|Category fetchers]] | scrapers | T03 | L | done |
 | T05 | [[T05-target-selection\|Target selection and freshness]] | app | T02 | M | pending |
 | T06 | [[T06-synthesis-prompt\|Synthesis prompt and schema]] | claude | T01 | M | done |
-| T07 | [[T07-claim-verification\|Claim verification]] | app | T06, T04 | M | pending |
+| T07 | [[T07-claim-verification\|Claim verification]] | app | T06, T04 | M | done |
 | T08 | [[T08-orchestration-feedback\|Orchestration, warnings and stage feedback]] | app | T07, T05 | M | pending |
 | T09 | [[T09-presentation-command\|Presentation and on-demand command]] | telegram/api | T08 | M | pending |
 
