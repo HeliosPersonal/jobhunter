@@ -50,6 +50,29 @@ public sealed class HiddenCommandHandlerTests
     }
 
     [Fact]
+    public async Task Each_reason_group_header_carries_a_turn_off_button()
+    {
+        _hidden.HiddenAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(
+        [
+            Job("Staff SRE", 42m, "Below salary floor"),
+            Job("Backend Engineer", 30m, "Timezone incompatible"),
+        ]);
+
+        var messages = await NewHandler().HandleAsync(new CommandRequest(OwnerChat, null));
+
+        // The reason-group header (the first message of each group) carries the turn-off action as an inline
+        // callback button, so a wrong learned weight is one tap away from being switched off (AC-04, catalogue
+        // §/hidden). The card messages below it carry none — the action belongs to the reason, not each job.
+        var header = messages[0];
+        header.HasKeyboard.ShouldBeTrue();
+        var turnOff = header.Keyboard.SelectMany(row => row)
+            .FirstOrDefault(b => b.Label.Contains("Turn", StringComparison.OrdinalIgnoreCase));
+        turnOff.ShouldNotBeNull();
+        turnOff.CallbackData.ShouldNotBeNull();
+        messages[1].HasKeyboard.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task It_shows_each_hidden_jobs_reason_on_its_card()
     {
         _hidden.HiddenAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())

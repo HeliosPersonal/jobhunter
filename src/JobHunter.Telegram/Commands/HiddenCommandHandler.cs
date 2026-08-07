@@ -26,6 +26,12 @@ internal sealed class HiddenCommandHandler(
     /// <summary>How many hidden jobs a single <c>/hidden</c> shows — a bounded page, never the whole day.</summary>
     private const int PageSize = 25;
 
+    // The callback action token behind a reason group's "Turn this off" button (catalogue §/hidden). It carries
+    // the group's position, not the reason text — the payload is an opaque short id, never a fact (SAD §6.2) —
+    // so a tap resolves back to the reason the Owner wants the learned weight switched off for. The live route
+    // to the F7 disable-weight path is wired with the rest of the callback registry (T10).
+    private const string TurnOffToken = "hoff";
+
     private readonly IHiddenJobsQuery _hidden = hidden ?? throw new ArgumentNullException(nameof(hidden));
     private readonly ILogger<HiddenCommandHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -45,15 +51,30 @@ internal sealed class HiddenCommandHandler(
         // Group by reason in first-seen order, so the reason that withheld the most jobs the Owner is most
         // likely to question is a header they can scan, then its jobs as cards below it (catalogue layout).
         var messages = new List<RenderedMessage>();
+        var groupIndex = 0;
         foreach (var group in GroupByReason(jobs))
         {
-            messages.Add(RenderedMessage.PlainText(
-                "*" + MarkdownV2Escaper.Escape($"{group.Reason} — {group.Jobs.Count}") + "*"));
+            messages.Add(RenderHeader(group.Reason, group.Jobs.Count, groupIndex));
             messages.AddRange(group.Jobs.Select(job =>
                 RenderedMessage.PlainText(CardFormatter.Format(ToCard(job)))));
+            groupIndex++;
         }
 
         return messages;
+    }
+
+    // A reason-group header: the bold "reason — count" line, plus the "Turn this off" button that puts the
+    // learned weight one tap from switched off (AC-04, catalogue §/hidden). The button carries the group's
+    // position as its callback token, so the tap names the reason without leaking a fact into the payload.
+    private static RenderedMessage RenderHeader(string reason, int count, int groupIndex)
+    {
+        var text = "*" + MarkdownV2Escaper.Escape($"{reason} — {count}") + "*";
+        IReadOnlyList<IReadOnlyList<InlineButton>> keyboard =
+        [
+            [new InlineButton("Turn this off", $"{TurnOffToken}:{groupIndex}")],
+        ];
+
+        return new RenderedMessage(text, keyboard);
     }
 
     private static IEnumerable<(string Reason, List<HiddenJob> Jobs)> GroupByReason(IReadOnlyList<HiddenJob> jobs)
