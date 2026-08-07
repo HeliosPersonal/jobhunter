@@ -177,6 +177,14 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<IDegradedCoverageQuery>(),
                 provider.GetRequiredService<IClock>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.SourcesCommandHandler>>())),
+            new("/redeliver", "Re-send today's digest — states how many cards would actually be sent (usually none)", new Commands.RedeliverCommandHandler(
+                provider.GetRequiredService<IRunRepository>(),
+                provider.GetRequiredService<IDigestRepository>(),
+                provider.GetRequiredService<IDigestRenderer>(),
+                provider.GetRequiredService<IDeliveryLog>(),
+                provider.GetRequiredService<IConversationStateStore>(),
+                provider.GetRequiredService<IClock>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.RedeliverCommandHandler>>())),
         };
 
         router = new Commands.CommandRouter(
