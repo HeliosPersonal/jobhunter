@@ -162,6 +162,12 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<IConversationStateStore>(),
                 provider.GetRequiredService<IClock>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.FloorCommandHandler>>())),
+            new("/status", "Last run's outcome, cost against ceiling, counts and degraded sources", new Commands.StatusCommandHandler(
+                provider.GetRequiredService<IRunRepository>(),
+                provider.GetRequiredService<IDigestRepository>(),
+                provider.GetRequiredService<IDegradedCoverageQuery>(),
+                provider.GetRequiredService<IClock>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.StatusCommandHandler>>())),
         };
 
         router = new Commands.CommandRouter(
