@@ -109,6 +109,9 @@ public static class DependencyInjection
         // sources and cited claims inserted with it in one transaction. The composite (research_id, source_id)
         // foreign key makes invariant 5 (every claim carries a source in its own dossier) a schema property.
         services.AddScoped<IResearchRepository, ResearchRepository>();
+        // F8 T09 C3: the read side of /company and the research API — resolve a company by the name the Owner
+        // typed and load its latest dossier, every claim carrying its cited source URL (invariant 5). Read-only.
+        services.AddScoped<ICompanyResearchQuery, Persistence.Queries.CompanyResearchQuery>();
         // F7 T08 C4 (AC-07): the persisted, runtime-flippable master learning switch both PreferenceModelQuery
         // and the digest assembler consult. The single learning_state row is the live source of truth; its
         // absence falls back to the LearningOptions seed default (registered in Application DI). Scoped because
