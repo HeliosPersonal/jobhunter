@@ -1,0 +1,16 @@
+Company: Acme AI (acme.ai)
+
+--- DOCUMENTS ---
+[1] sourceUrl: https://acme.ai/blog/scaling
+    category: EngineeringBlog
+    observed: 2026-08-01
+    title: Scaling our platform
+    We moved to Rust for the ingest path.
+[2] sourceUrl: https://api.github.com/orgs/acme/repos
+    category: OpenSource
+    observed: 2026-08-01
+    title: Acme AI on GitHub
+    acme-core [Rust] 1200 stars
+--- END DOCUMENTS ---
+
+Categories with no documents found: Reviews, InterviewProcess
