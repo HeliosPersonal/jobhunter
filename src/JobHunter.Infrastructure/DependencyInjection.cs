@@ -186,6 +186,10 @@ public static class DependencyInjection
         // and the last attempt — rolled up from source_fetch_log joined through its source's binding, so the
         // operations reply shows which integration is degrading before it quarantines. Read-only Dapper.
         services.AddScoped<ISourceHealthQuery, SourceHealthQuery>();
+        // F10 /cost (T09): a calendar month's spend rolled up by pipeline stage and model tier, each line carrying
+        // the estimated and the actual dollars so the command flags drift. The first read side of the append-only
+        // cost ledger, otherwise write-only through IRunRepository. Read-only Dapper.
+        services.AddScoped<IMonthlyCostQuery, MonthlyCostQuery>();
         // F7 precision@10 (T09, done-when 4, AC-08): the before-and-after series that answers whether learning
         // was worth building — each Run's shown top-ten hit rate, bucketed on whether its scores carried a
         // learned model. Read-only Dapper.
