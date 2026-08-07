@@ -274,6 +274,11 @@ public static class DependencyInjection
         // on the next ranking because PreferenceComponentCalculator already excludes disabled weights.
         services.AddScoped<Preferences.DisablePreferenceWeightHandler>();
 
+        // F7 explainability overrides (T08, done-when 3): the reset write path both the API reset endpoint and the
+        // Telegram override command drive. It deactivates the active model wholesale (deleting no signal), so it
+        // is registered here alongside the disable handler.
+        services.AddScoped<Preferences.ResetPreferenceModelHandler>();
+
         return services;
     }
 }
