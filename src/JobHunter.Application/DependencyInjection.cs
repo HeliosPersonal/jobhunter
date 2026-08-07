@@ -287,6 +287,12 @@ public static class DependencyInjection
         // is registered by Infrastructure, seeded from LearningOptions.
         services.AddScoped<Preferences.SetLearningEnabledHandler>();
 
+        // F7 explainability overrides (T08 C6, AC-03/AC-06): the read the Owner sees before disabling anything —
+        // the active model's weights, each with its id and the one-sentence explanation. Shared by the API
+        // weights endpoint and the Telegram override command so both quote identical text; composes the model
+        // repository (registered by Infrastructure) and the pure WeightExplanation, so it is registered here.
+        services.AddScoped<Preferences.ActiveWeightsQuery>();
+
         return services;
     }
 }
