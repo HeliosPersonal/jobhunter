@@ -177,6 +177,13 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<IDegradedCoverageQuery>(),
                 provider.GetRequiredService<IClock>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.SourcesCommandHandler>>())),
+            new("/run", "Trigger the daily pipeline off-schedule — previews scope and cost, refused when a run is live", new Commands.RunCommandHandler(
+                provider.GetRequiredService<IRunRepository>(),
+                provider.GetRequiredService<ILiveJobsQuery>(),
+                provider.GetRequiredService<IConversationStateStore>(),
+                provider.GetRequiredService<IClock>(),
+                provider.GetRequiredService<Application.Enrichment.RunOptions>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.RunCommandHandler>>())),
             new("/redeliver", "Re-send today's digest — states how many cards would actually be sent (usually none)", new Commands.RedeliverCommandHandler(
                 provider.GetRequiredService<IRunRepository>(),
                 provider.GetRequiredService<IDigestRepository>(),
