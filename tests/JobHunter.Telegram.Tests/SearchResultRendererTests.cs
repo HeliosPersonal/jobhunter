@@ -219,6 +219,71 @@ public sealed class SearchResultRendererTests
     public void Render_rejects_a_null_result_set() =>
         Should.Throw<ArgumentNullException>(() => SearchResultRenderer.Render("x", null!));
 
+    [Fact]
+    public void The_leading_facets_are_rendered_as_copyable_refinement_tokens()
+    {
+        var facets = new Dictionary<string, IReadOnlyList<FacetCount>>
+        {
+            ["technologies"] = [new FacetCount("kafka", 12), new FacetCount("go", 3)],
+            ["companyStage"] = [new FacetCount("SeriesB", 8)],
+            ["countries"] = [new FacetCount("DE", 6)],
+        };
+        var results = ResultsWithFacets(found: 20, facets, Doc("Backend Engineer", "Acme", countries: ["Germany"]));
+
+        var rendered = SearchResultRenderer.Render("backend", results);
+
+        // The leading facet values become the catalogue's own filter tokens, ordered by count, so the next
+        // query can be narrower (AC-02).
+        rendered.ShouldContain("Refine");
+        rendered.ShouldContain("tech:kafka");
+        rendered.ShouldContain("stage:SeriesB");
+        rendered.ShouldContain("country:DE");
+    }
+
+    [Fact]
+    public void Facets_are_omitted_when_there_are_none()
+    {
+        var results = Results(found: 1, partial: false, Doc("Backend Engineer", "Acme", countries: ["Germany"]));
+
+        var rendered = SearchResultRenderer.Render("backend", results);
+
+        rendered.ShouldNotContain("Refine");
+    }
+
+    [Fact]
+    public void An_empty_result_with_filters_suggests_dropping_the_most_restrictive_one()
+    {
+        var query = new SearchQuery { Text = "kafka", MinScore = 90, Technologies = ["go"] };
+
+        var rendered = SearchResultRenderer.Render("min:90 tech:go kafka", Empty(), query);
+
+        // A numeric score threshold cuts hardest, so it is the one named to drop.
+        rendered.ShouldContain("min:");
+        rendered.ShouldContain("drop", Case.Insensitive);
+    }
+
+    [Fact]
+    public void An_empty_result_with_only_set_filters_names_a_set_filter_to_drop()
+    {
+        var query = new SearchQuery { Text = "kafka", Technologies = ["go"], Countries = ["DE"] };
+
+        var rendered = SearchResultRenderer.Render("tech:go country:DE kafka", Empty(), query);
+
+        rendered.ShouldContain("drop", Case.Insensitive);
+        rendered.ShouldContain("tech:");
+    }
+
+    [Fact]
+    public void An_empty_result_with_no_filters_keeps_the_broaden_message()
+    {
+        var query = new SearchQuery { Text = "kubernetes on mars" };
+
+        var rendered = SearchResultRenderer.Render("kubernetes on mars", Empty(), query);
+
+        rendered.ShouldContain("broader", Case.Insensitive);
+        rendered.ShouldNotContain("drop", Case.Insensitive);
+    }
+
     private static SearchResults Empty() =>
         new([], 0, new Dictionary<string, IReadOnlyList<FacetCount>>(), NextCursor: null, Partial: false);
 
@@ -229,6 +294,15 @@ public sealed class SearchResultRendererTests
             new Dictionary<string, IReadOnlyList<FacetCount>>(),
             NextCursor: null,
             partial);
+
+    private static SearchResults ResultsWithFacets(
+        int found, IReadOnlyDictionary<string, IReadOnlyList<FacetCount>> facets, params JobDocument[] docs) =>
+        new(
+            docs.Select(d => new SearchHit(d, Highlight: null)).ToList(),
+            found,
+            facets,
+            NextCursor: null,
+            Partial: false);
 
     private static JobDocument Doc(
         string title,

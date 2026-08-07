@@ -38,6 +38,6 @@ internal sealed class SearchCommandHandler(ISearchQuery search, IClock clock, IL
                 "Search is unavailable right now. Please try again in a moment.") + "_";
         }
 
-        return SearchResultRenderer.Render(arguments ?? string.Empty, result.Value);
+        return SearchResultRenderer.Render(arguments ?? string.Empty, result.Value, query);
     }
 }
