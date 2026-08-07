@@ -94,13 +94,13 @@ public static class TelegramHostExtensions
     /// </summary>
     private static Commands.CommandRouter BuildCommandRouter(IServiceProvider provider)
     {
-        Commands.CommandRouter? router = null;
-
         // The order here is the order the commands appear in /help.
         var registrations = new List<Commands.CommandRegistration>
         {
-            new("/start", "Confirm this chat is authorised", new Commands.StartCommandHandler()),
-            new("/help", "Show this command list", new Commands.HelpCommandHandler(() => router!.HelpList)),
+            new("/start", "Confirm this chat is authorised",
+                new Commands.StartCommandHandler(Application.Commands.CommandCatalogue.Descriptors)),
+            new("/help", "Show this command list",
+                new Commands.HelpCommandHandler(Application.Commands.CommandCatalogue.Descriptors)),
             new("/digest", "Re-read today's digest", new Commands.DigestCommandHandler(
                 provider.GetRequiredService<IRunRepository>(),
                 provider.GetRequiredService<IDigestRepository>(),
@@ -194,8 +194,7 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.RedeliverCommandHandler>>())),
         };
 
-        router = new Commands.CommandRouter(
+        return new Commands.CommandRouter(
             registrations, provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.CommandRouter>>());
-        return router;
     }
 }
