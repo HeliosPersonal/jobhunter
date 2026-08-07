@@ -21,19 +21,19 @@ public sealed class ArgumentParserTests
 
     private static CommandDescriptor Company() =>
         new("company", "Company dossier.", [new ArgumentSpec("name", required: true, "Company name or domain.")],
-            CommandCapability.Standard, changesState: false, "/company");
+            CommandCapability.Standard, CommandGroup.Meta, changesState: false, "/company");
 
     private static CommandDescriptor SearchCommand() =>
         new("search", "Search the corpus.", [new ArgumentSpec("query", required: false, "Free text with filters.")],
-            CommandCapability.Standard, changesState: false, "/search");
+            CommandCapability.Standard, CommandGroup.Meta, changesState: false, "/search");
 
     private static CommandDescriptor NoArgs() =>
-        new("digest", "Re-render today's digest.", [], CommandCapability.Standard, changesState: false, "/digest");
+        new("digest", "Re-render today's digest.", [], CommandCapability.Standard, CommandGroup.Meta, changesState: false, "/digest");
 
     private static CommandDescriptor Floor() =>
         new("floor", "Set the salary floor.",
             [new ArgumentSpec("amount", required: true, "Amount."), new ArgumentSpec("currency", required: false, "ISO currency.")],
-            CommandCapability.Standard, changesState: true, "/floor", "Set your floor?");
+            CommandCapability.Standard, CommandGroup.Meta, changesState: true, "/floor", "Set your floor?");
 
     [Fact]
     public void Rejects_a_null_descriptor() =>

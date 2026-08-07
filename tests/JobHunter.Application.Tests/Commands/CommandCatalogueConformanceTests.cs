@@ -39,7 +39,7 @@ public sealed class CommandCatalogueConformanceTests
         // A descriptor whose anchor has no heading is exactly the drift this direction catches.
         var withUndocumented = Registry.Commands
             .Append(new CommandDescriptor("ghost", "Built but never written down.", [],
-                CommandCapability.Standard, changesState: false, "/ghost"))
+                CommandCapability.Standard, CommandGroup.Meta, changesState: false, "/ghost"))
             .ToList();
 
         AnchorsWithoutHeading(withUndocumented, CatalogueAnchors).ShouldBe(["/ghost"]);
@@ -77,7 +77,7 @@ public sealed class CommandCatalogueConformanceTests
         // The guard is at descriptor construction: a forgotten capability fails closed rather than
         // silently defaulting to an everyday command (QG-2).
         Should.Throw<ArgumentException>(() =>
-            new CommandDescriptor("x", "s", [], CommandCapability.Unspecified, changesState: false, "/x"));
+            new CommandDescriptor("x", "s", [], CommandCapability.Unspecified, CommandGroup.Meta, changesState: false, "/x"));
 
     // ---- Assertion 4 (safety, confirmation): every state-changing command has a confirmation path. ----
 
@@ -94,7 +94,7 @@ public sealed class CommandCatalogueConformanceTests
         Should.Throw<InvalidOperationException>(() =>
             new CommandRegistry([
                 new CommandDescriptor("mutate", "Changes state with no confirmation.", [],
-                    CommandCapability.Sensitive, changesState: true, "/mutate", confirmationPrompt: null),
+                    CommandCapability.Sensitive, CommandGroup.Operations, changesState: true, "/mutate", confirmationPrompt: null),
             ]));
 
     // ---- Conformance helpers (reflection over the registry + markdown parse). ----

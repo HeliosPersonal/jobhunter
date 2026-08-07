@@ -17,8 +17,8 @@ public sealed class BotMenuTests
     {
         var descriptors = new List<CommandDescriptor>
         {
-            new("digest", "Re-read today's digest", [], CommandCapability.Standard, false, "/digest"),
-            new("run", "Trigger the daily pipeline", [], CommandCapability.Sensitive, true, "/run", "Start it?"),
+            new("digest", "Re-read today's digest", [], CommandCapability.Standard, CommandGroup.DigestAndDiscovery, false, "/digest"),
+            new("run", "Trigger the daily pipeline", [], CommandCapability.Sensitive, CommandGroup.Operations, true, "/run", "Start it?"),
         };
 
         var menu = BotMenu.From(descriptors);

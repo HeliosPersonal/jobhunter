@@ -8,10 +8,10 @@ namespace JobHunter.Application.Tests.Commands;
 public sealed class CommandRegistryTests
 {
     private static CommandDescriptor Read(string name) =>
-        new(name, $"The {name} command.", [], CommandCapability.Standard, changesState: false, $"/{name}");
+        new(name, $"The {name} command.", [], CommandCapability.Standard, CommandGroup.Meta, changesState: false, $"/{name}");
 
     private static CommandDescriptor StateChanging(string name, string? confirmationPrompt) =>
-        new(name, $"The {name} command.", [], CommandCapability.Sensitive, changesState: true, $"/{name}",
+        new(name, $"The {name} command.", [], CommandCapability.Sensitive, CommandGroup.Operations, changesState: true, $"/{name}",
             confirmationPrompt);
 
     [Fact]

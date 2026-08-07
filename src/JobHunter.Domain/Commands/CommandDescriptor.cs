@@ -20,9 +20,11 @@ public sealed record CommandDescriptor
         string summary,
         IReadOnlyList<ArgumentSpec> args,
         CommandCapability capability,
+        CommandGroup group,
         bool changesState,
         string contractAnchor,
-        string? confirmationPrompt = null)
+        string? confirmationPrompt = null,
+        string? example = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentException.ThrowIfNullOrWhiteSpace(summary);
@@ -36,13 +38,22 @@ public sealed record CommandDescriptor
                 nameof(capability));
         }
 
+        if (!Enum.IsDefined(group) || group == CommandGroup.Unspecified)
+        {
+            throw new ArgumentException(
+                $"Command '{name}' must declare a group; '{group}' is not a valid one.",
+                nameof(group));
+        }
+
         Name = name;
         Summary = summary;
         Args = args;
         Capability = capability;
+        Group = group;
         ChangesState = changesState;
         ContractAnchor = contractAnchor;
         ConfirmationPrompt = confirmationPrompt;
+        Example = example;
     }
 
     /// <summary>The command word, no slash, e.g. <c>pipeline</c>.</summary>
@@ -57,6 +68,9 @@ public sealed record CommandDescriptor
     /// <summary>The command's sensitivity (invariant 9): <see cref="CommandCapability.Standard"/> or Sensitive.</summary>
     public CommandCapability Capability { get; }
 
+    /// <summary>The section this command appears under in the grouped <c>/help</c> and <c>/start</c> lists.</summary>
+    public CommandGroup Group { get; }
+
     /// <summary>Whether the command mutates state; when true a confirmation is required (SAD §6.3).</summary>
     public bool ChangesState { get; }
 
@@ -69,4 +83,7 @@ public sealed record CommandDescriptor
     /// registry at startup rather than here.
     /// </summary>
     public string? ConfirmationPrompt { get; }
+
+    /// <summary>An optional worked example shown in the per-command <c>/help</c> usage line; null when none.</summary>
+    public string? Example { get; }
 }

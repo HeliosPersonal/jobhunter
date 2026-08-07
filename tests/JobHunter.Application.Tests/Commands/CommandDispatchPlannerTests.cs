@@ -21,21 +21,21 @@ public sealed class CommandDispatchPlannerTests
     ]);
 
     private static CommandDescriptor Pipeline() =>
-        new("pipeline", "Your application pipeline.", [], CommandCapability.Standard, false, "/pipeline");
+        new("pipeline", "Your application pipeline.", [], CommandCapability.Standard, CommandGroup.Meta, false, "/pipeline");
 
     private static CommandDescriptor SearchCommand() =>
         new("search", "Search live jobs.",
             [new ArgumentSpec("query", required: false, "What to search for.")],
-            CommandCapability.Standard, false, "/search");
+            CommandCapability.Standard, CommandGroup.Meta, false, "/search");
 
     private static CommandDescriptor Run() =>
-        new("run", "Start a Run now.", [], CommandCapability.Sensitive, changesState: true, "/run",
+        new("run", "Start a Run now.", [], CommandCapability.Sensitive, CommandGroup.Operations, changesState: true, "/run",
             confirmationPrompt: "Start a Run now?");
 
     private static CommandDescriptor Note() =>
         new("note", "Add a note.",
             [new ArgumentSpec("text", required: true, "The note text.")],
-            CommandCapability.Standard, false, "/note");
+            CommandCapability.Standard, CommandGroup.Meta, false, "/note");
 
     private static CommandDispatchPlanner PlannerFor(params CommandDescriptor[] commands) =>
         new(new CommandRegistry(commands), _ => InlineFilterVocabulary.None);

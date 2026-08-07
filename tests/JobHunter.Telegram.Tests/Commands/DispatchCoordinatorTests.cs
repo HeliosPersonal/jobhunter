@@ -24,21 +24,21 @@ public sealed class DispatchCoordinatorTests
     private const long OwnerChat = 4242;
 
     private static CommandDescriptor Ping() =>
-        new("ping", "A read command.", [], CommandCapability.Standard, false, "/ping");
+        new("ping", "A read command.", [], CommandCapability.Standard, CommandGroup.Meta, false, "/ping");
 
     private static CommandDescriptor Run() =>
-        new("run", "Start a Run now.", [], CommandCapability.Sensitive, changesState: true, "/run",
+        new("run", "Start a Run now.", [], CommandCapability.Sensitive, CommandGroup.Operations, changesState: true, "/run",
             confirmationPrompt: "Start a Run now?");
 
     private static CommandDescriptor Note() =>
         new("note", "Add a note.",
             [new ArgumentSpec("text", required: true, "The note text.")],
-            CommandCapability.Standard, false, "/note");
+            CommandCapability.Standard, CommandGroup.Meta, false, "/note");
 
     private static CommandDescriptor Search() =>
         new("search", "Search live roles.",
             [new ArgumentSpec("query", required: false, "What to search for.")],
-            CommandCapability.Standard, false, "/search");
+            CommandCapability.Standard, CommandGroup.Meta, false, "/search");
 
     private sealed class RecordingInvoker
     {
