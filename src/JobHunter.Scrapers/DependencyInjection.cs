@@ -35,6 +35,20 @@ public static class DependencyInjection
 
         services.AddSingleton<IJobSourceCatalog, JobSourceCatalog>();
 
+        // One IResearchFetcher per company-research category (F8, SAD §5), so the orchestrator dispatches
+        // over a complete set of eight without switching on the enum. The company-scoped page fetchers and
+        // the GitHub org fetcher fetch through IGuardedResearchFetch (Infrastructure's AddResearchHttp, QG-2);
+        // the four feed categories with no public source configured yet return no documents (AC-07). Scoped:
+        // they are resolved per research cycle on the Worker, alongside the scoped guarded fetch.
+        services.AddScoped<IResearchFetcher, Research.EngineeringBlogFetcher>();
+        services.AddScoped<IResearchFetcher, Research.StackFetcher>();
+        services.AddScoped<IResearchFetcher, Research.InterviewProcessFetcher>();
+        services.AddScoped<IResearchFetcher, Research.GitHubOrgFetcher>();
+        services.AddScoped<IResearchFetcher, Research.FundingFetcher>();
+        services.AddScoped<IResearchFetcher, Research.NewsFeedFetcher>();
+        services.AddScoped<IResearchFetcher, Research.LayoffsFetcher>();
+        services.AddScoped<IResearchFetcher, Research.ReviewsFetcher>();
+
         // The ATS probe detector behind the Domain port, so the Application re-detection handler (T09)
         // probes providers without referencing this layer. Scoped: it enumerates the IJobSource adapters
         // and is resolved per re-detection run on the Worker.
