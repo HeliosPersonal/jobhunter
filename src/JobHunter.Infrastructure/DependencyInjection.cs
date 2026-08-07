@@ -180,6 +180,10 @@ public static class DependencyInjection
         // fallback — joined per job id at render time (the card snapshots only score and reasons). Read-only
         // Dapper; the production DigestRenderer both the 07:00 delivery and /digest depend on reads through it.
         services.AddScoped<ICardDisplayQuery, CardDisplayQuery>();
+        // F10 /more (T06): the latest Run's shown-but-uncarded roles — non-suppressed scores whose job is not
+        // one of the digest's top cards — paged in the frozen stored order so mid-morning paging is stable
+        // (PRD §8). Read-only Dapper; the /more handler reads through it, the read side owns "the cut".
+        services.AddScoped<IMoreCardsQuery, MoreCardsQuery>();
         services.AddScoped<IStaleJobsQuery, StaleJobsQuery>();
         services.AddScoped<IRawPostingReader, RawPostingReaderQuery>();
         services.AddScoped<IReprocessableJobsQuery, ReprocessableJobsQuery>();

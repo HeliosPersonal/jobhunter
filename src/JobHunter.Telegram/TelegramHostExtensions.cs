@@ -106,6 +106,9 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<IDigestRepository>(),
                 provider.GetRequiredService<IDigestRenderer>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.DigestCommandHandler>>())),
+            new("/more", "The next cards below today's cut", new Commands.MoreCommandHandler(
+                provider.GetRequiredService<IMoreCardsQuery>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.MoreCommandHandler>>())),
             new("/saved", "List the roles you saved", new Commands.SavedCommandHandler(
                 provider.GetRequiredService<ISavedRolesQuery>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.SavedCommandHandler>>())),
