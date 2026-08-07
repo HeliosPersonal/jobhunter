@@ -165,16 +165,15 @@ internal sealed class DispatchCoordinator
         "_" + MarkdownV2Escaper.Escape(
             commandWord is null ? "Unknown command." : $"Unknown command: /{commandWord}.") + "_";
 
+    // A Malformed parse always carries both a problem and a usage line (ParsedArguments.Malformed).
     private static string MalformedReply(ParsedArguments parsed) =>
-        MarkdownV2Escaper.Escape(parsed.Problem ?? "That didn't look right.")
-        + "\n" + MarkdownV2Escaper.Escape(parsed.Usage ?? string.Empty);
+        MarkdownV2Escaper.Escape(parsed.Problem!) + "\n" + MarkdownV2Escaper.Escape(parsed.Usage!);
 
+    // A NeedsInput parse always names the argument it is waiting for (ParsedArguments.NeedsInput).
     private static string NeedsInputReply(ParsedArguments parsed) =>
-        MarkdownV2Escaper.Escape(
-            parsed.MissingArgument is { } missing
-                ? $"Reply with {missing.Name}; /cancel to stop."
-                : "Reply with the missing value; /cancel to stop.");
+        MarkdownV2Escaper.Escape($"Reply with {parsed.MissingArgument!.Name}; /cancel to stop.");
 
+    // A ChangesState command always carries a confirmation prompt (CommandRegistry enforces it at startup).
     private static string ConfirmationReply(CommandDescriptor command) =>
-        MarkdownV2Escaper.Escape(command.ConfirmationPrompt ?? "Are you sure?");
+        MarkdownV2Escaper.Escape(command.ConfirmationPrompt!);
 }

@@ -110,6 +110,54 @@ public sealed class DispatchCoordinatorTests
     }
 
     [Fact]
+    public async Task A_non_command_message_is_unknown_and_never_invoked()
+    {
+        // The processor only routes '/'-messages here, but the coordinator is total: a bare word resolves
+        // to nothing, is never parsed and is audited as Unknown with a non-blank command name.
+        var invoker = new RecordingInvoker();
+        var audit = Substitute.For<ICommandInvocationLog>();
+        var coordinator = Build(invoker, audit, new FakeClock(), Ping());
+
+        var messages = await coordinator.DispatchAsync(OwnerChat, "just chatting", CancellationToken.None);
+
+        invoker.Calls.ShouldBe(0);
+        messages.ShouldHaveSingleItem().Text.ShouldContain("Unknown", Case.Insensitive);
+        await audit.Received(1).RecordAsync(
+            Arg.Is<CommandInvocation>(i => i!.Command == "?" && i.Outcome == CommandOutcome.Unknown && i.ArgCount == 0),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_command_with_a_bot_mention_suffix_still_resolves_and_runs()
+    {
+        // Telegram appends @BotName to a command in a group; the coordinator strips it before resolving.
+        var invoker = new RecordingInvoker("pong");
+        var audit = Substitute.For<ICommandInvocationLog>();
+        var coordinator = Build(invoker, audit, new FakeClock(), Ping());
+
+        var messages = await coordinator.DispatchAsync(OwnerChat, "/ping@JobHunterBot", CancellationToken.None);
+
+        invoker.Calls.ShouldBe(1);
+        messages.ShouldHaveSingleItem().Text.ShouldBe("pong");
+        await audit.Received(1).RecordAsync(
+            Arg.Is<CommandInvocation>(i => i!.Command == "ping" && i.Outcome == CommandOutcome.Succeeded),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task An_empty_message_is_unknown_and_never_invoked()
+    {
+        var invoker = new RecordingInvoker();
+        var audit = Substitute.For<ICommandInvocationLog>();
+        var coordinator = Build(invoker, audit, new FakeClock(), Ping());
+
+        var messages = await coordinator.DispatchAsync(OwnerChat, "   ", CancellationToken.None);
+
+        invoker.Calls.ShouldBe(0);
+        messages.ShouldHaveSingleItem().Text.ShouldContain("Unknown", Case.Insensitive);
+    }
+
+    [Fact]
     public async Task A_malformed_value_is_never_invoked_and_names_the_problem_with_the_usage_line()
     {
         var invoker = new RecordingInvoker();
@@ -265,5 +313,7 @@ public sealed class DispatchCoordinatorTests
             rateLimiter, planner, audit, clock, null!, invoke, NullLogger<DispatchCoordinator>.Instance));
         Should.Throw<ArgumentNullException>(() => new DispatchCoordinator(
             rateLimiter, planner, audit, clock, ids, null!, NullLogger<DispatchCoordinator>.Instance));
+        Should.Throw<ArgumentNullException>(() => new DispatchCoordinator(
+            rateLimiter, planner, audit, clock, ids, invoke, null!));
     }
 }

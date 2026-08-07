@@ -21,7 +21,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 |---|---|---|---|---|---|
 | T01 | [[T01-command-registry\|CommandDescriptor, registry and argument spec]] | domain/app | — | M | done |
 | T02 | [[T02-argument-parser\|Argument parser]] | app | T01 | M | done |
-| T03 | [[T03-dispatcher\|Dispatcher: allowlist, resolution, capability, rate limit]] | telegram | T02 | M | pending |
+| T03 | [[T03-dispatcher\|Dispatcher: allowlist, resolution, capability, rate limit]] | telegram | T02 | M | done |
 | T04 | [[T04-conversation-state\|Conversation state and cancellation]] | app | T03 | M | pending |
 | T05 | [[T05-confirmation-flow\|Confirmation flow for state-changing commands]] | app/telegram | T04 | M | pending |
 | T06 | [[T06-digest-discovery-commands\|Digest and discovery commands]] | telegram | T05 | M | pending |
