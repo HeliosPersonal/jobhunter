@@ -74,6 +74,17 @@ public sealed class SearchFilterBuilderTests
     }
 
     [Fact]
+    public void A_posted_after_cutoff_becomes_a_posted_at_range_clause()
+    {
+        // The catalogue's `since:` narrows to jobs first posted at or after an absolute unix-second cutoff
+        // (the relative "30d" is resolved to an instant before the query reaches the index).
+        var filter = SearchFilterBuilder.Build(new SearchQuery { PostedAfter = 1_700_000_000 });
+
+        filter.ShouldNotBeNull();
+        filter.ShouldContain("postedAt:>=1700000000");
+    }
+
+    [Fact]
     public void Blank_terms_in_a_set_are_dropped_and_an_all_blank_set_adds_no_clause()
     {
         var filter = SearchFilterBuilder.Build(new SearchQuery

@@ -1,6 +1,7 @@
 using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Common;
 using JobHunter.Domain.Search;
+using JobHunter.TestKit;
 using JobHunter.Telegram.Search;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
@@ -20,8 +21,10 @@ public sealed class SearchCommandHandlerTests
 {
     private readonly ISearchQuery _search = Substitute.For<ISearchQuery>();
 
+    private readonly FakeClock _clock = new(DateTimeOffset.FromUnixTimeSeconds(1_700_000_000));
+
     private SearchCommandHandler NewHandler() =>
-        new(_search, NullLogger<SearchCommandHandler>.Instance);
+        new(_search, _clock, NullLogger<SearchCommandHandler>.Instance);
 
     [Fact]
     public async Task It_passes_the_parsed_typed_query_to_the_shared_search_port()
@@ -85,10 +88,25 @@ public sealed class SearchCommandHandlerTests
     }
 
     [Fact]
+    public async Task It_resolves_a_relative_since_window_against_the_clock()
+    {
+        SearchQuery? captured = null;
+        _search.SearchAsync(Arg.Do<SearchQuery>(q => captured = q), Arg.Any<CancellationToken>())
+            .Returns(Result<SearchResults>.Success(EmptyResults()));
+
+        await NewHandler().HandleAsync("since:7d kafka");
+
+        captured.ShouldNotBeNull();
+        captured.PostedAfter.ShouldBe(1_700_000_000L - (7L * 86_400L));
+        captured.Text.ShouldBe("kafka");
+    }
+
+    [Fact]
     public void Constructor_rejects_null_dependencies()
     {
-        Should.Throw<ArgumentNullException>(() => new SearchCommandHandler(null!, NullLogger<SearchCommandHandler>.Instance));
-        Should.Throw<ArgumentNullException>(() => new SearchCommandHandler(_search, null!));
+        Should.Throw<ArgumentNullException>(() => new SearchCommandHandler(null!, _clock, NullLogger<SearchCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new SearchCommandHandler(_search, null!, NullLogger<SearchCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new SearchCommandHandler(_search, _clock, null!));
     }
 
     private static SearchResults EmptyResults() =>

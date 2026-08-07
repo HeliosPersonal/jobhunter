@@ -33,6 +33,16 @@ internal static class SearchCommandParser
         ["min-salary"] = Filter.SalaryMin,
         ["min"] = Filter.MinScore,
         ["closed"] = Filter.IncludeClosed,
+        ["since"] = Filter.PostedAfter,
+    };
+
+    // The relative-window units the catalogue's `since:` accepts, each mapped to its length in seconds.
+    // Anything else (a "30y", a bare number) falls through to free text — a malformed value never errors.
+    private static readonly Dictionary<char, long> SinceUnits = new()
+    {
+        ['h'] = 3_600L,
+        ['d'] = 86_400L,
+        ['w'] = 7L * 86_400L,
     };
 
     // The values the catalogue's `closed:` filter accepts to opt closed jobs back in. Anything else falls
@@ -42,7 +52,7 @@ internal static class SearchCommandParser
         "yes", "true", "1",
     };
 
-    public static SearchQuery Parse(string? arguments)
+    public static SearchQuery Parse(string? arguments, DateTimeOffset? now = null)
     {
         var technologies = new List<string>();
         var remotePolicies = new List<string>();
@@ -53,6 +63,7 @@ internal static class SearchCommandParser
         int? salaryMin = null;
         double? minScore = null;
         var includeClosed = false;
+        long? postedAfter = null;
 
         var tokens = (arguments ?? string.Empty)
             .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -110,6 +121,20 @@ internal static class SearchCommandParser
                         }
 
                         break;
+                    case Filter.PostedAfter:
+                        // `since:30d` is a relative window resolved against "now" to an absolute unix-second
+                        // cutoff. Without a clock (the pure overload) or with a value that is not a positive
+                        // number followed by a known unit, it falls through to free text like any other.
+                        if (now is { } instant && TryResolveSince(value, instant, out var cutoff))
+                        {
+                            postedAfter = cutoff;
+                        }
+                        else
+                        {
+                            textTerms.Add(token);
+                        }
+
+                        break;
                 }
 
                 continue;
@@ -129,8 +154,34 @@ internal static class SearchCommandParser
             SalaryMin = salaryMin,
             MinScore = minScore,
             IncludeClosed = includeClosed,
+            PostedAfter = postedAfter,
             Limit = ResultLimit,
         };
+    }
+
+    /// <summary>
+    /// Resolves a relative window like <c>30d</c> to an absolute unix-second cutoff: a positive integer
+    /// followed by a single unit character (<c>h</c>/<c>d</c>/<c>w</c>). Returns false — leaving the token as
+    /// free text — for any other shape, so a fat-fingered <c>since:</c> never fails the whole search.
+    /// </summary>
+    private static bool TryResolveSince(string value, DateTimeOffset now, out long cutoff)
+    {
+        cutoff = 0;
+        if (value.Length < 2)
+        {
+            return false;
+        }
+
+        var unit = value[^1];
+        if (!SinceUnits.TryGetValue(char.ToLowerInvariant(unit), out var unitSeconds)
+            || !long.TryParse(value[..^1], NumberStyles.None, CultureInfo.InvariantCulture, out var amount)
+            || amount <= 0)
+        {
+            return false;
+        }
+
+        cutoff = now.ToUnixTimeSeconds() - (amount * unitSeconds);
+        return true;
     }
 
     private enum Filter
@@ -143,5 +194,6 @@ internal static class SearchCommandParser
         SalaryMin,
         MinScore,
         IncludeClosed,
+        PostedAfter,
     }
 }

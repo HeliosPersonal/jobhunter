@@ -52,6 +52,11 @@ internal static class SearchFilterBuilder
             clauses.Add($"salaryMin:>={salaryMin.ToString(CultureInfo.InvariantCulture)}");
         }
 
+        if (query.PostedAfter is { } postedAfter)
+        {
+            clauses.Add($"postedAt:>={postedAfter.ToString(CultureInfo.InvariantCulture)}");
+        }
+
         return clauses.Count == 0 ? null : string.Join(" && ", clauses);
     }
 

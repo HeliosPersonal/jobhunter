@@ -142,4 +142,52 @@ public sealed class SearchCommandParserTests
         query.IncludeClosed.ShouldBeFalse();
         query.Text.ShouldBe("closed:maybe kafka");
     }
+
+    [Theory]
+    [InlineData("since:1d", 86_400L)]
+    [InlineData("since:2w", 14L * 86_400L)]
+    [InlineData("since:12h", 12L * 3_600L)]
+    public void The_since_filter_resolves_a_relative_window_to_an_absolute_cutoff(string token, long secondsAgo)
+    {
+        // Catalogue §Discovery: `since:30d` narrows to jobs posted within the window. The relative window is
+        // resolved against "now" to an absolute unix-second cutoff, so the domain never sees "30d".
+        var now = DateTimeOffset.FromUnixTimeSeconds(1_700_000_000);
+
+        var query = SearchCommandParser.Parse($"{token} kafka", now);
+
+        query.PostedAfter.ShouldBe(now.ToUnixTimeSeconds() - secondsAgo);
+        query.Text.ShouldBe("kafka");
+    }
+
+    [Fact]
+    public void A_since_with_no_now_is_ignored_and_falls_through_to_free_text()
+    {
+        // The pure overload (no clock) cannot resolve a relative window, so `since:` stays free text there.
+        var query = SearchCommandParser.Parse("since:30d kafka");
+
+        query.PostedAfter.ShouldBeNull();
+        query.Text.ShouldBe("since:30d kafka");
+    }
+
+    [Fact]
+    public void A_malformed_since_value_falls_through_to_free_text()
+    {
+        var now = DateTimeOffset.FromUnixTimeSeconds(1_700_000_000);
+
+        var query = SearchCommandParser.Parse("since:soon kafka", now);
+
+        query.PostedAfter.ShouldBeNull();
+        query.Text.ShouldBe("since:soon kafka");
+    }
+
+    [Fact]
+    public void A_since_unit_that_is_not_recognised_falls_through_to_free_text()
+    {
+        var now = DateTimeOffset.FromUnixTimeSeconds(1_700_000_000);
+
+        var query = SearchCommandParser.Parse("since:30y kafka", now);
+
+        query.PostedAfter.ShouldBeNull();
+        query.Text.ShouldBe("since:30y kafka");
+    }
 }

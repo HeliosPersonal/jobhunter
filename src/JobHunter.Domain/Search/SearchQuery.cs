@@ -29,6 +29,13 @@ public sealed record SearchQuery
     /// <summary>Closed jobs are excluded unless this is true (AC-08).</summary>
     public bool IncludeClosed { get; init; }
 
+    /// <summary>
+    /// Narrows to jobs first posted at or after this instant, as unix seconds. The catalogue expresses this
+    /// as a relative <c>since:30d</c>, which the command surface resolves to an absolute cutoff before the
+    /// query is built — the domain only ever sees the instant.
+    /// </summary>
+    public long? PostedAfter { get; init; }
+
     /// <summary>Page size; the service clamps it to a sane maximum.</summary>
     public int Limit { get; init; } = 20;
 

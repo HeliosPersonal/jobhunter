@@ -1,6 +1,5 @@
 using JobHunter.Domain.Abstractions;
 using JobHunter.Telegram.Formatting;
-using Microsoft.Extensions.Logging;
 
 namespace JobHunter.Telegram.Search;
 
@@ -15,16 +14,20 @@ namespace JobHunter.Telegram.Search;
 /// (DoD). No CV-derived value can appear — the results carry only the allowlisted
 /// <see cref="Domain.Search.JobDocument"/> (QG-2).</para>
 /// </summary>
-internal sealed class SearchCommandHandler(ISearchQuery search, ILogger<SearchCommandHandler> logger)
+internal sealed class SearchCommandHandler(ISearchQuery search, IClock clock, ILogger<SearchCommandHandler> logger)
 {
     private readonly ISearchQuery _search = search ?? throw new ArgumentNullException(nameof(search));
+
+    private readonly IClock _clock = clock ?? throw new ArgumentNullException(nameof(clock));
 
     private readonly ILogger<SearchCommandHandler> _logger =
         logger ?? throw new ArgumentNullException(nameof(logger));
 
     public async Task<string> HandleAsync(string? arguments, CancellationToken cancellationToken = default)
     {
-        var query = SearchCommandParser.Parse(arguments);
+        // The clock resolves the catalogue's relative `since:30d` window to an absolute cutoff (IClock is the
+        // one time source — architecture rule 5 bans DateTime.UtcNow outside SystemClock).
+        var query = SearchCommandParser.Parse(arguments, _clock.UtcNow);
         var result = await _search.SearchAsync(query, cancellationToken).ConfigureAwait(false);
 
         if (result.IsFailure)

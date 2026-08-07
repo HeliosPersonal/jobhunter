@@ -1,6 +1,7 @@
 using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Common;
 using JobHunter.Domain.Search;
+using JobHunter.TestKit;
 using JobHunter.Telegram.Commands;
 using JobHunter.Telegram.Search;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -24,7 +25,7 @@ public sealed class SearchCommandAdapterTests
     private readonly ISearchQuery _search = Substitute.For<ISearchQuery>();
 
     private SearchCommandAdapter NewAdapter() =>
-        new(new SearchCommandHandler(_search, NullLogger<SearchCommandHandler>.Instance));
+        new(new SearchCommandHandler(_search, new FakeClock(), NullLogger<SearchCommandHandler>.Instance));
 
     [Fact]
     public async Task It_passes_the_arguments_through_and_returns_the_rendered_text_as_one_message()
