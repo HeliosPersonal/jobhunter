@@ -11,25 +11,25 @@ using Xunit;
 namespace JobHunter.Telegram.Tests.Commands;
 
 /// <summary>
-/// <c>/company &lt;name&gt;</c> (F8 T09, SAD §6.2, AC-05): the Owner asks about a company by name and gets one
-/// of three honest answers — a fresh dossier presented with its age, an acknowledgement that research was
-/// queued for the next cycle when the dossier is stale or absent, or an offer to add the company when it is
-/// not in the registry. It resolves through <see cref="ICompanyResearchQuery"/> and queues through
-/// <see cref="IResearchRequestWriter"/>; freshness is judged against the injected <see cref="IClock"/> so the
-/// stale/fresh boundary is deterministic. It never runs an LLM and never touches the CV (the CV crosses
-/// exactly one boundary, not this one).
+/// <c>/company &lt;name-or-domain&gt;</c> (catalogue §Company, AC-11): a <strong>read-only</strong> lookup.
+/// Resolution is forgiving — a name, a domain and a bare label all resolve through
+/// <see cref="ICompanyResearchQuery.ResolveCandidatesAsync"/>. A fresh dossier is presented with its age; a
+/// known company whose dossier is stale or absent is offered <c>/research</c> rather than queueing a write
+/// here (the queue is <c>/research</c>'s job, catalogue §Company · State ✎); an unknown company is offered as
+/// an addition to the registry, never an empty result; and an ambiguous query offers every match so the Owner
+/// can pick. It runs no LLM, queues nothing, and never touches the CV (the CV crosses one boundary, not this).
 /// </summary>
 public sealed class CompanyCommandHandlerTests
 {
     private const long OwnerChat = 4242;
     private static readonly Guid Acme = Guid.Parse("11111111-1111-1111-1111-111111111111");
+    private static readonly Guid AcmeIo = Guid.Parse("22222222-2222-2222-2222-222222222222");
 
     private readonly ICompanyResearchQuery _research = Substitute.For<ICompanyResearchQuery>();
-    private readonly IResearchRequestWriter _requests = Substitute.For<IResearchRequestWriter>();
     private readonly FakeClock _clock = new(new DateTimeOffset(2026, 8, 6, 6, 0, 0, TimeSpan.Zero));
 
     private CompanyCommandHandler NewHandler() =>
-        new(_research, _requests, _clock, NullLogger<CompanyCommandHandler>.Instance);
+        new(_research, _clock, NullLogger<CompanyCommandHandler>.Instance);
 
     private static ResearchClaimFacts Claim(
         ResearchCategory category, string text, string url, DateTimeOffset observedAt, bool isWarning = false) =>
@@ -42,8 +42,8 @@ public sealed class CompanyCommandHandlerTests
         string summary = "A short honest summary.") =>
         new(summary, generatedAt, claims ?? [], unavailable ?? []);
 
-    private void ResolvesTo(CompanyResearchLookup? lookup) =>
-        _research.ResolveByNameAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(lookup);
+    private void ResolvesTo(params CompanyResearchLookup[] lookups) =>
+        _research.ResolveCandidatesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(lookups);
 
     [Fact]
     public async Task It_asks_for_a_name_when_the_command_stood_alone()
@@ -51,25 +51,23 @@ public sealed class CompanyCommandHandlerTests
         var messages = await NewHandler().HandleAsync(new CommandRequest(OwnerChat, null));
 
         messages.ShouldHaveSingleItem().Text.ShouldContain("company", Case.Insensitive);
-        await _research.DidNotReceive().ResolveByNameAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await _requests.DidNotReceive().EnqueueAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _research.DidNotReceive().ResolveCandidatesAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task An_unknown_company_offers_to_add_it_rather_than_failing()
     {
-        ResolvesTo(null);
+        ResolvesTo();
 
         var messages = await NewHandler().HandleAsync(new CommandRequest(OwnerChat, "Nowhere Inc"));
 
-        // AC / SAD §6.2: not in the registry — offer to add it, and queue nothing.
+        // AC-11: not in the registry — offer to add it, never an empty result.
         messages.ShouldHaveSingleItem().Text.ShouldContain("Nowhere Inc");
         messages[0].Text.ShouldContain("registry", Case.Insensitive);
-        await _requests.DidNotReceive().EnqueueAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task A_fresh_dossier_is_presented_with_its_age_and_is_not_re_queued()
+    public async Task A_fresh_dossier_is_presented_with_its_age()
     {
         var generated = _clock.UtcNow.AddDays(-3);
         ResolvesTo(new CompanyResearchLookup(Acme, "Acme AI", Dossier(
@@ -82,24 +80,23 @@ public sealed class CompanyCommandHandlerTests
         text.ShouldContain("Acme AI");
         text.ShouldContain("Raised a Series B");
         text.ShouldContain("(https://acme.ai/press)");
-        await _requests.DidNotReceive().EnqueueAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task A_known_company_never_researched_queues_and_acknowledges()
+    public async Task A_known_company_never_researched_offers_research_rather_than_queueing()
     {
         ResolvesTo(new CompanyResearchLookup(Acme, "Acme AI", LatestDossier: null));
 
         var messages = await NewHandler().HandleAsync(new CommandRequest(OwnerChat, "Acme AI"));
 
-        // SAD §6.2 / AC-05: absent dossier — queue for the next cycle and acknowledge.
-        messages.ShouldHaveSingleItem().Text.ShouldContain("Acme AI");
-        messages[0].Text.ShouldContain("digest", Case.Insensitive);
-        await _requests.Received(1).EnqueueAsync(Acme, Arg.Is<string>(r => !string.IsNullOrWhiteSpace(r)), Arg.Any<CancellationToken>());
+        // Read-only: the absent dossier is answered with an offer to /research, not a silent queue write.
+        var text = messages.ShouldHaveSingleItem().Text;
+        text.ShouldContain("Acme AI");
+        text.ShouldContain("/research", Case.Insensitive);
     }
 
     [Fact]
-    public async Task A_stale_dossier_queues_a_refresh_and_acknowledges()
+    public async Task A_known_company_with_a_stale_dossier_shows_it_and_offers_a_refresh()
     {
         // Older than the 30-day default window, so it is stale for every category.
         var stale = _clock.UtcNow.AddDays(-40);
@@ -109,28 +106,32 @@ public sealed class CompanyCommandHandlerTests
 
         var messages = await NewHandler().HandleAsync(new CommandRequest(OwnerChat, "Acme AI"));
 
-        await _requests.Received(1).EnqueueAsync(Acme, Arg.Any<string>(), Arg.Any<CancellationToken>());
-        string.Join("\n", messages.Select(m => m.Text)).ShouldContain("Acme AI");
+        var text = string.Join("\n", messages.Select(m => m.Text));
+        text.ShouldContain("Acme AI");
+        // The stale dossier is still shown (its claims are real), and a refresh is offered via /research.
+        text.ShouldContain("Raised a Series A");
+        text.ShouldContain("/research", Case.Insensitive);
     }
 
     [Fact]
-    public async Task A_dossier_stale_only_for_a_volatile_category_is_refreshed()
+    public async Task An_ambiguous_query_offers_every_match()
     {
-        // 10 days old: fresh for the 30-day default, but stale for News (7-day volatile window).
-        var generated = _clock.UtcNow.AddDays(-10);
-        ResolvesTo(new CompanyResearchLookup(Acme, "Acme AI", Dossier(
-            generated,
-            claims: [Claim(ResearchCategory.News, "Shipped a product.", "https://acme.ai/news", generated)])));
+        ResolvesTo(
+            new CompanyResearchLookup(AcmeIo, "Acme Cloud", LatestDossier: null),
+            new CompanyResearchLookup(Acme, "Acme Labs", LatestDossier: null));
 
-        await NewHandler().HandleAsync(new CommandRequest(OwnerChat, "Acme AI"));
+        var messages = await NewHandler().HandleAsync(new CommandRequest(OwnerChat, "acme"));
 
-        await _requests.Received(1).EnqueueAsync(Acme, Arg.Any<string>(), Arg.Any<CancellationToken>());
+        // A genuine ambiguity is surfaced so the Owner can pick, never silently resolved to the first.
+        var text = messages.ShouldHaveSingleItem().Text;
+        text.ShouldContain("Acme Cloud");
+        text.ShouldContain("Acme Labs");
     }
 
     [Fact]
     public async Task A_hostile_company_name_is_escaped_in_the_reply()
     {
-        ResolvesTo(null);
+        ResolvesTo();
 
         var messages = await NewHandler().HandleAsync(new CommandRequest(OwnerChat, "Ev*il* Corp."));
 
@@ -148,9 +149,8 @@ public sealed class CompanyCommandHandlerTests
     [Fact]
     public void Constructor_rejects_null_dependencies()
     {
-        Should.Throw<ArgumentNullException>(() => new CompanyCommandHandler(null!, _requests, _clock, NullLogger<CompanyCommandHandler>.Instance));
-        Should.Throw<ArgumentNullException>(() => new CompanyCommandHandler(_research, null!, _clock, NullLogger<CompanyCommandHandler>.Instance));
-        Should.Throw<ArgumentNullException>(() => new CompanyCommandHandler(_research, _requests, null!, NullLogger<CompanyCommandHandler>.Instance));
-        Should.Throw<ArgumentNullException>(() => new CompanyCommandHandler(_research, _requests, _clock, null!));
+        Should.Throw<ArgumentNullException>(() => new CompanyCommandHandler(null!, _clock, NullLogger<CompanyCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new CompanyCommandHandler(_research, null!, NullLogger<CompanyCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new CompanyCommandHandler(_research, _clock, null!));
     }
 }

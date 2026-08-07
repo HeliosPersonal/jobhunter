@@ -16,10 +16,15 @@ namespace JobHunter.Domain.Abstractions;
 public interface ICompanyResearchQuery
 {
     /// <summary>
-    /// Resolves <paramref name="name"/> to a company and its latest dossier, or null when no company by that
-    /// name is in the registry.
+    /// Resolves <paramref name="query"/> — a name or a domain — to the companies it could mean, most-recently
+    /// seen first, each with its latest dossier. Resolution is <em>forgiving</em> (catalogue §Company): the
+    /// display name (<c>Stripe</c>), the registrable domain (<c>stripe.com</c>) and the bare registrable label
+    /// (<c>stripe</c>) all resolve to the same company. An empty list means no company matched — the caller
+    /// offers to add it rather than returning nothing (AC-11); more than one match is a genuine ambiguity the
+    /// caller surfaces so the Owner can pick, never silently resolved to the first.
     /// </summary>
-    Task<CompanyResearchLookup?> ResolveByNameAsync(string name, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CompanyResearchLookup>> ResolveCandidatesAsync(
+        string query, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// The latest dossier for a company already identified by <paramref name="companyId"/>, or null when the

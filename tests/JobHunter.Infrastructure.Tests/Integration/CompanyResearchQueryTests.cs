@@ -25,14 +25,14 @@ public sealed class CompanyResearchQueryTests
     private static readonly DateTimeOffset GeneratedAt = new(2026, 8, 4, 6, 0, 0, TimeSpan.Zero);
 
     [RequiresDockerFact]
-    public async Task An_unknown_company_name_resolves_to_null()
+    public async Task An_unknown_company_name_resolves_to_no_candidates()
     {
         var database = await TestDatabase.CreateAsync();
         await using var _ = database;
 
         var query = new CompanyResearchQuery(new NpgsqlConnectionFactory(database.ConnectionString));
 
-        (await query.ResolveByNameAsync("Nowhere Inc")).ShouldBeNull();
+        (await query.ResolveCandidatesAsync("Nowhere Inc")).ShouldBeEmpty();
     }
 
     [RequiresDockerFact]
@@ -43,9 +43,8 @@ public sealed class CompanyResearchQueryTests
         var companyId = await SeedCompanyAsync(database, "Acme AI", "acme.com");
 
         var query = new CompanyResearchQuery(new NpgsqlConnectionFactory(database.ConnectionString));
-        var lookup = await query.ResolveByNameAsync("Acme AI");
+        var lookup = (await query.ResolveCandidatesAsync("Acme AI")).ShouldHaveSingleItem();
 
-        lookup.ShouldNotBeNull();
         lookup.CompanyId.ShouldBe(companyId);
         lookup.DisplayName.ShouldBe("Acme AI");
         lookup.LatestDossier.ShouldBeNull();
@@ -60,7 +59,41 @@ public sealed class CompanyResearchQueryTests
 
         var query = new CompanyResearchQuery(new NpgsqlConnectionFactory(database.ConnectionString));
 
-        (await query.ResolveByNameAsync("acme ai")).ShouldNotBeNull();
+        (await query.ResolveCandidatesAsync("acme ai")).ShouldHaveSingleItem();
+    }
+
+    [RequiresDockerFact]
+    public async Task Resolving_by_domain_or_bare_label_finds_the_same_company_once()
+    {
+        var database = await TestDatabase.CreateAsync();
+        await using var _ = database;
+        var companyId = await SeedCompanyAsync(database, "Stripe", "stripe.com");
+
+        var query = new CompanyResearchQuery(new NpgsqlConnectionFactory(database.ConnectionString));
+
+        // The full domain, a decorated URL and the bare registrable label all resolve to the one company —
+        // and matching on both the name and the label at once still returns it once, not twice (catalogue §Company).
+        (await query.ResolveCandidatesAsync("stripe.com")).ShouldHaveSingleItem().CompanyId.ShouldBe(companyId);
+        (await query.ResolveCandidatesAsync("https://Stripe.com/careers")).ShouldHaveSingleItem().CompanyId.ShouldBe(companyId);
+        (await query.ResolveCandidatesAsync("stripe")).ShouldHaveSingleItem().CompanyId.ShouldBe(companyId);
+    }
+
+    [RequiresDockerFact]
+    public async Task A_bare_label_matching_two_companies_returns_both()
+    {
+        var database = await TestDatabase.CreateAsync();
+        await using var _ = database;
+        var comDomain = await SeedCompanyAsync(database, "Acme (com)", "acme.com", lastSeenAt: RunStart);
+        var ioDomain = await SeedCompanyAsync(database, "Acme (io)", "acme.io", lastSeenAt: RunStart.AddDays(1));
+
+        var query = new CompanyResearchQuery(new NpgsqlConnectionFactory(database.ConnectionString));
+        var candidates = await query.ResolveCandidatesAsync("acme");
+
+        // A genuine ambiguity: the bare label "acme" matches two distinct companies, returned most-recently-seen
+        // first so the caller can offer both rather than silently picking one.
+        candidates.Count.ShouldBe(2);
+        candidates[0].CompanyId.ShouldBe(ioDomain);
+        candidates[1].CompanyId.ShouldBe(comDomain);
     }
 
     [RequiresDockerFact]
@@ -78,9 +111,9 @@ public sealed class CompanyResearchQueryTests
             unavailable: [ResearchCategory.Reviews]);
 
         var query = new CompanyResearchQuery(new NpgsqlConnectionFactory(database.ConnectionString));
-        var lookup = await query.ResolveByNameAsync("Acme AI");
+        var lookup = (await query.ResolveCandidatesAsync("Acme AI")).ShouldHaveSingleItem();
 
-        var dossier = lookup.ShouldNotBeNull().LatestDossier.ShouldNotBeNull();
+        var dossier = lookup.LatestDossier.ShouldNotBeNull();
         dossier.Summary.ShouldBe("A short honest summary.");
         dossier.GeneratedAt.ShouldBe(GeneratedAt);
         var claim = dossier.Claims.ShouldHaveSingleItem();
@@ -112,7 +145,7 @@ public sealed class CompanyResearchQueryTests
             unavailable: []);
 
         var query = new CompanyResearchQuery(new NpgsqlConnectionFactory(database.ConnectionString));
-        var dossier = (await query.ResolveByNameAsync("Acme AI")).ShouldNotBeNull().LatestDossier.ShouldNotBeNull();
+        var dossier = (await query.ResolveCandidatesAsync("Acme AI")).ShouldHaveSingleItem().LatestDossier.ShouldNotBeNull();
 
         dossier.Summary.ShouldBe("New.");
         dossier.Claims.ShouldHaveSingleItem().SourceUrl.ShouldBe("https://acme.ai/new");
@@ -140,7 +173,7 @@ public sealed class CompanyResearchQueryTests
             unavailable: []);
 
         var query = new CompanyResearchQuery(new NpgsqlConnectionFactory(database.ConnectionString));
-        var dossier = (await query.ResolveByNameAsync("Acme AI")).ShouldNotBeNull().LatestDossier.ShouldNotBeNull();
+        var dossier = (await query.ResolveCandidatesAsync("Acme AI")).ShouldHaveSingleItem().LatestDossier.ShouldNotBeNull();
 
         dossier.Claims[0].IsWarning.ShouldBeTrue();
         dossier.Claims[0].Category.ShouldBe(ResearchCategory.Layoffs);
@@ -165,11 +198,14 @@ public sealed class CompanyResearchQueryTests
         (await query.LatestForCompanyAsync(Guid.CreateVersion7())).ShouldBeNull();
     }
 
-    private static async Task<Guid> SeedCompanyAsync(TestDatabase database, string name, string domain)
+    private static async Task<Guid> SeedCompanyAsync(
+        TestDatabase database, string name, string domain, DateTimeOffset? lastSeenAt = null)
     {
         var companyId = Guid.CreateVersion7();
         await using var ctx = database.CreateContext();
-        ctx.Add(new Company(companyId, CanonicalDomain.TryCreate(domain).Value, name, CompanySource.Curated, RunStart));
+        // The constructor sets LastSeenAt = firstSeenAt, so the seen instant is the first-seen argument.
+        ctx.Add(new Company(
+            companyId, CanonicalDomain.TryCreate(domain).Value, name, CompanySource.Curated, lastSeenAt ?? RunStart));
         await ctx.SaveChangesAsync();
         return companyId;
     }

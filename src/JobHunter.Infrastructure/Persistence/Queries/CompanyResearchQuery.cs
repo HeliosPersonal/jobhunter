@@ -1,5 +1,6 @@
 using Dapper;
 using JobHunter.Domain.Abstractions;
+using JobHunter.Domain.Companies;
 using JobHunter.Domain.Reporting;
 using JobHunter.Domain.Research;
 using JobHunter.Infrastructure.Persistence.Research;
@@ -22,13 +23,20 @@ namespace JobHunter.Infrastructure.Persistence.Queries;
 /// </summary>
 public sealed class CompanyResearchQuery(INpgsqlConnectionFactory connectionFactory) : ICompanyResearchQuery
 {
-    private const string CompanySql =
+    // Forgiving resolution (catalogue §Company): a row matches when the Owner's query equals its display name
+    // (case-insensitively), or canonicalises to its registrable domain, or is the bare registrable label that
+    // heads its domain. A WHERE-OR returns each row at most once however many clauses it satisfies, so a query
+    // that matches by both name and label still yields one candidate. Ordered most-recently-seen first so an
+    // ambiguity (a label two companies share) surfaces the freshest first.
+    private const string CandidatesSql =
         """
         SELECT id            AS CompanyId,
                display_name  AS DisplayName
         FROM companies
-        WHERE LOWER(display_name) = LOWER(@Name)
-        LIMIT 1
+        WHERE (@Name IS NOT NULL AND LOWER(display_name) = @Name)
+           OR (@Domain IS NOT NULL AND canonical_domain = @Domain)
+           OR (@Label IS NOT NULL AND split_part(canonical_domain, '.', 1) = @Label)
+        ORDER BY last_seen_at DESC, display_name
         """;
 
     private const string LatestDossierSql =
@@ -57,23 +65,36 @@ public sealed class CompanyResearchQuery(INpgsqlConnectionFactory connectionFact
         ORDER BY cl.is_warning DESC, cl.category
         """;
 
-    public async Task<CompanyResearchLookup?> ResolveByNameAsync(
-        string name, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CompanyResearchLookup>> ResolveCandidatesAsync(
+        string query, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(query);
+
+        // Three matchers, each nullable so a query that is not a domain simply skips the domain/label clauses:
+        // the lowercased name, the canonicalised registrable domain (when the query is a URL or domain), and the
+        // bare registrable label that heads it (so "stripe" matches "stripe.com").
+        var trimmed = query.Trim();
+        var domain = CanonicalDomain.TryCreate(trimmed).Match<string?>(d => d.Value, _ => null);
+        var label = domain is not null
+            ? domain[..domain.IndexOf('.', StringComparison.Ordinal)]
+            : (trimmed.Contains('.', StringComparison.Ordinal) ? null : trimmed.ToLowerInvariant());
 
         await using var connection = await connectionFactory.OpenAsync(cancellationToken);
 
-        var companyCommand = new CommandDefinition(
-            CompanySql, new { Name = name.Trim() }, cancellationToken: cancellationToken);
-        var company = await connection.QuerySingleOrDefaultAsync<CompanyRow>(companyCommand);
-        if (company is null)
+        var candidatesCommand = new CommandDefinition(
+            CandidatesSql,
+            new { Name = trimmed.ToLowerInvariant(), Domain = domain, Label = label },
+            cancellationToken: cancellationToken);
+        var rows = await connection.QueryAsync<CompanyRow>(candidatesCommand);
+
+        var lookups = new List<CompanyResearchLookup>();
+        foreach (var row in rows)
         {
-            return null;
+            var dossier = await LoadLatestDossierAsync(connection, row.CompanyId, cancellationToken);
+            lookups.Add(new CompanyResearchLookup(row.CompanyId, row.DisplayName, dossier));
         }
 
-        var dossier = await LoadLatestDossierAsync(connection, company.CompanyId, cancellationToken);
-        return new CompanyResearchLookup(company.CompanyId, company.DisplayName, dossier);
+        return lookups;
     }
 
     public async Task<ResearchDossierSnapshot?> LatestForCompanyAsync(

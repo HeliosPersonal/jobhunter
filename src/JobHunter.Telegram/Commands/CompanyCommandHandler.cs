@@ -7,30 +7,27 @@ using JobHunter.Telegram.Formatting;
 namespace JobHunter.Telegram.Commands;
 
 /// <summary>
-/// <c>/company &lt;name&gt;</c> (F8 T09, SAD §6.2, AC-05): the Owner asks about a company by name and gets one
-/// of three honest answers. If the company is not in the registry, the reply offers to add it rather than
-/// failing. If a fresh dossier exists, it is rendered through the shared <see cref="DossierFormatter"/> — the
-/// same layout the digest uses — with its age. If the dossier is stale or absent, a research request is
-/// queued for the next cycle and the reply acknowledges that it will be ready with tomorrow's digest.
+/// <c>/company &lt;name-or-domain&gt;</c> (catalogue §Company, AC-11): a <strong>read-only</strong> lookup that
+/// answers the Owner honestly in one of four ways. Resolution is forgiving — the display name (<c>Stripe</c>),
+/// the domain (<c>stripe.com</c>) and the bare label (<c>stripe</c>) all resolve through
+/// <see cref="ICompanyResearchQuery.ResolveCandidatesAsync"/>. If nothing matches, the reply offers to add the
+/// company rather than returning empty. If exactly one company matches, its dossier is rendered through the
+/// shared <see cref="DossierFormatter"/> with its age when fresh; when the dossier is stale or absent, the reply
+/// offers <c>/research</c> — this command never queues a write, because the queue is <c>/research</c>'s job
+/// (catalogue §Company · State ✎). If more than one company matches, the ambiguity is surfaced so the Owner can
+/// pick, never silently resolved to the first.
 ///
 /// <para>Freshness is judged with the domain <see cref="Freshness"/> policy against the injected
-/// <see cref="IClock"/>, so the stale/fresh boundary is deterministic and a volatile category (news, layoffs)
-/// pulls a refresh forward. The command runs no LLM — research is batched and cost-ceilinged, never inline
-/// (ADR-F10-0002) — and touches <strong>no CV</strong> (the CV crosses exactly one boundary, not this one).
-/// Every dynamic value reaches the message through the one MarkdownV2 escaper, so a hostile company name or a
-/// URL full of markup renders literally and can never break the send.</para>
+/// <see cref="IClock"/>, so the stale/fresh boundary is deterministic. The command runs no LLM and touches
+/// <strong>no CV</strong> (the CV crosses exactly one boundary, not this one). Every dynamic value reaches the
+/// message through the one MarkdownV2 escaper, so a hostile company name renders literally.</para>
 /// </summary>
 internal sealed class CompanyCommandHandler(
     ICompanyResearchQuery research,
-    IResearchRequestWriter requests,
     IClock clock,
     ILogger<CompanyCommandHandler> logger) : ICommandHandler
 {
-    /// <summary>The reason recorded on an on-demand request, so the queue drain can attribute it.</summary>
-    private const string OnDemandReason = "on-demand /company";
-
     private readonly ICompanyResearchQuery _research = research ?? throw new ArgumentNullException(nameof(research));
-    private readonly IResearchRequestWriter _requests = requests ?? throw new ArgumentNullException(nameof(requests));
     private readonly IClock _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     private readonly ILogger<CompanyCommandHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -39,31 +36,44 @@ internal sealed class CompanyCommandHandler(
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var name = request.Arguments?.Trim();
-        if (string.IsNullOrWhiteSpace(name))
+        var query = request.Arguments?.Trim();
+        if (string.IsNullOrWhiteSpace(query))
         {
-            return [Plain("Which company? Send /company followed by a name.")];
+            return [Plain("Which company? Send /company followed by a name or domain.")];
         }
 
-        var lookup = await _research.ResolveByNameAsync(name, cancellationToken).ConfigureAwait(false);
-        if (lookup is null)
+        var candidates = await _research.ResolveCandidatesAsync(query, cancellationToken).ConfigureAwait(false);
+        if (candidates.Count == 0)
         {
-            // Not in the registry — offer to add it rather than failing (SAD §6.2).
+            // Not in the registry — offer to add it rather than failing (AC-11).
             _logger.LogDebug("/company requested for an unknown company.");
-            return [Plain($"I don't have \"{name}\" in the registry yet. Add it and I'll research it.")];
+            return [Plain($"I don't have \"{query}\" in the registry yet. Add it and I'll research it.")];
         }
 
-        var dossier = lookup.LatestDossier;
-        if (dossier is not null && !IsStale(dossier, _clock.UtcNow))
+        if (candidates.Count > 1)
         {
-            // A fresh dossier — present it in the shared card layout with its age.
-            return [RenderedMessage.PlainText(DossierFormatter.Format(ToView(lookup.DisplayName, dossier)))];
+            // A genuine ambiguity: name each match so the Owner can pick, never resolve to the first silently.
+            _logger.LogDebug("/company matched more than one company; offering the choices.");
+            var lines = candidates.Select(c => $"• {c.DisplayName}");
+            return [Plain($"\"{query}\" matches more than one company:\n" + string.Join("\n", lines))];
         }
 
-        // Stale or absent — queue for the next cycle and acknowledge (AC-05).
-        await _requests.EnqueueAsync(lookup.CompanyId, OnDemandReason, cancellationToken).ConfigureAwait(false);
-        _logger.LogDebug("/company queued an on-demand research request.");
-        return [Plain($"Queued research on {lookup.DisplayName}. It'll be ready with tomorrow's digest.")];
+        var only = candidates[0];
+        var dossier = only.LatestDossier;
+        if (dossier is null)
+        {
+            // Known but never researched — read-only, so offer /research rather than queueing here.
+            return [Plain($"I know {only.DisplayName}, but haven't researched it yet. Send /research {only.DisplayName} to queue a dossier.")];
+        }
+
+        // Present the dossier in the shared card layout; when it is stale, append an offer to refresh.
+        var card = RenderedMessage.PlainText(DossierFormatter.Format(ToView(only.DisplayName, dossier)));
+        if (!IsStale(dossier, _clock.UtcNow))
+        {
+            return [card];
+        }
+
+        return [card, Plain($"This dossier is getting old. Send /research {only.DisplayName} to refresh it.")];
     }
 
     // A dossier is stale as soon as it is stale for any category it covered, so a volatile category (news,
