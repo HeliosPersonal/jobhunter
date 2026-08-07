@@ -167,6 +167,11 @@ public static class DependencyInjection
         // count, never extracted_text, so the CV crosses exactly one boundary (F4) and it is not this one.
         // Read-only Dapper.
         services.AddScoped<ICvStatusQuery, CvStatusQuery>();
+        // F10 /prefs (T08): the latest fit's metadata only — its signal count and whether it is active — so the
+        // command can say, below the evidence floor, how many more signals learning needs. It answers even when
+        // no model is active, which the write repository's active read cannot; it selects no weight and nothing
+        // CV-derived. Read-only Dapper.
+        services.AddScoped<IPreferenceStatusQuery, PreferenceStatusQuery>();
         // F7 /hidden (T08, done-when 6, risk D3): the latest Run's suppressed jobs with the reason each was
         // withheld, best-score first and capped, so suppression regret is measurable — a job the Owner would
         // have wanted, hidden then opened, is the signal the learned model over-suppressed (invariant 11).

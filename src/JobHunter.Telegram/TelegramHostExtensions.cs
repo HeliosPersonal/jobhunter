@@ -148,6 +148,10 @@ public static class TelegramHostExtensions
             new("/cv", "Your active CV: version, activation date and match count", new Commands.CvCommandHandler(
                 provider.GetRequiredService<ICvStatusQuery>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.CvCommandHandler>>())),
+            new("/prefs", "The preferences I've learned, each as one sentence", new Commands.PrefsCommandHandler(
+                provider.GetRequiredService<Application.Preferences.ActiveWeightsQuery>(),
+                provider.GetRequiredService<IPreferenceStatusQuery>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.PrefsCommandHandler>>())),
         };
 
         router = new Commands.CommandRouter(
