@@ -119,6 +119,9 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.PipelineCommandHandler>>())),
             new("/search", "Search live roles", new Commands.SearchCommandAdapter(
                 provider.GetRequiredService<Search.SearchCommandHandler>())),
+            new("/hidden", "What today's ranking suppressed, by reason", new Commands.HiddenCommandHandler(
+                provider.GetRequiredService<IHiddenJobsQuery>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.HiddenCommandHandler>>())),
         };
 
         router = new Commands.CommandRouter(
