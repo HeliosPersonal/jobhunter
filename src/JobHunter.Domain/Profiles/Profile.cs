@@ -123,6 +123,22 @@ public sealed class Profile : Entity
     /// </summary>
     public IReadOnlyList<string> TargetTitles => new ReadOnlyCollection<string>(_targetTitles);
 
+    /// <summary>
+    /// Sets the Owner's explicit salary floor (F10 <c>/floor</c>): the amount and its ISO-4217 currency, which
+    /// travel together and are validated exactly as the constructor validates them — a negative amount or a
+    /// malformed currency is a programmer error, not a business outcome, because the command has already parsed
+    /// and previewed the value before calling this. An explicit floor set here outranks any learned salary
+    /// weight (F4 AC-05), because the ranking projects it into an <c>ExplicitStance</c> the preference component
+    /// honours. Moves <see cref="UpdatedAt"/> to <paramref name="occurredAt"/> so the change is stamped.
+    /// </summary>
+    public void SetSalaryFloor(decimal amount, string currency, DateTimeOffset occurredAt)
+    {
+        var (floor, code) = NormaliseSalaryFloor(amount, currency);
+        SalaryFloor = floor;
+        SalaryFloorCurrency = code;
+        UpdatedAt = occurredAt;
+    }
+
     private static (decimal? Floor, string? Currency) NormaliseSalaryFloor(decimal? amount, string? currency)
     {
         var hasAmount = amount is not null;

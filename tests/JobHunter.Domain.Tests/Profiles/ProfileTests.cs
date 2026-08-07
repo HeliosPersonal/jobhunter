@@ -178,4 +178,54 @@ public sealed class ProfileTests
         // Unknown is the tolerant parser's sentinel, never a level the Owner would deliberately target.
         Should.Throw<ArgumentException>(() => NewProfile(desiredAiUsageFloor: AiUsageLevel.Unknown));
     }
+
+    // ---- F10 T08: /floor sets the explicit salary floor on the Profile ----
+
+    [Fact]
+    public void Setting_the_salary_floor_records_the_amount_currency_and_touch_time()
+    {
+        var profile = NewProfile();
+        var when = new DateTimeOffset(2026, 8, 7, 9, 0, 0, TimeSpan.Zero);
+
+        profile.SetSalaryFloor(120000m, "eur", when);
+
+        profile.SalaryFloor.ShouldBe(120000m);
+        profile.SalaryFloorCurrency.ShouldBe("EUR");
+        profile.UpdatedAt.ShouldBe(when);
+    }
+
+    [Fact]
+    public void Setting_the_salary_floor_overwrites_a_previous_one()
+    {
+        var profile = NewProfile(salaryFloor: 90000m, salaryFloorCurrency: "USD");
+
+        profile.SetSalaryFloor(150000m, "USD", DateTimeOffset.UtcNow);
+
+        profile.SalaryFloor.ShouldBe(150000m);
+        profile.SalaryFloorCurrency.ShouldBe("USD");
+    }
+
+    [Fact]
+    public void A_negative_floor_amount_is_rejected_by_the_mutator()
+    {
+        var profile = NewProfile();
+
+        Should.Throw<ArgumentOutOfRangeException>(() => profile.SetSalaryFloor(-1m, "EUR", DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
+    public void A_blank_floor_currency_is_rejected_by_the_mutator()
+    {
+        var profile = NewProfile();
+
+        Should.Throw<ArgumentException>(() => profile.SetSalaryFloor(120000m, "  ", DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
+    public void A_malformed_floor_currency_is_rejected_by_the_mutator()
+    {
+        var profile = NewProfile();
+
+        Should.Throw<ArgumentException>(() => profile.SetSalaryFloor(120000m, "EU", DateTimeOffset.UtcNow));
+    }
 }
