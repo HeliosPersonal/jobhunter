@@ -57,4 +57,36 @@ public sealed class SalaryBandTests
         // A monthly or hourly figure banded on the annual scale would be a lie; leave it unbanded.
         SalaryBand.Of(Usd(150_000, 180_000, period)).ShouldBeNull();
     }
+
+    // ---- F10 T08: the USD bands wholly below an explicit salary floor (the /floor override, AC-05) ----
+
+    [Fact]
+    public void The_bands_wholly_below_a_floor_are_every_band_whose_top_does_not_exceed_it()
+    {
+        // A floor of 150k USD: the 120-150k band's top just reaches the floor (a job there does not clear it),
+        // so it is wholly below; the 150-180k band's top exceeds it, so it is not. Mirrors the suppression rule.
+        SalaryBand.BandsWhollyBelow(150_000m)
+            .ShouldBe(["0-30k", "30-60k", "60-90k", "90-120k", "120-150k"]);
+    }
+
+    [Fact]
+    public void A_floor_on_a_band_boundary_includes_that_band_and_excludes_the_next()
+    {
+        // 90k floor: the 60-90k band's top is exactly the floor (wholly below); 90-120k opens above it.
+        SalaryBand.BandsWhollyBelow(90_000m).ShouldBe(["0-30k", "30-60k", "60-90k"]);
+    }
+
+    [Fact]
+    public void A_floor_below_the_first_band_top_leaves_no_band_wholly_below_it()
+    {
+        // Nothing sits wholly below a 20k floor — even the first band's top (30k) exceeds it.
+        SalaryBand.BandsWhollyBelow(20_000m).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void A_zero_or_negative_floor_has_no_bands_below_it()
+    {
+        SalaryBand.BandsWhollyBelow(0m).ShouldBeEmpty();
+        SalaryBand.BandsWhollyBelow(-1m).ShouldBeEmpty();
+    }
 }

@@ -90,8 +90,12 @@ public sealed class PreferenceModelQuery(
     /// Projects the active Profile's <em>explicit</em> preferences into the learner's <c>(dimension, value)</c>
     /// vocabulary so they can override contradicting learned weights (AC-05): the preferred countries are
     /// positive <see cref="Dimension.Country"/> stances, the accepted employment types positive
-    /// <see cref="Dimension.EmploymentType"/> stances. No Profile means no explicit stances — the learned
-    /// weights stand on their own.
+    /// <see cref="Dimension.EmploymentType"/> stances, and an explicit salary floor a <em>negative</em>
+    /// <see cref="Dimension.SalaryBand"/> stance on every band wholly below it — so an explicit floor outranks any
+    /// learned positive weight on a below-floor band (F10 <c>/floor</c>, AC-05). The floor is projected only when
+    /// it is USD, because the learner's salary bands are USD-only and a non-USD floor cannot honestly name one;
+    /// this mirrors <see cref="SalaryBand.Of"/> refusing to fabricate an FX rate. No Profile means no explicit
+    /// stances — the learned weights stand on their own.
     /// </summary>
     private static List<ExplicitStance> ExplicitStancesOf(Profile? profile)
     {
@@ -109,6 +113,15 @@ public sealed class PreferenceModelQuery(
         foreach (var employmentType in profile.EmploymentTypes)
         {
             stances.Add(new ExplicitStance(Dimension.EmploymentType, employmentType.ToString(), IsPositive: true));
+        }
+
+        if (profile.SalaryFloor is { } floor
+            && string.Equals(profile.SalaryFloorCurrency, "USD", StringComparison.Ordinal))
+        {
+            foreach (var band in SalaryBand.BandsWhollyBelow(floor))
+            {
+                stances.Add(new ExplicitStance(Dimension.SalaryBand, band, IsPositive: false));
+            }
         }
 
         return stances;

@@ -125,10 +125,64 @@ public sealed class PreferenceModelQueryTests
         result!.ComponentByJob.ShouldContainKeyAndValue(KafkaJob, 0.5m);
     }
 
+    [Fact]
+    public async Task An_explicit_salary_floor_overrides_a_learned_positive_weight_on_a_below_floor_band()
+    {
+        // The model learned to reward the 90-120k band; the Owner then set a 150k USD floor. Every band wholly
+        // below the floor becomes a negative explicit stance, so that learned positive pull is dropped (AC-05).
+        _models.FindActiveAsync(Arg.Any<CancellationToken>())
+            .Returns(ActiveModel(Weight(Dimension.SalaryBand, "90-120k", 0.6m)));
+        _profiles.FindActiveAsync(Arg.Any<CancellationToken>()).Returns(ProfileWithFloor(150_000m, "USD"));
+        FactsFor(KafkaJob, Dimension.SalaryBand, "90-120k");
+
+        var result = await CreateQuery().FindActiveAsync([KafkaJob], CancellationToken.None);
+
+        // The learned reward is overridden: the component maps to the neutral midpoint, no positive pull survives.
+        result!.ComponentByJob.ShouldContainKeyAndValue(KafkaJob, 0.5m);
+    }
+
+    [Fact]
+    public async Task A_learned_weight_on_a_band_above_the_floor_is_untouched()
+    {
+        // The floor speaks only to bands wholly below it; a learned weight on the 150-180k band clears the 150k
+        // floor and stands. Guards against an over-broad projection swallowing legitimate weights.
+        _models.FindActiveAsync(Arg.Any<CancellationToken>())
+            .Returns(ActiveModel(Weight(Dimension.SalaryBand, "150-180k", 0.6m)));
+        _profiles.FindActiveAsync(Arg.Any<CancellationToken>()).Returns(ProfileWithFloor(150_000m, "USD"));
+        FactsFor(KafkaJob, Dimension.SalaryBand, "150-180k");
+
+        var result = await CreateQuery().FindActiveAsync([KafkaJob], CancellationToken.None);
+
+        // The positive pull survives: 0.5 + 0.6*0.5 = 0.8.
+        result!.ComponentByJob.ShouldContainKeyAndValue(KafkaJob, 0.8m);
+    }
+
+    [Fact]
+    public async Task A_non_usd_floor_projects_no_salary_band_stance()
+    {
+        // The learned bands are USD-only, so a EUR floor cannot honestly name one — it overrides nothing, exactly
+        // as the band itself refuses to fabricate an FX rate. The learned reward stands.
+        _models.FindActiveAsync(Arg.Any<CancellationToken>())
+            .Returns(ActiveModel(Weight(Dimension.SalaryBand, "90-120k", 0.6m)));
+        _profiles.FindActiveAsync(Arg.Any<CancellationToken>()).Returns(ProfileWithFloor(150_000m, "EUR"));
+        FactsFor(KafkaJob, Dimension.SalaryBand, "90-120k");
+
+        var result = await CreateQuery().FindActiveAsync([KafkaJob], CancellationToken.None);
+
+        result!.ComponentByJob.ShouldContainKeyAndValue(KafkaJob, 0.8m);
+    }
+
     private static Profile ProfileWithCountry(string country) =>
         new(
             Guid.CreateVersion7(), isActive: true, displayName: "Owner",
             salaryFloor: null, salaryFloorCurrency: null, timezoneBand: TimezoneBand.EMEA,
             preferredCountries: [country], employmentTypes: [EmploymentType.FullTime],
+            updatedAt: DateTimeOffset.UnixEpoch);
+
+    private static Profile ProfileWithFloor(decimal amount, string currency) =>
+        new(
+            Guid.CreateVersion7(), isActive: true, displayName: "Owner",
+            salaryFloor: amount, salaryFloorCurrency: currency, timezoneBand: TimezoneBand.EMEA,
+            preferredCountries: [], employmentTypes: [EmploymentType.FullTime],
             updatedAt: DateTimeOffset.UnixEpoch);
 }

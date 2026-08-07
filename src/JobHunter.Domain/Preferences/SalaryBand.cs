@@ -40,9 +40,36 @@ public static class SalaryBand
 
         var midpoint = (salary.Min + salary.Max) / 2m;
         var index = (int)Math.Floor(midpoint / BandWidth);
+        return Label(index);
+    }
+
+    /// <summary>
+    /// The <see cref="Dimension.SalaryBand"/> labels that sit <strong>wholly below</strong> a USD annual floor of
+    /// <paramref name="floorUsd"/> — every band whose ceiling does not exceed the floor — in ascending order. This
+    /// is the floor spoken in the learner's vocabulary: F10's <c>/floor</c> projects a negative stance on each of
+    /// these bands so an explicit floor outranks any learned <em>positive</em> weight on a below-floor band (F4
+    /// AC-05). It is defined only in the learner's USD grid, exactly as <see cref="Of"/> bands only USD, because a
+    /// non-USD floor cannot honestly name a USD band; a zero or negative floor has nothing below it. Pure.
+    /// </summary>
+    public static IReadOnlyList<string> BandsWhollyBelow(decimal floorUsd)
+    {
+        var bands = new List<string>();
+
+        // Band i spans [i·30k, (i+1)·30k); its ceiling is (i+1)·30k. A band is wholly below the floor when that
+        // ceiling does not exceed it, so the whole band tops out at or beneath the floor line.
+        for (var index = 0; (index + 1) * BandWidth <= floorUsd; index++)
+        {
+            bands.Add(Label(index));
+        }
+
+        return bands;
+    }
+
+    // The label for band index i on the fixed 30k-wide, thousands-scaled grid, e.g. i=5 -> "150-180k".
+    private static string Label(int index)
+    {
         var lowThousands = index * (int)(BandWidth / 1_000m);
         var highThousands = (index + 1) * (int)(BandWidth / 1_000m);
-
         return string.Create(CultureInfo.InvariantCulture, $"{lowThousands}-{highThousands}k");
     }
 }
