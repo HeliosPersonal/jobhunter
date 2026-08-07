@@ -21,3 +21,30 @@ data improves ranking rather than only the dossier.
 ## Links
 
 [[../sad]] §6.1 · [[../data-model]]
+
+## Implementation
+
+The orchestration flow is split into a deterministic core and the thin transactional edge that will wire it
+onto the bus, the same shape as T05 and T07 — the pure pieces are unit-tested to the boundaries here, and the
+`RankingCompleted` handler, the synthesis batch submit/poll and the Dapper candidate projection land with the
+Worker wiring (they need a database and the F3/F4 batch machinery, which is where the integration suite lives).
+
+- **Firmographics on the record (AC-10).** `record_research` was reopened to emit an optional `stage`
+  (enum from `CompanyStage`) and `employeeBand` (bounded string), and `PromptVersion` bumped to `research-v2`;
+  the system prompt classifies both strictly from the fetched text, omitting either when there is no evidence
+  (never from memory). `Company.ApplyFirmographics(stage, band, observedAt)` is the whitelisted cross-owner
+  write: it lands only when the observation is strictly newer than the one already recorded, so a disagreement
+  resolves to the newer observation and a re-run of an older dossier never overwrites a fresher classification.
+  A new nullable `companies.firmographics_observed_at` column arbitrates that comparison.
+- **The dossier assembler.** `ResearchDossierAssembler.Assemble(ResearchDossierInput)` is a pure function of
+  what the fetchers found and what the synthesiser returned. Every fetched document becomes a `ResearchSource`
+  *before* verification, so "did the model invent this" is a set-membership check (QG-1); the claims go
+  through the T07 `ClaimVerifier`, the survivors become `ResearchClaim`s resting on their source, the rest are
+  counted as discarded. Every category with no *surviving* claim — including one whose only claim was
+  discarded — is recorded as unavailable (AC-07). Warnings-first ordering and "every claim rests on a recorded
+  source" are the aggregate's own invariants, so the assembler only ever feeds it verified material.
+- **Feedback out.** `ResearchFeedback.ApplyFirmographics` applies the synthesis's firmographics to the company
+  at the dossier's generation instant, and `ResearchFeedback.CompletedEvent` mints `ResearchCompleted`
+  (`RunId`, `CompanyId`, `ResearchId`, verified `ClaimCount`) — published once per dossier, idempotency key
+  `(company_id, run_id)`, which the one-dossier-per-pair constraint makes uncollidable. An empty dossier still
+  completes with a zero count so the digest is never left in silence.
