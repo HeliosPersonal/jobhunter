@@ -168,6 +168,11 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<IDegradedCoverageQuery>(),
                 provider.GetRequiredService<IClock>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.StatusCommandHandler>>())),
+            new("/sources", "Per-provider fetch health and quarantined sources", new Commands.SourcesCommandHandler(
+                provider.GetRequiredService<ISourceHealthQuery>(),
+                provider.GetRequiredService<IDegradedCoverageQuery>(),
+                provider.GetRequiredService<IClock>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.SourcesCommandHandler>>())),
         };
 
         router = new Commands.CommandRouter(
