@@ -186,6 +186,40 @@ public sealed class CvLeakageScanTests
         ScanForSentinels(collected).ShouldBeEmpty("an exception message or stack trace must carry no CV sentinel.");
     }
 
+    // ---- the /cv command's read port never reads the CV's content (F10 T08) -----------------------------
+
+    [RequiresDockerFact]
+    public async Task The_cv_status_read_port_reports_metadata_only_and_carries_no_sentinel()
+    {
+        // /cv answers version, activation date and match count from ICvStatusQuery. Seed the active CV with the
+        // sentinel-laden fixture as its extracted text, run the query, and scan everything it returns: the read
+        // port must select version, activated_at and a count — never extracted_text — so no sentinel appears.
+        await using var db = await TestDatabase.CreateAsync();
+        var activatedAt = new DateTimeOffset(2026, 7, 20, 9, 0, 0, TimeSpan.Zero);
+
+        await using (var ctx = db.CreateContext())
+        {
+            var profileId = Guid.CreateVersion7();
+            ctx.Add(new Profile(
+                profileId, isActive: true, "Owner", salaryFloor: null, salaryFloorCurrency: null,
+                TimezoneBand.EMEA, ["Portugal"], [EmploymentType.FullTime], Now));
+            ctx.Add(new CvVersion(
+                Guid.CreateVersion7(), profileId, version: 3, isActive: true, "cv.pdf", "application/pdf",
+                sizeBytes: 4096, new string('a', 64), LoadSentinelCv(), Now, activatedAt));
+            await ctx.SaveChangesAsync();
+        }
+
+        var status = await new CvStatusQuery(new NpgsqlConnectionFactory(db.ConnectionString)).ActiveAsync();
+
+        status.ShouldNotBeNull();
+        status.Version.ShouldBe((short)3);
+        status.ActivatedAt.ShouldBe(activatedAt);
+
+        // Everything the port returned, scanned as one artifact — the CV crosses exactly one boundary, not this one.
+        ScanForSentinels([("cv_status", JsonSerializer.Serialize(status))]).ShouldBeEmpty(
+            "the /cv read port must carry no CV content — it reads metadata only.");
+    }
+
     // ---- the scanner: the one place a hit is decided, no allowlist ---------------------------------------
 
     /// <summary>

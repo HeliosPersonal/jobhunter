@@ -145,6 +145,9 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<IResearchRequestWriter>(),
                 provider.GetRequiredService<IClock>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.ResearchCommandHandler>>())),
+            new("/cv", "Your active CV: version, activation date and match count", new Commands.CvCommandHandler(
+                provider.GetRequiredService<ICvStatusQuery>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.CvCommandHandler>>())),
         };
 
         router = new Commands.CommandRouter(
