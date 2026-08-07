@@ -2,7 +2,7 @@
 status: Draft
 owner: "Viacheslav Melnichenko"
 reviewers: ["Tech Lead (Viacheslav)"]
-updated_at: "2026-08-02"
+updated_at: "2026-08-07"
 feature_size: "M"
 stage: "13"
 ticket: ""
@@ -26,7 +26,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T05 | [[T05-confirmation-flow\|Confirmation flow for state-changing commands]] | app/telegram | T04 | M | done |
 | T06 | [[T06-digest-discovery-commands\|Digest and discovery commands]] | telegram | T05 | M | done |
 | T07 | [[T07-pipeline-company-commands\|Pipeline and company commands]] | telegram | T05 | M | done |
-| T08 | [[T08-preference-commands\|Profile and preference commands]] | telegram | T05 | M | pending |
+| T08 | [[T08-preference-commands\|Profile and preference commands]] | telegram | T05 | M | done |
 | T09 | [[T09-ops-commands\|Operations commands]] | telegram | T05 | M | pending |
 | T10 | [[T10-menu-help-conformance\|Menu sync, help, suggestions and conformance suite]] | telegram/tests | T06, T07, T08, T09 | L | pending |
 
