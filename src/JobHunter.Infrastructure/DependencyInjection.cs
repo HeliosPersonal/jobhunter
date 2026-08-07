@@ -153,6 +153,10 @@ public static class DependencyInjection
         // have wanted, hidden then opened, is the signal the learned model over-suppressed (invariant 11).
         // Read-only Dapper.
         services.AddScoped<IHiddenJobsQuery, HiddenJobsQuery>();
+        // F7 precision@10 (T09, done-when 4, AC-08): the before-and-after series that answers whether learning
+        // was worth building — each Run's shown top-ten hit rate, bucketed on whether its scores carried a
+        // learned model. Read-only Dapper.
+        services.AddScoped<IPrecisionAtTenQuery, PrecisionAtTenQuery>();
         // F5 digest rendering (T12): the display facts a card shows — the job's title, company, stage,
         // location, apply URL and published salary, plus its most recent enrichment estimate for the (est)
         // fallback — joined per job id at render time (the card snapshots only score and reasons). Read-only
