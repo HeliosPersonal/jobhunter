@@ -130,6 +130,14 @@ public static class DependencyInjection
         // component. Scoped, not singleton like the null default it replaces, because it composes the scoped
         // model and profile repositories and the facts snapshot query; it still answers "no active model" as a
         // null result, so ranking renormalises the preference weight away until a model is actually activated.
+        // F7 T07 (AC-07): the Owner's master learning switch. Bound and validated at startup; when off, the
+        // query above returns null without loading the model and the digest states learning is off — a
+        // wholesale silence of a bad week's inference that deletes no signal.
+        services.AddOptions<Preferences.LearningOptions>()
+            .BindConfiguration(Preferences.LearningOptions.SectionName)
+            .ValidateOnStart();
+        services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Preferences.LearningOptions>>().Value);
         services.AddScoped<IPreferenceModelQuery, Preferences.PreferenceModelQuery>();
 
         // F4 pre-match filter (T12, ADR-F4-0003): the factual gate the matching submit handler applies before

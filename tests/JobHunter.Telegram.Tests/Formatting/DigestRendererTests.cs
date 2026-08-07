@@ -130,6 +130,25 @@ public sealed class DigestRendererTests
         messages.ShouldNotContain(m => m.Key.Value == CardKey.For(RunId, JobB).Value);
     }
 
+    [Fact]
+    public async Task Learning_off_surfaces_a_footer_stating_so_even_on_an_otherwise_clean_day()
+    {
+        // AC-07 end-to-end: a digest assembled while learning was off renders a footer that says so, even
+        // though nothing was hidden, carried over or degraded — the Owner is told the ordering was explicit.
+        var digest = BuildDigest(
+            mode: DigestMode.Full, suppressedCount: 0, breakdown: [],
+            cards: [Card(JobA, rank: 1, score: 90m)], learningEnabled: false);
+        var facts = new FakeCardDisplayQuery(new Dictionary<Guid, CardDisplayFacts>
+        {
+            [JobA] = Facts(JobA, "Staff SRE", publishedMin: 150_000, publishedMax: 180_000),
+        });
+
+        var messages = await NewRenderer(facts).RenderAsync(digest);
+
+        var footer = messages.Single(m => m.Key.Value == CardKey.FooterValue);
+        footer.Message.Text.ShouldContain("learning is off");
+    }
+
     private static DigestRenderer NewRenderer(ICardDisplayQuery facts) =>
         new(facts, new CallbackDataCodec(TestOptions()));
 
@@ -137,7 +156,8 @@ public sealed class DigestRendererTests
         Options.Create(new TelegramOptions { BotToken = "test-token", AllowedChatIds = [42] });
 
     private static Digest BuildDigest(
-        DigestMode mode, int suppressedCount, IReadOnlyList<SuppressionTally> breakdown, IReadOnlyList<DigestCard> cards)
+        DigestMode mode, int suppressedCount, IReadOnlyList<SuppressionTally> breakdown, IReadOnlyList<DigestCard> cards,
+        bool learningEnabled = true)
     {
         var digestId = Guid.Parse("44444444-4444-4444-4444-444444444444");
         var boundCards = cards.Select(c => new DigestCard(
@@ -147,7 +167,7 @@ public sealed class DigestRendererTests
             digestId, RunId, mode, totalNewJobs: 10, strongMatches: cards.Count, avgSalaryUsd: 185_000m,
             suppressedCount, breakdown, carriedOverCount: 0, companiesChecked: 5, analysedCount: 10,
             degradedSources: [], narrative: null, NarrativeSource.Template, promptVersion: null,
-            boundCards, GeneratedAt);
+            boundCards, GeneratedAt, restoredCount: 0, learningEnabled: learningEnabled);
     }
 
     private static DigestCard Card(Guid jobId, int rank, decimal score) =>

@@ -27,11 +27,13 @@ public sealed class PreferenceModelQuery(
     IPreferenceModelRepository models,
     IProfileRepository profiles,
     IJobFactsSnapshotQuery facts,
+    LearningOptions learning,
     ILogger<PreferenceModelQuery> logger) : IPreferenceModelQuery
 {
     private readonly IPreferenceModelRepository _models = models ?? throw new ArgumentNullException(nameof(models));
     private readonly IProfileRepository _profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
     private readonly IJobFactsSnapshotQuery _facts = facts ?? throw new ArgumentNullException(nameof(facts));
+    private readonly LearningOptions _learning = learning ?? throw new ArgumentNullException(nameof(learning));
     private readonly ILogger<PreferenceModelQuery> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public async Task<ActivePreference?> FindActiveAsync(
@@ -39,6 +41,14 @@ public sealed class PreferenceModelQuery(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(jobIds);
+
+        if (!_learning.Enabled)
+        {
+            // Learning is switched off entirely (AC-07): do not even load the model. Ranking renormalises the
+            // preference weight away and orders on match, freshness and explicit Profile preferences alone,
+            // exactly as if no model had been fitted. The signals survive for when it is turned back on.
+            return null;
+        }
 
         var model = await _models.FindActiveAsync(cancellationToken).ConfigureAwait(false);
         if (model is null)

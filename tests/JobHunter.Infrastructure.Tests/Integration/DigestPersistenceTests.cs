@@ -82,6 +82,27 @@ public sealed class DigestPersistenceTests
         loaded.Cards.Select(c => c.Rank).ShouldBe([1]);
         loaded.Cards[0].Reasons.ShouldHaveSingleItem();
         loaded.Cards[0].Key.Value.ShouldBe(CardKey.For(seed.RunId, seed.JobId).Value);
+        // Learning was on when this digest was assembled (the default); it round-trips as such (AC-07).
+        loaded.LearningEnabled.ShouldBeTrue();
+    }
+
+    [RequiresDockerFact]
+    public async Task A_learning_off_digest_persists_that_state_for_replay()
+    {
+        // AC-07: a digest assembled while learning was off keeps saying so on a later re-render — the state
+        // is frozen in the column (S2), not re-derived from the live switch at send time.
+        var seed = await SeedAsync();
+        await using var _ = seed.Database;
+
+        var repo = new DigestRepository(seed.Database.CreateContext());
+        repo.Add(seed.NewDigest(learningEnabled: false));
+        await repo.SaveChangesAsync();
+
+        var read = new DigestRepository(seed.Database.CreateContext());
+        var loaded = await read.FindByRunAsync(seed.RunId);
+
+        loaded.ShouldNotBeNull();
+        loaded.LearningEnabled.ShouldBeFalse();
     }
 
     [RequiresDockerFact]
@@ -268,7 +289,7 @@ public sealed class DigestPersistenceTests
 
     private sealed record Seed(TestDatabase Database, Guid JobId, Guid RunId, long ChatId)
     {
-        public Digest NewDigest(IReadOnlyList<Guid>? groupedJobIds = null)
+        public Digest NewDigest(IReadOnlyList<Guid>? groupedJobIds = null, bool learningEnabled = true)
         {
             var digestId = Guid.CreateVersion7();
             var card = new DigestCard(
@@ -285,7 +306,8 @@ public sealed class DigestPersistenceTests
                 ],
                 carriedOverCount: 0, companiesChecked: 0, analysedCount: 0, degradedSources: ["greenhouse:flaky"],
                 narrative: "A quiet day with one strong lead.", NarrativeSource.Model,
-                promptVersion: "digest-v1", cards: [card], generatedAt: Now);
+                promptVersion: "digest-v1", cards: [card], generatedAt: Now, restoredCount: 0,
+                learningEnabled: learningEnabled);
         }
 
         public DeliveryRecord NewDelivery() =>

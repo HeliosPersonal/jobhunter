@@ -51,6 +51,7 @@ public sealed class DigestAssembler(
     IIdGenerator ids,
     DigestOptions options,
     ApplyVerificationOptions applyVerification,
+    Preferences.LearningOptions learning,
     IClock clock,
     ILogger<DigestAssembler> logger)
 {
@@ -68,6 +69,7 @@ public sealed class DigestAssembler(
     private readonly DigestOptions _options = options ?? throw new ArgumentNullException(nameof(options));
     private readonly ApplyVerificationOptions _applyVerification = applyVerification
         ?? throw new ArgumentNullException(nameof(applyVerification));
+    private readonly Preferences.LearningOptions _learning = learning ?? throw new ArgumentNullException(nameof(learning));
     private readonly IClock _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     private readonly ILogger<DigestAssembler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -343,7 +345,8 @@ public sealed class DigestAssembler(
             narrative.PromptVersion,
             cards,
             _clock.UtcNow,
-            restoredCount);
+            restoredCount,
+            _learning.Enabled);
     }
 
     /// <summary>One selected candidate paired with the verdict of its apply-link probe.</summary>

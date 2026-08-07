@@ -88,6 +88,28 @@ public sealed class DigestFooterFormatterTests
     }
 
     [Fact]
+    public void Learning_off_states_so_even_on_an_otherwise_empty_footer()
+    {
+        // AC-07: when learning is switched off, the daily summary must say so — so the footer renders even
+        // when it would otherwise be silent (nothing hidden, nothing degraded, nothing carried over).
+        var footer = new FooterView(0, [], 0, [], LearningEnabled: false);
+
+        var rendered = DigestFooterFormatter.Format(footer);
+
+        rendered.ShouldNotBeNull();
+        rendered.ShouldContain("learning is off");
+    }
+
+    [Fact]
+    public void Learning_on_adds_no_learning_line()
+    {
+        var rendered = DigestFooterFormatter.Format(Full());
+
+        rendered.ShouldNotBeNull();
+        rendered.ShouldNotContain("learning is off");
+    }
+
+    [Fact]
     public void Format_rejects_a_null_footer() =>
         Should.Throw<ArgumentNullException>(() => DigestFooterFormatter.Format(null!));
 

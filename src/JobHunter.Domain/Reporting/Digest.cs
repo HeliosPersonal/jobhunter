@@ -39,7 +39,8 @@ public sealed class Digest : Entity
         string? promptVersion,
         IReadOnlyList<DigestCard> cards,
         DateTimeOffset generatedAt,
-        int restoredCount = 0)
+        int restoredCount = 0,
+        bool learningEnabled = true)
         : base(id)
     {
         if (runId == Guid.Empty)
@@ -139,6 +140,7 @@ public sealed class Digest : Entity
         PromptVersion = string.IsNullOrWhiteSpace(promptVersion) ? null : promptVersion.Trim();
         GeneratedAt = generatedAt;
         RestoredCount = restoredCount;
+        LearningEnabled = learningEnabled;
     }
 
     private Digest()
@@ -189,6 +191,14 @@ public sealed class Digest : Entity
     /// re-scoring.
     /// </summary>
     public int RestoredCount { get; private set; }
+
+    /// <summary>
+    /// Whether preference learning was on when this digest was assembled (F7 AC-07, <see cref="!:LearningOptions"/>).
+    /// Frozen here so the rendered footer states "learning is off" from stored state rather than re-deriving it at
+    /// send time (SAD §4 S2) — a digest assembled while learning was off keeps saying so even if the switch is
+    /// flipped back on before the Owner opens it. On by default: the feature earns its keep by being on.
+    /// </summary>
+    public bool LearningEnabled { get; private set; } = true;
 
     /// <summary>The market note; null for an empty digest with nothing to say.</summary>
     public string? Narrative { get; private set; }

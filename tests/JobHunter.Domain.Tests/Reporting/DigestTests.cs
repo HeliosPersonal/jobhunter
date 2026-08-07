@@ -39,7 +39,8 @@ public sealed class DigestTests
         NarrativeSource narrativeSource = NarrativeSource.Model,
         string? promptVersion = "digest-v1",
         IReadOnlyList<DigestCard>? cards = null,
-        int restoredCount = 0)
+        int restoredCount = 0,
+        bool learningEnabled = true)
     {
         var clock = new FakeClock();
         return new Digest(
@@ -60,7 +61,8 @@ public sealed class DigestTests
             promptVersion,
             cards ?? [],
             clock.UtcNow,
-            restoredCount);
+            restoredCount,
+            learningEnabled);
     }
 
     [Fact]
@@ -265,5 +267,14 @@ public sealed class DigestTests
     public void A_negative_restored_count_is_rejected()
     {
         Should.Throw<ArgumentOutOfRangeException>(() => NewDigest(restoredCount: -1));
+    }
+
+    [Fact]
+    public void Learning_enabled_defaults_to_true_and_is_exposed()
+    {
+        // AC-07: the digest freezes whether learning was on when it was assembled (S2 replay), so the
+        // rendered footer can say "learning is off" without re-deriving it at send time. On by default.
+        NewDigest().LearningEnabled.ShouldBeTrue();
+        NewDigest(learningEnabled: false).LearningEnabled.ShouldBeFalse();
     }
 }

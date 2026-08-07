@@ -1,3 +1,4 @@
+using JobHunter.Application.Preferences;
 using JobHunter.Application.Reporting;
 using JobHunter.Contracts.Pipeline;
 using JobHunter.Domain.Abstractions;
@@ -85,9 +86,9 @@ public sealed class DigestAssemblerTests
 #pragma warning restore CA2012
     }
 
-    private DigestAssembler CreateHandler(DigestOptions? options = null) =>
+    private DigestAssembler CreateHandler(DigestOptions? options = null, LearningOptions? learning = null) =>
         new(_runs, _scope, _degraded, _activeCompanies, _digests, _verifier, _narrative, _ids,
-            options ?? new DigestOptions(), new ApplyVerificationOptions(), _clock,
+            options ?? new DigestOptions(), new ApplyVerificationOptions(), learning ?? new LearningOptions(), _clock,
             NullLogger<DigestAssembler>.Instance);
 
     private static Run RankingCompletedRun(int jobsInScope = 20, int carriedOver = 0)
@@ -375,6 +376,33 @@ public sealed class DigestAssemblerTests
         var digest = _digests.Saved.ShouldHaveSingleItem();
         digest.Cards.Count.ShouldBe(2);
         digest.RestoredCount.ShouldBe(1);
+    }
+
+    // ---- T07 AC-07: the digest freezes whether learning was on at assembly --------------------
+
+    [Fact]
+    public async Task Learning_on_by_default_is_frozen_onto_the_digest()
+    {
+        GivenRun(RankingCompletedRun());
+        GivenCandidates(Shown(Guid.CreateVersion7(), 90m));
+
+        await CreateHandler().Handle(Message(), _bus, CancellationToken.None);
+
+        _digests.Saved.ShouldHaveSingleItem().LearningEnabled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Learning_disabled_is_frozen_onto_the_digest_so_the_footer_can_say_so()
+    {
+        // AC-07: when learning is switched off, the digest records it (S2), so a later re-render states
+        // "learning is off" from stored state rather than re-reading the switch at send time.
+        GivenRun(RankingCompletedRun());
+        GivenCandidates(Shown(Guid.CreateVersion7(), 90m));
+
+        await CreateHandler(learning: new LearningOptions { Enabled = false })
+            .Handle(Message(), _bus, CancellationToken.None);
+
+        _digests.Saved.ShouldHaveSingleItem().LearningEnabled.ShouldBeFalse();
     }
 
     // ---- header counts ------------------------------------------------------------------------

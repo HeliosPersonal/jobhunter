@@ -45,6 +45,12 @@ internal static class DigestFooterFormatter
             lines.Add("⚠️ " + MarkdownV2Escaper.Escape($"1 source degraded: {source.Trim()} (quarantined)"));
         }
 
+        if (!footer.LearningEnabled)
+        {
+            // AC-07: the daily summary states the ordering was shaped by explicit preferences alone.
+            lines.Add(MarkdownV2Escaper.Escape("Preference learning is off — ranked on explicit preferences only"));
+        }
+
         return string.Join("\n", lines);
     }
 

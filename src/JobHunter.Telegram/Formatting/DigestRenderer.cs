@@ -127,7 +127,8 @@ internal sealed class DigestRenderer(ICardDisplayQuery facts, CallbackDataCodec 
             digest.SuppressedCount,
             digest.SuppressionBreakdown.Select(t => new FooterTally(t.Count, t.Reason)).ToList(),
             digest.CarriedOverCount,
-            digest.DegradedSources);
+            digest.DegradedSources,
+            digest.LearningEnabled);
 
     // The single best opportunity promoted into a full header: the rank-1 card, joined to its display facts.
     // Only a full digest with a resolvable top card gets one; the other modes render no opportunity line.
