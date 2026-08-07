@@ -177,6 +177,11 @@ public static class DependencyInjection
         // have wanted, hidden then opened, is the signal the learned model over-suppressed (invariant 11).
         // Read-only Dapper.
         services.AddScoped<IHiddenJobsQuery, HiddenJobsQuery>();
+        // F10 /floor preview (T08, catalogue §Profile): before the explicit salary floor is written, count how
+        // many of the latest Run's shown jobs the change would have affected — the same wholly-below,
+        // high-confidence, same-currency rule the ranking's suppression applies, so the preview cannot promise a
+        // different outcome than the Run. Read-only Dapper.
+        services.AddScoped<ISalaryFloorPreviewQuery, SalaryFloorPreviewQuery>();
         // F7 precision@10 (T09, done-when 4, AC-08): the before-and-after series that answers whether learning
         // was worth building — each Run's shown top-ten hit rate, bucketed on whether its scores carried a
         // learned model. Read-only Dapper.
