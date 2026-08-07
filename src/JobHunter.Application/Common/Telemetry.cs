@@ -73,4 +73,11 @@ public static class Telemetry
     // never a silent rewrite (invariant 11).
     public static readonly Counter<long> RankingOverrideApplied =
         Meter.CreateCounter<long>("jobhunter.ranking.override_applied", "jobs", "Owner override reversed the model verdict");
+
+    // F7 T09 (done-when 5, risk D3): suppression regret — the latest Run's suppressed jobs the Owner then
+    // acted on (retrieved through /hidden and opened, saved or applied to). A gauge, not a counter: the last
+    // measured value is what a dashboard watches, and a rising regret is the signal the learned model is
+    // over-suppressing (invariant 11), the counterweight to precision@10.
+    public static readonly Gauge<long> SuppressionRegret =
+        Meter.CreateGauge<long>("jobhunter.preferences.suppression_regret", "jobs", "Latest-Run suppressed jobs the Owner acted on");
 }

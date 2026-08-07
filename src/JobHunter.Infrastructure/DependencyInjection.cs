@@ -157,6 +157,10 @@ public static class DependencyInjection
         // was worth building — each Run's shown top-ten hit rate, bucketed on whether its scores carried a
         // learned model. Read-only Dapper.
         services.AddScoped<IPrecisionAtTenQuery, PrecisionAtTenQuery>();
+        // F7 suppression regret (T09, done-when 5, risk D3): the count of the latest Run's suppressed jobs the
+        // Owner then acted on — the counterweight to precision@10, exported so over-suppression is visible
+        // (invariant 11). Read-only Dapper.
+        services.AddScoped<ISuppressionRegretQuery, SuppressionRegretQuery>();
         // F5 digest rendering (T12): the display facts a card shows — the job's title, company, stage,
         // location, apply URL and published salary, plus its most recent enrichment estimate for the (est)
         // fallback — joined per job id at render time (the card snapshots only score and reasons). Read-only
