@@ -149,19 +149,28 @@ public sealed record CompanyDetailResponse(
     CompanyResearchResponse? Research);
 
 /// <summary>
-/// The latest research dossier slot on a company's detail (F8-owned). Modelled here so the company
-/// contract is complete, but populated as null until F8 merges — an uncited or absent dossier is never
-/// invented (invariant 5, the decoupling decision).
+/// The latest research dossier of a company (F8 T09 C3): the summary, when it was generated (as Unix
+/// seconds, so a client can show its age), its cited claims — warnings first — and the categories that
+/// produced nothing so absence is visible (AC-07). An uncited or absent dossier is never invented
+/// (invariant 5). It carries only public company facts — <strong>nothing about the Owner's CV</strong>.
 /// </summary>
 public sealed record CompanyResearchResponse(
-    long ComputedAt,
-    IReadOnlyList<CompanyClaimResponse> Claims);
+    long GeneratedAt,
+    string Summary,
+    IReadOnlyList<CompanyClaimResponse> Claims,
+    IReadOnlyList<string> CategoriesUnavailable);
 
-/// <summary>One dossier claim with its mandatory source URL and the date it was asserted (invariant 5).</summary>
+/// <summary>
+/// One dossier claim (F8 T09 C3): its category, the one-sentence claim, the date it was observed and the
+/// mandatory source URL it cites (invariant 5, AC-02/AC-03), and whether it is a warning surfaced first
+/// (AC-04). Every string is raw third-party text.
+/// </summary>
 public sealed record CompanyClaimResponse(
-    string Statement,
+    string Category,
+    string Claim,
+    long ObservedAt,
     string SourceUrl,
-    long AsOf);
+    bool IsWarning);
 
 /// <summary>The request body for <c>POST /api/companies</c> — the Owner adds a company to the registry.</summary>
 public sealed record AddCompanyRequest(

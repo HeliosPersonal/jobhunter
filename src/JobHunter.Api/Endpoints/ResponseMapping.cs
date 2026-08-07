@@ -1,6 +1,7 @@
 using JobHunter.Domain.Applications;
 using JobHunter.Domain.Companies;
 using JobHunter.Domain.Jobs;
+using JobHunter.Domain.Reporting;
 using JobHunter.Domain.Search;
 
 namespace JobHunter.Api.Endpoints;
@@ -170,6 +171,23 @@ internal static class ResponseMapping
 
     public static ApplicationNoteResponse ToApplicationNote(HistoryNote note) =>
         new(note.Body, note.CreatedAt.ToUnixTimeSeconds());
+
+    // --- F8 company research (T09 C3) --------------------------------------------------------------
+
+    public static CompanyResearchResponse ToResearch(ResearchDossierSnapshot dossier) => new(
+        GeneratedAt: dossier.GeneratedAt.ToUnixTimeSeconds(),
+        Summary: dossier.Summary,
+        // The claims arrive warnings-first from the read side, which reads them in the order the aggregate
+        // wrote them (AC-04); the map preserves that order rather than re-sorting.
+        Claims: [.. dossier.Claims.Select(ToResearchClaim)],
+        CategoriesUnavailable: [.. dossier.CategoriesUnavailable.Select(c => c.ToString())]);
+
+    public static CompanyClaimResponse ToResearchClaim(ResearchClaimFacts claim) => new(
+        Category: claim.Category.ToString(),
+        Claim: claim.Claim,
+        ObservedAt: claim.ObservedAt.ToUnixTimeSeconds(),
+        SourceUrl: claim.SourceUrl,
+        IsWarning: claim.IsWarning);
 
     public static DueReminderResponse ToDueReminder(DueReminder reminder) => new(
         ApplicationId: reminder.ApplicationId,

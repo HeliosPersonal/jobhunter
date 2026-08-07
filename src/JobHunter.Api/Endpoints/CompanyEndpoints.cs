@@ -31,6 +31,16 @@ public static class CompanyEndpoints
             .WithSummary("Adds a company to the registry (Owner only).")
             .RequireAuthorization(ApiSecurityExtensions.AdminPolicy);
 
+        app.MapGet("/api/companies/{domain}/research", HandleResearchAsync)
+            .WithName("CompanyResearch")
+            .WithSummary("The latest research dossier of a company: cited claims, warnings first.")
+            .RequireAuthorization(ApiSecurityExtensions.ReadPolicy);
+
+        app.MapPost("/api/companies/{domain}/research", HandleRequestResearchAsync)
+            .WithName("RequestCompanyResearch")
+            .WithSummary("Queues a company for the next research cycle (Owner only).")
+            .RequireAuthorization(ApiSecurityExtensions.AdminPolicy);
+
         return app;
     }
 
@@ -119,6 +129,75 @@ public static class CompanyEndpoints
         var body = ResponseMapping.ToCompanyDetail(created.Value, [], []);
         return Results.Created($"/api/companies/{canonical.Value.Value}", body);
     }
+
+    internal static async Task<IResult> HandleResearchAsync(
+        string domain,
+        ICompanyRepository companies,
+        ICompanyResearchQuery research,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(companies);
+        ArgumentNullException.ThrowIfNull(research);
+
+        var canonical = CanonicalDomain.TryCreate(domain);
+        if (canonical.IsFailure)
+        {
+            return InvalidDomain();
+        }
+
+        var company = await companies.FindByDomainAsync(canonical.Value, cancellationToken).ConfigureAwait(false);
+        if (company is null)
+        {
+            return NotFound(canonical.Value.Value);
+        }
+
+        var dossier = await research.LatestForCompanyAsync(company.Id, cancellationToken).ConfigureAwait(false);
+        if (dossier is null)
+        {
+            // Known company, but never researched: a 404 keeps "no dossier yet" distinct from "no such
+            // company", and an absent dossier is never fabricated (invariant 5).
+            return Results.Problem(
+                type: SearchEndpoints.ErrorTypeBase + "no-research",
+                title: "The company has no research dossier",
+                detail: $"No research dossier exists yet for domain {canonical.Value.Value}.",
+                statusCode: StatusCodes.Status404NotFound);
+        }
+
+        return Results.Ok(ResponseMapping.ToResearch(dossier));
+    }
+
+    internal static async Task<IResult> HandleRequestResearchAsync(
+        string domain,
+        ICompanyRepository companies,
+        IResearchRequestWriter requests,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(companies);
+        ArgumentNullException.ThrowIfNull(requests);
+
+        var canonical = CanonicalDomain.TryCreate(domain);
+        if (canonical.IsFailure)
+        {
+            return InvalidDomain();
+        }
+
+        var company = await companies.FindByDomainAsync(canonical.Value, cancellationToken).ConfigureAwait(false);
+        if (company is null)
+        {
+            return NotFound(canonical.Value.Value);
+        }
+
+        // Research is batched and cost-ceilinged, never interactive: the request is queued for the next
+        // cycle rather than run inline, and the enqueue is idempotent per company for a pending cycle (AC-05).
+        await requests.EnqueueAsync(company.Id, "on-demand api request", cancellationToken).ConfigureAwait(false);
+        return Results.Accepted($"/api/companies/{canonical.Value.Value}/research");
+    }
+
+    private static IResult InvalidDomain() => Results.Problem(
+        type: SearchEndpoints.ErrorTypeBase + "invalid-domain",
+        title: "The company domain is not valid",
+        detail: "The company domain is not a canonicalisable domain.",
+        statusCode: StatusCodes.Status400BadRequest);
 
     private static IResult NotFound(string domain) => Results.Problem(
         type: SearchEndpoints.ErrorTypeBase + "not-found",

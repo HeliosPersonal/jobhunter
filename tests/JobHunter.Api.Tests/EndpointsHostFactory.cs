@@ -84,6 +84,12 @@ public sealed class EndpointsHostFactory : WebApplicationFactory<Program>
     /// <summary>The hidden-jobs read behind <c>GET /api/preferences/hidden</c> (F7 T08 C6, risk D3).</summary>
     public IHiddenJobsQuery HiddenJobs { get; } = Substitute.For<IHiddenJobsQuery>();
 
+    /// <summary>The research read behind <c>GET /api/companies/{domain}/research</c> (F8 T09 C3).</summary>
+    public ICompanyResearchQuery CompanyResearch { get; } = Substitute.For<ICompanyResearchQuery>();
+
+    /// <summary>The on-demand request writer behind <c>POST /api/companies/{domain}/research</c> (F8 T09 C3).</summary>
+    public IResearchRequestWriter ResearchRequests { get; } = Substitute.For<IResearchRequestWriter>();
+
     /// <summary>A client presenting a valid Owner token with the given scope (read by default).</summary>
     public HttpClient OwnerClient(string scope = "jobhunter:read")
     {
@@ -179,6 +185,13 @@ public sealed class EndpointsHostFactory : WebApplicationFactory<Program>
             services.AddScoped(_ => LearningSwitch);
             services.RemoveAll<IHiddenJobsQuery>();
             services.AddScoped(_ => HiddenJobs);
+
+            // F8 research ports (T09 C3): the dossier read behind GET .../research and the on-demand request
+            // writer behind POST .../research, so an owner-scoped research read or queue dials nothing.
+            services.RemoveAll<ICompanyResearchQuery>();
+            services.AddScoped(_ => CompanyResearch);
+            services.RemoveAll<IResearchRequestWriter>();
+            services.AddScoped(_ => ResearchRequests);
         });
     }
 }
