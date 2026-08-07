@@ -152,6 +152,11 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<Application.Preferences.ActiveWeightsQuery>(),
                 provider.GetRequiredService<IPreferenceStatusQuery>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.PrefsCommandHandler>>())),
+            new("/forget", "Switch off a learned preference by dimension", new Commands.ForgetCommandHandler(
+                provider.GetRequiredService<Application.Preferences.ActiveWeightsQuery>(),
+                provider.GetRequiredService<Application.Preferences.DisablePreferenceWeightHandler>(),
+                provider.GetRequiredService<IClock>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.ForgetCommandHandler>>())),
         };
 
         router = new Commands.CommandRouter(
