@@ -125,6 +125,12 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<IReminderRenderer>(),
                 provider.GetRequiredService<IClock>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.DueCommandHandler>>())),
+            new("/note", "Attach a note to your latest application", new Commands.NoteCommandHandler(
+                provider.GetRequiredService<IApplicationPipelineQuery>(),
+                provider.GetRequiredService<Application.Applications.AddNoteHandler>(),
+                provider.GetRequiredService<IConversationStateStore>(),
+                provider.GetRequiredService<IClock>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.NoteCommandHandler>>())),
             new("/search", "Search live roles", new Commands.SearchCommandAdapter(
                 provider.GetRequiredService<Search.SearchCommandHandler>())),
             new("/hidden", "What today's ranking suppressed, by reason", new Commands.HiddenCommandHandler(
