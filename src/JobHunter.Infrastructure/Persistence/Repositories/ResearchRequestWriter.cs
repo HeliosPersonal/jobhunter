@@ -13,7 +13,7 @@ namespace JobHunter.Infrastructure.Persistence.Repositories;
 /// the write is deterministic under test. The row carries only the company id and a short reason —
 /// <strong>nothing about the Owner's CV</strong>.
 /// </summary>
-public sealed class ResearchRequestWriter(
+internal sealed class ResearchRequestWriter(
     INpgsqlConnectionFactory connectionFactory,
     IIdGenerator idGenerator,
     IClock clock) : IResearchRequestWriter

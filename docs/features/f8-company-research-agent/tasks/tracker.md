@@ -27,7 +27,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T06 | [[T06-synthesis-prompt\|Synthesis prompt and schema]] | claude | T01 | M | done |
 | T07 | [[T07-claim-verification\|Claim verification]] | app | T06, T04 | M | done |
 | T08 | [[T08-orchestration-feedback\|Orchestration, warnings and stage feedback]] | app | T07, T05 | M | done |
-| T09 | [[T09-presentation-command\|Presentation and on-demand command]] | telegram/api | T08 | M | pending |
+| T09 | [[T09-presentation-command\|Presentation and on-demand command]] | telegram/api | T08 | M | done |
 
 **9 tasks · 2×S + 5×M + 2×L ≈ 5 person-days.**
 
