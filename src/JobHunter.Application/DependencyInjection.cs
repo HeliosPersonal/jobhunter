@@ -267,6 +267,13 @@ public static class DependencyInjection
         // its collaborators (IBackfillableOutcomeQuery, IJobFactsSnapshotQuery, ISignalRepository) by Infrastructure.
         services.AddScoped<Preferences.SignalBackfillService>();
 
+        // F7 explainability overrides (T08, AC-06): the disable-weight write path both the API disable endpoint
+        // and the Telegram override command drive. Like the F6 status handler it is invoked directly (returning a
+        // value-typed DisablePreferenceWeightOutcome the caller renders, not publishing an event), so it is
+        // registered here; IPreferenceModelRepository is registered by Infrastructure. The switch-off takes effect
+        // on the next ranking because PreferenceComponentCalculator already excludes disabled weights.
+        services.AddScoped<Preferences.DisablePreferenceWeightHandler>();
+
         return services;
     }
 }
