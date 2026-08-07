@@ -472,5 +472,58 @@ public static class DependencyInjection
             .AddHttpMessageHandler<PolitenessHandler>()
             .ConfigureHttpClient((sp, client) =>
                 client.Timeout = sp.GetRequiredService<IOptions<PolitenessOptions>>().Value.RequestTimeout);
+
+        AddResearchHttp(services);
+    }
+
+    /// <summary>
+    /// Wires F8's research-scoped fetch (SAD §5 S5, §10 QG-3, §11 D1). It is the politeness pipeline plus two
+    /// extra guarantees the one feature that fetches model-influenced URLs needs: a <see cref="ResearchConnector"/>
+    /// installed as the socket <c>ConnectCallback</c>, which resolves DNS once and dials the address it
+    /// validated (closing the rebinding window); and <see cref="IGuardedResearchFetch"/>, which re-runs the
+    /// scheme and category-allowlist checks on every redirect hop. The client keeps <c>AllowAutoRedirect = false</c>
+    /// so the guarded fetch follows redirects itself and can re-validate each hop before it is fetched.
+    /// </summary>
+    private static void AddResearchHttp(IServiceCollection services)
+    {
+        services.AddScoped<Application.Abstractions.IGuardedResearchFetch, GuardedResearchFetch>();
+
+        services.AddHttpClient(JobHunter.Application.Abstractions.PoliteHttp.ResearchClientName)
+            .ConfigurePrimaryHttpMessageHandler(() =>
+            {
+                var connector = new ResearchConnector(
+                    async (host, ct) => (IReadOnlyList<System.Net.IPAddress>)
+                        await System.Net.Dns.GetHostAddressesAsync(host, ct).ConfigureAwait(false),
+                    async (address, port, ct) =>
+                    {
+                        var socket = new System.Net.Sockets.Socket(
+                            System.Net.Sockets.SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp)
+                        {
+                            NoDelay = true,
+                        };
+                        try
+                        {
+                            await socket.ConnectAsync(address, port, ct).ConfigureAwait(false);
+                            return new System.Net.Sockets.NetworkStream(socket, ownsSocket: true);
+                        }
+                        catch
+                        {
+                            socket.Dispose();
+                            throw;
+                        }
+                    });
+
+                return new SocketsHttpHandler
+                {
+                    AllowAutoRedirect = false,
+                    AutomaticDecompression = System.Net.DecompressionMethods.All,
+                    ConnectCallback = async (context, ct) =>
+                        await connector.ConnectAsync(context.DnsEndPoint.Host, context.DnsEndPoint.Port, ct)
+                            .ConfigureAwait(false),
+                };
+            })
+            .AddHttpMessageHandler<PolitenessHandler>()
+            .ConfigureHttpClient((sp, client) =>
+                client.Timeout = sp.GetRequiredService<IOptions<PolitenessOptions>>().Value.RequestTimeout);
     }
 }

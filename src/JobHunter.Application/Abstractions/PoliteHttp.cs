@@ -11,4 +11,11 @@ public static class PoliteHttp
 {
     /// <summary>The registered name of the gated outbound HTTP client.</summary>
     public const string ClientName = "jobhunter-polite";
+
+    /// <summary>
+    /// The registered name of the research-scoped gated client (F8 QG-3). It is the politeness pipeline
+    /// plus a connection that resolves DNS once and dials the address it validated, closing the DNS
+    /// rebinding window for the one feature whose fetch targets derive partly from model output.
+    /// </summary>
+    public const string ResearchClientName = "jobhunter-research-polite";
 }
