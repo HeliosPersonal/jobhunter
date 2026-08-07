@@ -293,6 +293,12 @@ public static class DependencyInjection
         // repository (registered by Infrastructure) and the pure WeightExplanation, so it is registered here.
         services.AddScoped<Preferences.ActiveWeightsQuery>();
 
+        // F7 corpus and metrics (T09, done-when 5, risk D3): the suppression-regret reporter that records how
+        // many of the latest Run's suppressed jobs the Owner acted on to the jobhunter.preferences.suppression_regret
+        // gauge — the counterweight to precision@10, so over-suppression is visible rather than silent (invariant 11).
+        // ISuppressionRegretQuery, the read port it composes, is registered by Infrastructure.
+        services.AddScoped<Preferences.SuppressionRegretReporter>();
+
         return services;
     }
 }
