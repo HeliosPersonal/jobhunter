@@ -120,6 +120,11 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<IApplicationPipelineQuery>(),
                 provider.GetRequiredService<IClock>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.PipelineCommandHandler>>())),
+            new("/due", "Applications past their stage threshold", new Commands.DueCommandHandler(
+                provider.GetRequiredService<IDueReminderQuery>(),
+                provider.GetRequiredService<IReminderRenderer>(),
+                provider.GetRequiredService<IClock>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.DueCommandHandler>>())),
             new("/search", "Search live roles", new Commands.SearchCommandAdapter(
                 provider.GetRequiredService<Search.SearchCommandHandler>())),
             new("/hidden", "What today's ranking suppressed, by reason", new Commands.HiddenCommandHandler(
