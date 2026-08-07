@@ -1,3 +1,5 @@
+using JobHunter.Application.Commands;
+using JobHunter.Domain.Commands;
 using JobHunter.Telegram.Commands;
 using JobHunter.Telegram.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -9,13 +11,26 @@ namespace JobHunter.Telegram.Tests.Commands;
 /// <summary>
 /// The command dispatcher (T11, contract §Commands, ADR-F10-0002). It maps the leading <c>/token</c> to a
 /// registered <see cref="ICommandHandler"/>, hands the handler the remaining arguments and the chat id, and
-/// returns the handler's messages. An unrecognised command gets a single "unknown command" line plus the
-/// help list — never a conversational fallback and never a call into anything LLM-shaped. The help list is
-/// derived from the registered set, so it cannot drift from what the router actually accepts.
+/// returns the handler's messages. An unrecognised command gets the nearest-command suggestion, or the
+/// grouped list when nothing is close — never a conversational fallback and never a call into anything
+/// LLM-shaped. Both the suggestion and the fallback are derived from the same descriptor catalogue the
+/// router dispatches on, so neither can drift from what the router actually accepts.
 /// </summary>
 public sealed class CommandRouterTests
 {
     private const long OwnerChat = 4242;
+
+    // The unknown-command reply is projected from these descriptors: a near typo of a name suggests it, and
+    // a token far from all of them falls back to the grouped list.
+    private static readonly IReadOnlyList<CommandDescriptor> Catalogue =
+    [
+        new("start", "Confirm this chat", [],
+            CommandCapability.Standard, CommandGroup.Meta, false, "/start"),
+        new("help", "Show the command list", [],
+            CommandCapability.Standard, CommandGroup.Meta, false, "/help"),
+        new("pipeline", "Applications by status", [],
+            CommandCapability.Standard, CommandGroup.Pipeline, false, "/pipeline"),
+    ];
 
     private static CommandRouter Build(out RecordingCommandHandler start, out RecordingCommandHandler help)
     {
@@ -26,7 +41,7 @@ public sealed class CommandRouterTests
             new CommandRegistration("/start", "Confirm this chat", start),
             new CommandRegistration("/help", "Show the command list", help),
         };
-        return new CommandRouter(registrations, NullLogger<CommandRouter>.Instance);
+        return new CommandRouter(registrations, Catalogue, NullLogger<CommandRouter>.Instance);
     }
 
     [Fact]
@@ -84,7 +99,7 @@ public sealed class CommandRouterTests
     }
 
     [Fact]
-    public async Task An_unknown_command_returns_one_line_plus_the_help_list_and_calls_no_handler()
+    public async Task An_unknown_command_far_from_all_suggests_nothing_and_lists_the_groups()
     {
         var router = Build(out var start, out var help);
 
@@ -94,9 +109,23 @@ public sealed class CommandRouterTests
         help.Calls.ShouldBe(0);
         var text = messages.ShouldHaveSingleItem().Text;
         text.ShouldContain("Unknown command", Case.Insensitive);
-        // The help list is derived from the registered set, so every registered command appears.
-        text.ShouldContain("/start");
-        text.ShouldContain("/help");
+        text.ShouldNotContain("Did you mean");
+        // The grouped list is derived from the catalogue, so its commands appear.
+        text.ShouldContain("/pipeline");
+    }
+
+    [Fact]
+    public async Task A_near_typo_suggests_the_nearest_command_and_calls_no_handler()
+    {
+        var router = Build(out var start, out var help);
+
+        var messages = await router.RouteAsync(OwnerChat, "/pipline", CancellationToken.None);
+
+        start.Calls.ShouldBe(0);
+        help.Calls.ShouldBe(0);
+        var text = messages.ShouldHaveSingleItem().Text;
+        text.ShouldContain("Did you mean");
+        text.ShouldContain("/pipeline");
     }
 
     [Fact]
@@ -123,14 +152,21 @@ public sealed class CommandRouterTests
     public void A_null_registration_set_is_rejected()
     {
         Should.Throw<ArgumentNullException>(() =>
-            new CommandRouter(null!, NullLogger<CommandRouter>.Instance));
+            new CommandRouter(null!, Catalogue, NullLogger<CommandRouter>.Instance));
+    }
+
+    [Fact]
+    public void A_null_catalogue_is_rejected()
+    {
+        Should.Throw<ArgumentNullException>(() =>
+            new CommandRouter([], null!, NullLogger<CommandRouter>.Instance));
     }
 
     [Fact]
     public void A_null_logger_is_rejected()
     {
         Should.Throw<ArgumentNullException>(() =>
-            new CommandRouter([], null!));
+            new CommandRouter([], Catalogue, null!));
     }
 
     [Fact]

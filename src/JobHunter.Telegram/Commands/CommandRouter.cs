@@ -1,5 +1,5 @@
 using System.Collections.Frozen;
-using System.Text;
+using JobHunter.Domain.Commands;
 using JobHunter.Domain.Notifications;
 using JobHunter.Telegram.Formatting;
 
@@ -9,32 +9,33 @@ namespace JobHunter.Telegram.Commands;
 /// The command dispatcher (T11, contract §Commands, ADR-F10-0002). It reads the leading <c>/token</c> of a
 /// message, looks up the registered <see cref="ICommandHandler"/> and hands it the remaining arguments and
 /// the Owner's chat id. Anything it does not recognise — an unknown command, a bare word, an empty line —
-/// gets a single "unknown command" reply followed by the help list, and nothing else: there is no
-/// conversational fallback and no LLM anywhere in this path, because a bot that tries to chat sets an
-/// expectation this product does not meet (ADR-F10-0002).
+/// gets the nearest-command suggestion when a name is within two edits, otherwise the grouped list, and
+/// nothing else: there is no conversational fallback and no LLM anywhere in this path, because a bot that
+/// tries to chat sets an expectation this product does not meet (ADR-F10-0002, AC-09).
 ///
-/// <para>The <c>/help</c> list is derived from the same registrations the router dispatches on, so a routable
-/// command is always listed and a listed command is always routable — they cannot drift. Matching is
-/// case-insensitive and tolerates the <c>@BotName</c> suffix Telegram appends to commands in groups.</para>
+/// <para>Both the suggestion and the grouped fallback are projected from the descriptor catalogue — the same
+/// single source the menu and <c>/help</c> derive from — so a routable command is always listed and a listed
+/// command is always routable, and they cannot drift. Matching is case-insensitive and tolerates the
+/// <c>@BotName</c> suffix Telegram appends to commands in groups.</para>
 /// </summary>
 internal sealed class CommandRouter
 {
     private readonly FrozenDictionary<string, ICommandHandler> _handlers;
-    private readonly string _helpList;
+    private readonly IReadOnlyList<CommandDescriptor> _catalogue;
     private readonly ILogger<CommandRouter> _logger;
 
-    public CommandRouter(IReadOnlyList<CommandRegistration> registrations, ILogger<CommandRouter> logger)
+    public CommandRouter(
+        IReadOnlyList<CommandRegistration> registrations,
+        IReadOnlyList<CommandDescriptor> catalogue,
+        ILogger<CommandRouter> logger)
     {
         ArgumentNullException.ThrowIfNull(registrations);
+        _catalogue = catalogue ?? throw new ArgumentNullException(nameof(catalogue));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         _handlers = registrations.ToFrozenDictionary(
             r => r.Token, r => r.Handler, StringComparer.OrdinalIgnoreCase);
-        _helpList = BuildHelpList(registrations);
     }
-
-    /// <summary>The rendered command list, so <c>/help</c> can serve exactly what the router dispatches on.</summary>
-    public string HelpList => _helpList;
 
     public async Task<IReadOnlyList<RenderedMessage>> RouteAsync(
         long chatId, string messageText, CancellationToken cancellationToken = default)
@@ -48,13 +49,11 @@ internal sealed class CommandRouter
                 .ConfigureAwait(false);
         }
 
-        // Unknown command: one line plus the help list, no fallback, no LLM (ADR-F10-0002).
-        _logger.LogDebug("Unrecognised command; replied with the help list.");
-        return [RenderedMessage.PlainText(UnknownCommandReply())];
+        // Unknown command: the nearest command if one is close, else the grouped list — no chat, no LLM (AC-09).
+        _logger.LogDebug("Unrecognised command; replied with a suggestion or the grouped list.");
+        var reply = UnknownCommandFormatter.Reply(_catalogue, token ?? messageText);
+        return [RenderedMessage.PlainText(reply)];
     }
-
-    private string UnknownCommandReply() =>
-        "_" + MarkdownV2Escaper.Escape("Unknown command.") + "_\n\n" + _helpList;
 
     private static (string? Token, string? Arguments) Split(string messageText)
     {
@@ -73,19 +72,5 @@ internal sealed class CommandRouter
         var token = atIndex < 0 ? rawToken : rawToken[..atIndex];
 
         return (token, string.IsNullOrEmpty(arguments) ? null : arguments);
-    }
-
-    private static string BuildHelpList(IReadOnlyList<CommandRegistration> registrations)
-    {
-        var builder = new StringBuilder();
-        foreach (var registration in registrations)
-        {
-            builder.Append(MarkdownV2Escaper.Escape(registration.Token))
-                .Append(" — ")
-                .Append(MarkdownV2Escaper.Escape(registration.Description))
-                .Append('\n');
-        }
-
-        return builder.ToString().TrimEnd('\n');
     }
 }

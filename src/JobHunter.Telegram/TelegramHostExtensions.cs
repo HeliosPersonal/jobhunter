@@ -195,6 +195,8 @@ public static class TelegramHostExtensions
         };
 
         return new Commands.CommandRouter(
-            registrations, provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.CommandRouter>>());
+            registrations,
+            Application.Commands.CommandCatalogue.Descriptors,
+            provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.CommandRouter>>());
     }
 }
