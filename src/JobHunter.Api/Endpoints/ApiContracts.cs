@@ -284,6 +284,56 @@ public sealed record AddNoteRequest(string Body);
 public sealed record TransitionNotPermittedResponse(string Error, string From, string To, string Reason);
 
 /// <summary>
+/// One learned preference weight on <c>GET /api/preferences/weights</c> (F7 T08 C6, AC-03/AC-06): the id a
+/// disable request addresses, the <c>(dimension, value)</c> it pulls on, its signed pull, whether it is already
+/// disabled (still listed — it stays inspectable), and the one plain sentence that explains it. It carries only
+/// the learned facts and their explanation — nothing about the Owner's CV (the CV crosses exactly one boundary,
+/// and it is not this one).
+/// </summary>
+public sealed record LearnedWeightResponse(
+    Guid WeightId,
+    string Dimension,
+    string Value,
+    decimal Weight,
+    bool Disabled,
+    string Explanation);
+
+/// <summary>
+/// One suppressed job on <c>GET /api/preferences/hidden</c> (F7 T08 C6, risk D3): the job the latest Run withheld
+/// and the reason it was withheld, so suppression regret is measurable (invariant 11). It carries the job's
+/// display facts and its final score — never a CV-derived value or a match reason.
+/// </summary>
+public sealed record HiddenJobResponse(
+    Guid JobId,
+    string Title,
+    string Company,
+    decimal Score,
+    string SuppressionReason);
+
+/// <summary>
+/// The acknowledgement for <c>POST /api/preferences/weights/{id}/disable</c> (F7 T08 C6, AC-06): the id that was
+/// switched off and its one-sentence explanation, so the Owner can confirm exactly which preference was disabled
+/// without a second read. The switch-off takes effect on the next ranking.
+/// </summary>
+public sealed record DisableWeightResponse(Guid WeightId, string Explanation);
+
+/// <summary>
+/// The acknowledgement for <c>POST /api/preferences/reset</c> (F7 T08 C6, done-when 3): the version of the model
+/// that was deactivated. No signal is deleted — a future refit can rebuild from the same evidence.
+/// </summary>
+public sealed record ResetModelResponse(int DeactivatedVersion);
+
+/// <summary>The request body for <c>PUT /api/preferences/learning</c> (F7 T08 C6, AC-07): the state the Owner wants.</summary>
+public sealed record SetLearningRequest(bool Enabled);
+
+/// <summary>
+/// The acknowledgement for <c>PUT /api/preferences/learning</c> (F7 T08 C6, AC-07): the state learning is now in
+/// and whether this request actually flipped it, so a redelivered request reads honestly. Turning learning off
+/// applies only explicit preferences from the next ranking and is stated on the next digest.
+/// </summary>
+public sealed record LearningStateResponse(bool Enabled, bool Changed);
+
+/// <summary>
 /// The corpus snapshot from <c>GET /api/admin/stats</c>: the authoritative live-job count in PostgreSQL,
 /// the index document count (null when the index is unreachable), the drift between them (null likewise)
 /// and whether the index answered. The cost trend F3 owns is a deferred, empty slot until F3 merges (the

@@ -71,6 +71,11 @@ app.MapAdminEndpoints();
 // note) and the what-needs-attention read. The reads declare jobhunter:read, the writes jobhunter:admin.
 app.MapApplicationEndpoints();
 
+// F7 preference learning (T08 C6): the two model-inspection reads (weights, hidden jobs) and the three owner
+// overrides (disable a weight, reset the model, toggle learning). The reads declare jobhunter:read, the writes
+// jobhunter:admin — the same Application handlers the Telegram override command drives (one write path).
+app.MapPreferenceEndpoints();
+
 await app.RunAsync();
 
 namespace JobHunter.Api

@@ -75,6 +75,15 @@ public sealed class EndpointsHostFactory : WebApplicationFactory<Program>
     /// <summary>The outcome-signal writer the status-change handler stages an F7 signal into (T08).</summary>
     public IOutcomeSignalWriter OutcomeSignals { get; } = Substitute.For<IOutcomeSignalWriter>();
 
+    /// <summary>The preference-model repository behind the weights read, disable and reset endpoints (F7 T08 C6).</summary>
+    public IPreferenceModelRepository PreferenceModels { get; } = Substitute.For<IPreferenceModelRepository>();
+
+    /// <summary>The learning master switch behind the toggle-learning endpoint (F7 T08 C6, AC-07).</summary>
+    public ILearningSwitch LearningSwitch { get; } = Substitute.For<ILearningSwitch>();
+
+    /// <summary>The hidden-jobs read behind <c>GET /api/preferences/hidden</c> (F7 T08 C6, risk D3).</summary>
+    public IHiddenJobsQuery HiddenJobs { get; } = Substitute.For<IHiddenJobsQuery>();
+
     /// <summary>A client presenting a valid Owner token with the given scope (read by default).</summary>
     public HttpClient OwnerClient(string scope = "jobhunter:read")
     {
@@ -159,6 +168,17 @@ public sealed class EndpointsHostFactory : WebApplicationFactory<Program>
             services.AddScoped(_ => JobFacts);
             services.RemoveAll<IOutcomeSignalWriter>();
             services.AddScoped(_ => OutcomeSignals);
+
+            // F7 preference-learning ports (T08 C6): the model repository behind the weights read and the
+            // disable/reset write handlers, the learning switch behind the toggle endpoint, and the hidden-jobs
+            // read. The ActiveWeightsQuery and the disable/reset/set handlers are the real ones — their logic is
+            // under test — so their collaborators are substituted to keep every request offline.
+            services.RemoveAll<IPreferenceModelRepository>();
+            services.AddScoped(_ => PreferenceModels);
+            services.RemoveAll<ILearningSwitch>();
+            services.AddScoped(_ => LearningSwitch);
+            services.RemoveAll<IHiddenJobsQuery>();
+            services.AddScoped(_ => HiddenJobs);
         });
     }
 }
