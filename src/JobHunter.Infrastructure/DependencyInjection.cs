@@ -182,6 +182,10 @@ public static class DependencyInjection
         // high-confidence, same-currency rule the ranking's suppression applies, so the preview cannot promise a
         // different outcome than the Run. Read-only Dapper.
         services.AddScoped<ISalaryFloorPreviewQuery, SalaryFloorPreviewQuery>();
+        // F10 /sources (T09, R4): each ATS provider's fetch health over the trailing 24h — attempts, successes
+        // and the last attempt — rolled up from source_fetch_log joined through its source's binding, so the
+        // operations reply shows which integration is degrading before it quarantines. Read-only Dapper.
+        services.AddScoped<ISourceHealthQuery, SourceHealthQuery>();
         // F7 precision@10 (T09, done-when 4, AC-08): the before-and-after series that answers whether learning
         // was worth building — each Run's shown top-ten hit rate, bucketed on whether its scores carried a
         // learned model. Read-only Dapper.
