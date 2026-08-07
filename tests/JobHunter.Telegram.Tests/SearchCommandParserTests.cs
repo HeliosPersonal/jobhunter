@@ -94,4 +94,52 @@ public sealed class SearchCommandParserTests
         query.Technologies.ShouldBeEmpty();
         query.Text.ShouldBe("tech:");
     }
+
+    [Fact]
+    public void The_min_filter_sets_the_minimum_score()
+    {
+        // Catalogue §Discovery: `min:` is the minimum score, distinct from `min-salary:`.
+        var query = SearchCommandParser.Parse("min:70 platform");
+
+        query.MinScore.ShouldBe(70);
+        query.SalaryMin.ShouldBeNull();
+        query.Text.ShouldBe("platform");
+    }
+
+    [Fact]
+    public void A_non_numeric_min_falls_through_to_free_text()
+    {
+        var query = SearchCommandParser.Parse("min:high");
+
+        query.MinScore.ShouldBeNull();
+        query.Text.ShouldBe("min:high");
+    }
+
+    [Theory]
+    [InlineData("closed:yes")]
+    [InlineData("closed:true")]
+    [InlineData("closed:1")]
+    public void The_closed_filter_includes_closed_jobs(string token)
+    {
+        // Catalogue §Discovery: closed jobs are excluded by default; `closed:yes` opts them back in (AC-08).
+        var query = SearchCommandParser.Parse($"{token} kafka");
+
+        query.IncludeClosed.ShouldBeTrue();
+        query.Text.ShouldBe("kafka");
+    }
+
+    [Fact]
+    public void Closed_is_excluded_by_default()
+    {
+        SearchCommandParser.Parse("kafka").IncludeClosed.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void An_unrecognised_closed_value_is_free_text_not_an_error()
+    {
+        var query = SearchCommandParser.Parse("closed:maybe kafka");
+
+        query.IncludeClosed.ShouldBeFalse();
+        query.Text.ShouldBe("closed:maybe kafka");
+    }
 }

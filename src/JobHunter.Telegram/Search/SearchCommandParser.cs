@@ -1,3 +1,4 @@
+using System.Globalization;
 using JobHunter.Domain.Search;
 
 namespace JobHunter.Telegram.Search;
@@ -30,6 +31,15 @@ internal static class SearchCommandParser
         ["seniority"] = Filter.Seniority,
         ["stage"] = Filter.CompanyStage,
         ["min-salary"] = Filter.SalaryMin,
+        ["min"] = Filter.MinScore,
+        ["closed"] = Filter.IncludeClosed,
+    };
+
+    // The values the catalogue's `closed:` filter accepts to opt closed jobs back in. Anything else falls
+    // through to free text rather than erroring — the argument-parsing rule (a malformed value never errors).
+    private static readonly HashSet<string> ClosedYesValues = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "yes", "true", "1",
     };
 
     public static SearchQuery Parse(string? arguments)
@@ -41,6 +51,8 @@ internal static class SearchCommandParser
         var stages = new List<string>();
         var textTerms = new List<string>();
         int? salaryMin = null;
+        double? minScore = null;
+        var includeClosed = false;
 
         var tokens = (arguments ?? string.Empty)
             .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -72,6 +84,32 @@ internal static class SearchCommandParser
                         }
 
                         break;
+                    case Filter.MinScore:
+                        // The minimum score (catalogue `min:`), distinct from `min-salary:`. A non-numeric
+                        // value falls through to free text, like every other malformed filter.
+                        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var score))
+                        {
+                            minScore = score;
+                        }
+                        else
+                        {
+                            textTerms.Add(token);
+                        }
+
+                        break;
+                    case Filter.IncludeClosed:
+                        // `closed:yes` (or true/1) opts closed jobs back in; anything else is free text, so
+                        // "closed:maybe" is a search term rather than an error (AC-08, default excludes closed).
+                        if (ClosedYesValues.Contains(value))
+                        {
+                            includeClosed = true;
+                        }
+                        else
+                        {
+                            textTerms.Add(token);
+                        }
+
+                        break;
                 }
 
                 continue;
@@ -89,6 +127,8 @@ internal static class SearchCommandParser
             Seniorities = seniorities,
             CompanyStages = stages,
             SalaryMin = salaryMin,
+            MinScore = minScore,
+            IncludeClosed = includeClosed,
             Limit = ResultLimit,
         };
     }
@@ -101,5 +141,7 @@ internal static class SearchCommandParser
         Seniority,
         CompanyStage,
         SalaryMin,
+        MinScore,
+        IncludeClosed,
     }
 }
