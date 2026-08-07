@@ -24,6 +24,13 @@ public static class ResearchSynthesisPrompt
     /// <summary>Each document's extracted text is capped at this many characters in the prompt.</summary>
     public const int MaxDocumentChars = 20_000;
 
+    /// <summary>
+    /// The pessimistic per-item output ceiling the cost estimate prices against (research-schema §Cost). A
+    /// dossier's output is the summary plus up to twenty short claims — about 800 tokens in practice; 900
+    /// errs high, so the estimate over-states spend, which is the safe direction for the ceiling.
+    /// </summary>
+    public const int MaxOutputTokens = 900;
+
     public const string System =
         """
         You summarise what a set of documents says about a company. You are a summariser, not an expert.
