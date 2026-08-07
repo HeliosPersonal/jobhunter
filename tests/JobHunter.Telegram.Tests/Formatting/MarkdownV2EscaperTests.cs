@@ -143,4 +143,25 @@ public sealed class MarkdownV2EscaperTests
     {
         MarkdownV2Escaper.FormatThousands(amount).ShouldBe(expected);
     }
+
+    [Fact]
+    public void Link_escapes_the_label_and_wraps_it_in_an_inline_link()
+    {
+        MarkdownV2Escaper.Link("1 Aug 2026", "https://acme.ai/press")
+            .ShouldBe(@"[1 Aug 2026](https://acme.ai/press)");
+    }
+
+    [Fact]
+    public void Link_escapes_a_closing_paren_in_the_url_so_it_cannot_terminate_the_link_early()
+    {
+        MarkdownV2Escaper.Link("source", "https://x.example/a(b)c")
+            .ShouldBe(@"[source](https://x.example/a(b\)c)");
+    }
+
+    [Fact]
+    public void Link_degrades_to_the_plain_escaped_label_when_the_url_is_blank()
+    {
+        MarkdownV2Escaper.Link("a.b", null).ShouldBe(@"a\.b");
+        MarkdownV2Escaper.Link("a.b", "   ").ShouldBe(@"a\.b");
+    }
 }
