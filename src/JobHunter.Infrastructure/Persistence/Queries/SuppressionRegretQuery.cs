@@ -49,6 +49,6 @@ public sealed class SuppressionRegretQuery(INpgsqlConnectionFactory connectionFa
         await using var connection = await connectionFactory.OpenAsync(cancellationToken);
 
         var command = new CommandDefinition(Sql, new { Positive = PositiveKinds }, cancellationToken: cancellationToken);
-        return await connection.ExecuteScalarAsync<int>(command);
+        return await connection.QuerySingleAsync<int>(command);
     }
 }

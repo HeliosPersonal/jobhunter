@@ -12,7 +12,7 @@ namespace JobHunter.Infrastructure.Persistence.Preferences;
 /// install behaves exactly as the boot default until the Owner changes it. Writing upserts the one row at its
 /// fixed singleton id and commits, so the next ranking and the next digest see the new state immediately.
 /// </summary>
-public sealed class PersistentLearningSwitch(JobHunterDbContext context, LearningOptions seed) : ILearningSwitch
+internal sealed class PersistentLearningSwitch(JobHunterDbContext context, LearningOptions seed) : ILearningSwitch
 {
     private readonly JobHunterDbContext _context = context ?? throw new ArgumentNullException(nameof(context));
     private readonly LearningOptions _seed = seed ?? throw new ArgumentNullException(nameof(seed));
