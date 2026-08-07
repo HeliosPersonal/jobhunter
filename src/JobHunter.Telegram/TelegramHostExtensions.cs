@@ -140,6 +140,11 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<ICompanyResearchQuery>(),
                 provider.GetRequiredService<IClock>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.CompanyCommandHandler>>())),
+            new("/research", "Request or refresh a company dossier", new Commands.ResearchCommandHandler(
+                provider.GetRequiredService<ICompanyResearchQuery>(),
+                provider.GetRequiredService<IResearchRequestWriter>(),
+                provider.GetRequiredService<IClock>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.ResearchCommandHandler>>())),
         };
 
         router = new Commands.CommandRouter(
