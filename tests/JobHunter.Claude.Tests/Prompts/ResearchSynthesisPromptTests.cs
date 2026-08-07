@@ -36,7 +36,9 @@ public sealed class ResearchSynthesisPromptTests
     [Fact]
     public void The_prompt_version_is_stamped()
     {
-        ResearchSynthesisPrompt.PromptVersion.ShouldBe("research-v1");
+        // Bumped to v2 when the optional firmographic fields (stage/employeeBand) were added to the schema
+        // and the system prompt gained the rule that classifies them strictly from the fetched text.
+        ResearchSynthesisPrompt.PromptVersion.ShouldBe("research-v2");
     }
 
     [Fact]
@@ -46,6 +48,16 @@ public sealed class ResearchSynthesisPromptTests
         ResearchSynthesisPrompt.System.ShouldContain("If the documents do not say it, it does not exist");
         ResearchSynthesisPrompt.System.ShouldContain("copied verbatim");
         ResearchSynthesisPrompt.System.ShouldContain("isWarning");
+    }
+
+    [Fact]
+    public void The_system_prompt_classifies_firmographics_only_from_the_documents()
+    {
+        // AC-10: the model may set stage/employeeBand, but only when the documents support it — the same
+        // no-memory rule as the claims, so a firmographic guess never reaches the Company aggregate.
+        ResearchSynthesisPrompt.System.ShouldContain("stage");
+        ResearchSynthesisPrompt.System.ShouldContain("employeeBand");
+        ResearchSynthesisPrompt.System.ShouldContain("Omit");
     }
 
     [Fact]

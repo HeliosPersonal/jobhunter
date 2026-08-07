@@ -1,3 +1,4 @@
+using JobHunter.Domain.Intelligence;
 using JobHunter.Domain.Research;
 
 namespace JobHunter.Claude.Prompts;
@@ -9,10 +10,16 @@ namespace JobHunter.Claude.Prompts;
 /// supports it — which the verifier (T07) checks by set membership against the fetched source URLs before a
 /// single claim is stored. Nothing here is trusted yet: the schema can require a URL to be present, not to
 /// be true.
+///
+/// <para><see cref="Stage"/> and <see cref="EmployeeBand"/> are the optional firmographic feedback (AC-10):
+/// present only when a document supported the classification, absent otherwise — never guessed. The
+/// orchestrator (T08) feeds them back to the <c>Company</c> aggregate.</para>
 /// </summary>
 public sealed record ResearchOutput(
     string Summary,
-    IReadOnlyList<ClaimDto> Claims);
+    IReadOnlyList<ClaimDto> Claims,
+    CompanyStage? Stage = null,
+    string? EmployeeBand = null);
 
 /// <summary>
 /// One asserted claim from the synthesiser. <see cref="SourceUrl"/> must be one of the URLs supplied in the

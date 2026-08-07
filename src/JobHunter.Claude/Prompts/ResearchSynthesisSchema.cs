@@ -1,5 +1,6 @@
 using System.Text.Json;
 using JobHunter.Domain.Abstractions;
+using JobHunter.Domain.Intelligence;
 using JobHunter.Domain.Research;
 
 namespace JobHunter.Claude.Prompts;
@@ -37,6 +38,7 @@ public static class ResearchSynthesisSchema
             w.WriteStartObject("properties");
             WriteSummary(w);
             WriteClaims(w);
+            WriteFirmographics(w);
             w.WriteEndObject(); // properties
 
             w.WriteEndObject();
@@ -102,5 +104,28 @@ public static class ResearchSynthesisSchema
         w.WriteEndObject(); // items
 
         w.WriteEndObject(); // claims
+    }
+
+    private static void WriteFirmographics(Utf8JsonWriter w)
+    {
+        // Optional firmographic feedback (AC-10): the model may classify a funding/maturity stage and an
+        // employee-count band from the fetched text. Both are optional — absent when the documents give no
+        // evidence, never guessed — so neither is in `required`. The stage enum is generated from the domain
+        // CompanyStage so it cannot drift; the band is free text (e.g. "51-200"), bounded so a runaway
+        // generation cannot bloat it.
+        w.WriteStartObject("stage");
+        w.WriteStartArray("enum");
+        foreach (var value in Enum.GetNames<CompanyStage>())
+        {
+            w.WriteStringValue(value);
+        }
+
+        w.WriteEndArray();
+        w.WriteEndObject(); // stage
+
+        w.WriteStartObject("employeeBand");
+        w.WriteString("type", "string");
+        w.WriteNumber("maxLength", 60);
+        w.WriteEndObject(); // employeeBand
     }
 }

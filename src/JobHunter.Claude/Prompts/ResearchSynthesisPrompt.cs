@@ -19,7 +19,7 @@ namespace JobHunter.Claude.Prompts;
 public static class ResearchSynthesisPrompt
 {
     /// <summary>Bump whenever the system prompt, the user template or the schema changes.</summary>
-    public const string PromptVersion = "research-v1";
+    public const string PromptVersion = "research-v2";
 
     /// <summary>Each document's extracted text is capped at this many characters in the prompt.</summary>
     public const int MaxDocumentChars = 20_000;
@@ -46,6 +46,9 @@ public static class ResearchSynthesisPrompt
           organisational problems.
         - One claim per sentence. State what the source says, not what you infer from it.
         - The summary must contain nothing that is not also in a claim.
+        - You may set the optional stage (funding or maturity) and employeeBand (headcount range, e.g.
+          "51-200") fields only when a document states them. Omit either one when the documents give no
+          evidence for it — never guess it from what you know about the company.
         """;
 
     /// <summary>

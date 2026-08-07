@@ -1,5 +1,6 @@
 using System.Text.Json;
 using JobHunter.Claude.Prompts;
+using JobHunter.Domain.Intelligence;
 using JobHunter.Domain.Research;
 using Shouldly;
 using Xunit;
@@ -87,5 +88,32 @@ public sealed class ResearchSynthesisSchemaTests
         props.GetProperty("claim").GetProperty("maxLength").GetInt32().ShouldBe(300);
         props.GetProperty("sourceUrl").GetProperty("format").GetString().ShouldBe("uri");
         props.GetProperty("isWarning").GetProperty("type").GetString().ShouldBe("boolean");
+    }
+
+    [Fact]
+    public void The_optional_stage_is_the_closed_company_stage_set()
+    {
+        // Firmographic feedback (AC-10): the model may classify a funding/maturity stage from the fetched
+        // text. It is optional — absence means "no evidence", never a guess — so it is not in `required`.
+        var required = Root().GetProperty("required").EnumerateArray().Select(v => v.GetString()).ToList();
+        required.ShouldNotContain("stage");
+
+        var stage = Root().GetProperty("properties").GetProperty("stage");
+        var values = stage.GetProperty("enum").EnumerateArray().Select(v => v.GetString()).ToList();
+        foreach (var name in Enum.GetNames<CompanyStage>())
+        {
+            values.ShouldContain(name);
+        }
+    }
+
+    [Fact]
+    public void The_optional_employee_band_is_a_bounded_string()
+    {
+        var required = Root().GetProperty("required").EnumerateArray().Select(v => v.GetString()).ToList();
+        required.ShouldNotContain("employeeBand");
+
+        var band = Root().GetProperty("properties").GetProperty("employeeBand");
+        band.GetProperty("type").GetString().ShouldBe("string");
+        band.GetProperty("maxLength").GetInt32().ShouldBe(60);
     }
 }
