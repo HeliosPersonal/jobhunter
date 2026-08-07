@@ -2,7 +2,7 @@
 status: Draft
 owner: "Viacheslav Melnichenko"
 reviewers: ["Tech Lead (Viacheslav)"]
-updated_at: "2026-08-06"
+updated_at: "2026-08-07"
 feature_size: "M"
 stage: "13"
 ticket: ""
@@ -27,7 +27,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T04 | [[T04-weight-fitter\|WeightFitter]] | app | T01 | L | done |
 | T05 | [[T05-preference-learner\|PreferenceLearner and weekly refit]] | app | T04, T02 | M | done |
 | T06 | [[T06-preference-component\|Preference component and precedence]] | app | T05 | M | done |
-| T07 | [[T07-suppression-floor\|Suppression evaluation and the card floor]] | app | T06, **O5 [?]** | M | pending |
+| T07 | [[T07-suppression-floor\|Suppression evaluation and the card floor]] | app | T06 | M | done |
 | T08 | [[T08-explainability-overrides\|Explainability view and Owner overrides]] | app/api | T07, ⟂F9 T04 | M | pending |
 | T09 | [[T09-corpus-and-metrics\|Synthetic corpus, property suite and precision tracking]] | tests | T04, T07 | L | pending |
 | T10 | [[T10-aiusage-rolefamily-dimensions\|Add AiUsage and RoleFamily as preference dimensions]] | domain | T01 | M | done |
@@ -39,10 +39,9 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 extends the closed `Dimension` enum with `AiUsage` and `RoleFamily` so the loop can reinforce the
 Owner's target trajectory under the existing evidence and weight guards.
 
-**[?] Blocked by open decision O5** (evidence floor / weight floor). T07 sets the suppression floor and
-the minimum-evidence threshold, which O5 must settle before it can be certified ready
-([[../../../AUDIT-RESOLUTION-DECISIONS|§7]]; [[../../../BACKLOG|BACKLOG]] §6). All other F7 tasks are
-`[ ]` ready.
+**O5 decided (2026-08-07).** The salary floor is a ranking down-weight, not a hard pre-filter — the hard
+filter is an explicit Owner opt-in, off by default ([[../../../ARCHITECTURE-OPEN-DECISIONS|O5]]). T07 was
+blocked on that decision; it is now settled and T07 is `done`. All other F7 tasks are `[ ]` ready.
 
 ⟂ **Cross-feature build-order dependency:** T08's explainability and override endpoints are hosted on
 `jobhunter-api`, whose authenticated host and owner-scope policy are established by

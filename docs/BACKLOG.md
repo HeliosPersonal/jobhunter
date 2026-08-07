@@ -111,12 +111,13 @@ Not scheduled. Ordered by current appetite.
 
 ## 6. Open decisions needing an answer
 
-Only two decisions remain genuinely open and blocking. O1, O3, O4, O6, O8, O10 and O12 are now
+Only one decision remains genuinely open and blocking. O1, O3, O4, O5, O6, O8, O10 and O12 are now
 resolved (by ADR or as settled fact) and are recorded under "Decided and closed" in
 [[ARCHITECTURE-OPEN-DECISIONS]].
 
 - [?] Is the API internet-facing — [[ARCHITECTURE-OPEN-DECISIONS\|O2]], blocks F9 T04.
-- [?] Salary floor: hard filter or down-weight — [[ARCHITECTURE-OPEN-DECISIONS\|O5]], blocks F7 T07.
+- [x] Salary floor: hard filter or down-weight — [[ARCHITECTURE-OPEN-DECISIONS\|O5]], **decided 2026-08-07**:
+  down-weight only; the hard pre-filter is an explicit Owner opt-in, off by default. Unblocked F7 T07.
 
 ---
 
