@@ -105,6 +105,10 @@ public static class DependencyInjection
         // preference model goes through EF as an immutable aggregate with its weights as owned children.
         services.AddScoped<ISignalRepository, SignalRepository>();
         services.AddScoped<IPreferenceModelRepository, PreferenceModelRepository>();
+        // F8 company research (T02): the dossier goes through EF as one immutable aggregate — its fetched
+        // sources and cited claims inserted with it in one transaction. The composite (research_id, source_id)
+        // foreign key makes invariant 5 (every claim carries a source in its own dossier) a schema property.
+        services.AddScoped<IResearchRepository, ResearchRepository>();
         // F7 T08 C4 (AC-07): the persisted, runtime-flippable master learning switch both PreferenceModelQuery
         // and the digest assembler consult. The single learning_state row is the live source of truth; its
         // absence falls back to the LearningOptions seed default (registered in Application DI). Scoped because

@@ -20,7 +20,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | ID | Task | Layer | Deps | Est | Status |
 |---|---|---|---|---|---|
 | T01 | [[T01-domain-research\|Domain: CompanyResearch, ResearchClaim, categories]] | domain | — | S | done |
-| T02 | [[T02-research-persistence\|Migration and repository]] | infra/db | T01 | S | pending |
+| T02 | [[T02-research-persistence\|Migration and repository]] | infra/db | T01 | S | done |
 | T03 | [[T03-fetcher-port-ssrf\|IResearchFetcher port and SSRF-safe fetch path]] | scrapers | — | L | pending |
 | T04 | [[T04-category-fetchers\|Category fetchers]] | scrapers | T03 | L | pending |
 | T05 | [[T05-target-selection\|Target selection and freshness]] | app | T02 | M | pending |
