@@ -157,6 +157,11 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<Application.Preferences.DisablePreferenceWeightHandler>(),
                 provider.GetRequiredService<IClock>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.ForgetCommandHandler>>())),
+            new("/floor", "Set your explicit salary floor (previewed before it's applied)", new Commands.FloorCommandHandler(
+                provider.GetRequiredService<ISalaryFloorPreviewQuery>(),
+                provider.GetRequiredService<IConversationStateStore>(),
+                provider.GetRequiredService<IClock>(),
+                provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.FloorCommandHandler>>())),
         };
 
         router = new Commands.CommandRouter(
