@@ -1,4 +1,5 @@
 using JobHunter.Domain.Companies;
+using JobHunter.Domain.Intelligence;
 using JobHunter.TestKit;
 using Shouldly;
 using Xunit;
@@ -126,5 +127,92 @@ public sealed class CompanyTests
 
         company.Retire();
         company.IsActive.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ApplyFirmographics_records_the_first_observation()
+    {
+        var company = NewCompany();
+        var observed = new DateTimeOffset(2026, 8, 1, 9, 0, 0, TimeSpan.Zero);
+
+        var changed = company.ApplyFirmographics(CompanyStage.SeriesB, "51-200", observed);
+
+        changed.ShouldBeTrue();
+        company.Stage.ShouldBe("SeriesB");
+        company.EmployeeBand.ShouldBe("51-200");
+        company.FirmographicsObservedAt.ShouldBe(observed);
+    }
+
+    [Fact]
+    public void ApplyFirmographics_ignores_both_nulls_and_reports_no_change()
+    {
+        var company = NewCompany();
+        var observed = new DateTimeOffset(2026, 8, 1, 9, 0, 0, TimeSpan.Zero);
+
+        var changed = company.ApplyFirmographics(null, null, observed);
+
+        changed.ShouldBeFalse();
+        company.Stage.ShouldBeNull();
+        company.EmployeeBand.ShouldBeNull();
+        company.FirmographicsObservedAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ApplyFirmographics_applies_only_the_supplied_field()
+    {
+        var company = NewCompany();
+        var observed = new DateTimeOffset(2026, 8, 1, 9, 0, 0, TimeSpan.Zero);
+
+        company.ApplyFirmographics(CompanyStage.Public, null, observed).ShouldBeTrue();
+
+        company.Stage.ShouldBe("Public");
+        company.EmployeeBand.ShouldBeNull();
+        company.FirmographicsObservedAt.ShouldBe(observed);
+    }
+
+    [Fact]
+    public void ApplyFirmographics_lets_a_newer_observation_overwrite_a_disagreement()
+    {
+        var company = NewCompany();
+        var earlier = new DateTimeOffset(2026, 7, 1, 9, 0, 0, TimeSpan.Zero);
+        var later = new DateTimeOffset(2026, 8, 1, 9, 0, 0, TimeSpan.Zero);
+        company.ApplyFirmographics(CompanyStage.SeriesB, "51-200", earlier);
+
+        var changed = company.ApplyFirmographics(CompanyStage.SeriesC, "201-500", later);
+
+        changed.ShouldBeTrue();
+        company.Stage.ShouldBe("SeriesC");
+        company.EmployeeBand.ShouldBe("201-500");
+        company.FirmographicsObservedAt.ShouldBe(later);
+    }
+
+    [Fact]
+    public void ApplyFirmographics_refuses_an_older_observation()
+    {
+        var company = NewCompany();
+        var earlier = new DateTimeOffset(2026, 7, 1, 9, 0, 0, TimeSpan.Zero);
+        var later = new DateTimeOffset(2026, 8, 1, 9, 0, 0, TimeSpan.Zero);
+        company.ApplyFirmographics(CompanyStage.SeriesC, "201-500", later);
+
+        var changed = company.ApplyFirmographics(CompanyStage.SeriesB, "51-200", earlier);
+
+        changed.ShouldBeFalse();
+        company.Stage.ShouldBe("SeriesC");
+        company.EmployeeBand.ShouldBe("201-500");
+        company.FirmographicsObservedAt.ShouldBe(later);
+    }
+
+    [Fact]
+    public void ApplyFirmographics_refuses_an_equally_old_observation()
+    {
+        var company = NewCompany();
+        var observed = new DateTimeOffset(2026, 8, 1, 9, 0, 0, TimeSpan.Zero);
+        company.ApplyFirmographics(CompanyStage.SeriesC, "201-500", observed);
+
+        var changed = company.ApplyFirmographics(CompanyStage.SeriesB, "51-200", observed);
+
+        changed.ShouldBeFalse();
+        company.Stage.ShouldBe("SeriesC");
+        company.EmployeeBand.ShouldBe("201-500");
     }
 }

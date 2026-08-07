@@ -1,5 +1,6 @@
 using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Common;
+using JobHunter.Domain.Intelligence;
 
 namespace JobHunter.Domain.Companies;
 
@@ -69,6 +70,13 @@ public sealed class Company : Entity
 
     /// <summary>Set by F8, not at discovery.</summary>
     public string? EmployeeBand { get; private set; }
+
+    /// <summary>
+    /// The instant of the research observation behind the current <see cref="Stage"/> / <see cref="EmployeeBand"/>,
+    /// null until F8 first feeds firmographics back. It arbitrates a disagreement: a later observation wins,
+    /// an older or equal one is ignored (AC-10).
+    /// </summary>
+    public DateTimeOffset? FirmographicsObservedAt { get; private set; }
 
     /// <summary>
     /// The employer's coarse comp posture (T15), from the curated seed. Advisory: it biases discovery and
@@ -155,4 +163,37 @@ public sealed class Company : Entity
     /// no-op (the registry converges regardless of how many times a crawl reports the same closure).
     /// </summary>
     public void Retire() => IsActive = false;
+
+    /// <summary>
+    /// Feeds firmographics learned from research back onto the registry (AC-10) — the whitelisted
+    /// cross-owner write in F8. The observation only lands when it is strictly newer than the one already
+    /// recorded, so a re-run of an older dossier never overwrites a fresher classification and a
+    /// disagreement resolves to the newer observation. A field the model left null (no evidence) is not
+    /// applied, and both-null is a no-op. Returns whether anything changed.
+    /// </summary>
+    public bool ApplyFirmographics(CompanyStage? stage, string? employeeBand, DateTimeOffset observedAt)
+    {
+        if (stage is null && employeeBand is null)
+        {
+            return false;
+        }
+
+        if (FirmographicsObservedAt is { } current && observedAt <= current)
+        {
+            return false;
+        }
+
+        if (stage is { } s)
+        {
+            Stage = s.ToString();
+        }
+
+        if (employeeBand is not null)
+        {
+            EmployeeBand = employeeBand;
+        }
+
+        FirmographicsObservedAt = observedAt;
+        return true;
+    }
 }
