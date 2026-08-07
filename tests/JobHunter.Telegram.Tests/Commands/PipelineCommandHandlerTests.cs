@@ -78,6 +78,40 @@ public sealed class PipelineCommandHandlerTests
     }
 
     [Fact]
+    public async Task Each_entry_carries_buttons_for_its_legal_next_transitions_only()
+    {
+        _pipeline.PipelineAsync(Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
+            .Returns(Pipeline(
+                new PipelineGroup(ApplicationStatus.Interview, [Entry("Staff Backend Engineer", "Snowflake", 95m)])));
+
+        var messages = await NewHandler().HandleAsync(new CommandRequest(OwnerChat, null));
+
+        // Advancing costs one tap: an Interview entry offers exactly its legal next moves (Rejected, Offer,
+        // Ignored per the F6 matrix, in funnel order), never a backwards or impossible one, and never a move
+        // to where it already is (AC-03, catalogue §/pipeline).
+        var card = messages.Single(m => m.Text.Contains("Staff Backend Engineer"));
+        card.HasKeyboard.ShouldBeTrue();
+        var labels = card.Keyboard.SelectMany(row => row).Select(b => b.Label).ToArray();
+        labels.ShouldBe(["Rejected", "Offer", "Ignored"]);
+        card.Keyboard.SelectMany(row => row).ShouldAllBe(b => b.CallbackData != null);
+    }
+
+    [Fact]
+    public async Task A_terminal_status_entry_carries_only_its_real_moves()
+    {
+        _pipeline.PipelineAsync(Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
+            .Returns(Pipeline(
+                new PipelineGroup(ApplicationStatus.Offer, [Entry("Senior SRE", "Acme", 88m)])));
+
+        var messages = await NewHandler().HandleAsync(new CommandRequest(OwnerChat, null));
+
+        // An Offer is accepted (stays Offer) or declined (Rejected) — the only real move is Rejected; the
+        // idempotent no-op is not offered as a button (AC-03).
+        var card = messages.Single(m => m.Text.Contains("Senior SRE"));
+        card.Keyboard.SelectMany(row => row).Select(b => b.Label).ShouldBe(["Rejected"]);
+    }
+
+    [Fact]
     public async Task An_empty_pipeline_yields_one_plain_helpful_line()
     {
         _pipeline.PipelineAsync(Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())

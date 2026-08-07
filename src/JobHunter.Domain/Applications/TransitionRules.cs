@@ -27,6 +27,17 @@ public static class TransitionRules
             ? TransitionResult.Permitted()
             : TransitionResult.Refused(RemedyFor(from, to));
 
+    /// <summary>
+    /// The transitions a UI should offer from <paramref name="from"/>: every permitted target that actually
+    /// changes the status (AC-03). The idempotent diagonal is a legal no-op but not an <em>action</em>, so a
+    /// "move it to where it already is" button would be noise and is excluded. The order follows the funnel
+    /// (the <see cref="ApplicationStatus"/> declaration order), so buttons read forward, then the drops.
+    /// </summary>
+    public static IReadOnlyList<ApplicationStatus> NextTransitions(ApplicationStatus from) =>
+        Enum.GetValues<ApplicationStatus>()
+            .Where(to => to != from && Allowed.Contains((from, to)))
+            .ToArray();
+
     private static FrozenSet<(ApplicationStatus, ApplicationStatus)> BuildAllowed()
     {
         const ApplicationStatus n = ApplicationStatus.New;

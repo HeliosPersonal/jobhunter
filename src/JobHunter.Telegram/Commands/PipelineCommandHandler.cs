@@ -23,6 +23,13 @@ namespace JobHunter.Telegram.Commands;
 internal sealed class PipelineCommandHandler(
     IApplicationPipelineQuery pipeline, IClock clock, ILogger<PipelineCommandHandler> logger) : ICommandHandler
 {
+    // The callback action token behind a transition button: "st:{target}:{applicationId}" (catalogue
+    // §/pipeline). The target status names the move and the application id names its subject; the id is an
+    // internal identifier, never a fact and never the CV (invariant 12). The live route to F6's
+    // ChangeApplicationStatus path is wired with the rest of the callback registry (T10) — this task renders
+    // the buttons the matrix permits, the tap becomes an event next.
+    private const string TransitionToken = "st";
+
     private readonly IApplicationPipelineQuery _pipeline = pipeline ?? throw new ArgumentNullException(nameof(pipeline));
     private readonly IClock _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     private readonly ILogger<PipelineCommandHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -43,13 +50,27 @@ internal sealed class PipelineCommandHandler(
         var messages = new List<RenderedMessage>();
         foreach (var group in view.Groups)
         {
-            // One bold status header, then its applications as cards — the same card the digest renders.
+            // One bold status header, then its applications as cards — the same card the digest renders, each
+            // carrying the buttons for the moves the F6 matrix permits from this status (AC-03).
             messages.Add(RenderedMessage.PlainText("*" + MarkdownV2Escaper.Escape(group.Status.ToString()) + "*"));
             messages.AddRange(group.Applications.Select(entry =>
-                RenderedMessage.PlainText(CardFormatter.Format(ToCard(entry)))));
+                new RenderedMessage(CardFormatter.Format(ToCard(entry)), TransitionKeyboard(group.Status, entry.Id))));
         }
 
         return messages;
+    }
+
+    // The legal next transitions from a status as one row of inline buttons (AC-03, catalogue §/pipeline). The
+    // matrix owns which moves are real — the idempotent no-op is not among them — so advancing is one tap. Each
+    // button carries "st:{target}:{applicationId}"; the id names the subject, never a fact (invariant 12), and
+    // the live route to F6's ChangeApplicationStatus path is wired with the callback registry (T10).
+    private static IReadOnlyList<IReadOnlyList<InlineButton>> TransitionKeyboard(ApplicationStatus from, Guid applicationId)
+    {
+        var buttons = TransitionRules.NextTransitions(from)
+            .Select(to => new InlineButton(to.ToString(), $"{TransitionToken}:{to}:{applicationId}"))
+            .ToArray();
+
+        return buttons.Length == 0 ? [] : [buttons];
     }
 
     private static CardView ToCard(PipelineEntry entry) => new(

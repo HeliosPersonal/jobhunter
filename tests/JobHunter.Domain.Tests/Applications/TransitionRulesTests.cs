@@ -87,6 +87,23 @@ public sealed class TransitionRulesTests
         }
     }
 
+    [Theory]
+    [MemberData(nameof(AllPairs))]
+    public void Next_transitions_are_the_permitted_targets_minus_the_idempotent_diagonal(
+        ApplicationStatus from, ApplicationStatus to)
+    {
+        // The moves a UI should offer from a status are exactly the permitted targets that change something:
+        // the diagonal is a legal no-op, but a "move it to where it already is" button is noise, so it is
+        // excluded (AC-03). Every other matrix ✓ must appear, and nothing refused may.
+        var expectedOffered = Matrix[from][to] && to != from;
+
+        var next = TransitionRules.NextTransitions(from);
+
+        next.Contains(to).ShouldBe(
+            expectedOffered,
+            $"{from} → {to} should {(expectedOffered ? "" : "not ")}be offered as a next transition.");
+    }
+
     private static Dictionary<ApplicationStatus, bool> Row(
         bool New,
         bool Saved,
