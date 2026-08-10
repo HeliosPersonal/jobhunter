@@ -20,9 +20,11 @@ keys, send only the remainder, and write a delivery-log row **immediately after 
 ## Delivered
 
 - **`IDigestRenderer`** (a Domain port) + **`RenderableMessage`** (a `(CardKey, RenderedMessage)` pair):
-  rendering crosses a port because the T06 formatters and the `INotifier` implementation both live in the
-  `JobHunter.Telegram` host, which the Application-layer handler cannot reference (the arch arrow runs
-  Telegram → Application). The handler owns pure, idempotent orchestration and is tested against fakes.
+  rendering crosses a port because the T06 formatters and the `INotifier` implementation live in an adapter
+  the Application-layer handler cannot reference (the arch arrow runs the adapters → Application, never the
+  reverse). That adapter is `JobHunter.Telegram.Transport`, composed by both the Worker (which actually runs
+  `DeliveryHandler`, off its 07:00 Hangfire cron) and the bot host (Task #88); the handler owns pure,
+  idempotent orchestration and is tested against fakes.
 - **`DeliveryHandler`** (`JobHunter.Application/Delivery`) consuming `DigestReady`: loads the persisted
   digest (a missing one is surfaced so Wolverine redelivers once the write is visible), renders the ordered
   keyed sequence, loads the already-delivered keys for `(run, chat)`, and sends only the remainder —

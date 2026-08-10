@@ -64,16 +64,30 @@ JobHunter.Application/Reporting/  DigestAssembler · ApplyLinkVerifier · NearDu
                                   NarrativeSynthesisHandler · SuppressionSummarizer
 JobHunter.Application/Delivery/   DeliveryHandler · IDeliveryLog
 
-JobHunter.Telegram/
+JobHunter.Telegram.Transport/    the shared outbound send-path adapter (Task #88)
+  Transport/                  TelegramNotifier (implements INotifier) · TelegramSendPacer
+  Formatting/                 DigestRenderer · WeeklyRatingRenderer · ReminderRenderer
+                              DigestHeaderFormatter · CardFormatter · MarkdownV2Escaper
+  Callbacks/                  CallbackDataCodec (signs card-action payloads) · ICallbackResponder
+  TelegramTransportServiceCollectionExtensions.AddJobHunterTelegramTransport
+
+JobHunter.Telegram/              the bot host — inbound only
   Program.cs                  single-replica host, long-poll hosted service
   Auth/OwnerAuthorizer.cs     chat-id allowlist, applied before routing
   Handlers/                   CommandRouter · DigestCommandHandler · SavedHandler
                               PipelineHandler · SearchHandler · CallbackHandler
-  Formatting/                 DigestHeaderFormatter · CardFormatter · MarkdownV2Escaper
-  Transport/                  TelegramNotifier (implements INotifier)
 
 JobHunter.Claude/Prompts/DigestNarrativePrompt.cs
 ```
+
+`DeliveryHandler` runs in the **Worker** — it is a Wolverine handler fired by the 07:00 Hangfire
+cron, and the Worker is the only host that runs a bus and a Hangfire server. `INotifier` and the
+renderers it sends through therefore live in `JobHunter.Telegram.Transport`, a middle-layer adapter
+(a sibling of `JobHunter.Claude`) that **both** the Worker and the bot host compose via
+`AddJobHunterTelegramTransport` (Task #88). The bot host adds its inbound command and callback
+wiring on top; the Worker composes only the send path. This is what lets the Worker's scheduled
+sends — the digest (F5), the weekly rating prompt (F4 T20) and the reminder sweep (F6) — resolve an
+`INotifier` without pulling in the long-poll loop.
 
 `INotifier` is a domain port, so the digest can be rendered and asserted without Telegram present:
 
