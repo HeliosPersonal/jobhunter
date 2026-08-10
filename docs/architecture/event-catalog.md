@@ -31,8 +31,8 @@ tags: [sdlc/stage-06, contracts, events, architecture, jobhunter]
 5. **Every consumer is idempotent**, keyed as listed in the table below. At-least-once delivery is
    assumed, never worked around.
 6. **Queue name** = `{MessageType.FullName}.{consuming-deployable}`, auto-provisioned, one dead-letter
-   queue per stage. So `DigestReady`, consumed by `JobHunter.Telegram`, owns
-   `….jobhunter-telegram`, not `…-worker`.
+   queue per stage. So `RankingCompleted`, consumed by the Worker's `ReportingHandler`, owns
+   `….jobhunter-worker`, not `…-telegram`.
 
 ---
 
@@ -62,7 +62,7 @@ graph LR
     K --> RC[ResearchCompleted]
     J --> L[DigestReady]
     RC --> L
-    L --> M[DigestDelivered]
+    DDD[DigestDeliveryDue] --> M[DigestDelivered]
     M --> N[OwnerActionRecorded]
     N --> AS[ApplicationStatusChanged]
     J --> P[JobIndexRequested]
@@ -75,6 +75,11 @@ graph LR
 
 `PreferenceModelUpdated` is emitted by a weekly Hangfire fitting job, not as a consequence of an
 `OwnerActionRecorded` tap; it feeds the next Run's ranking.
+
+`DigestReady` is an assembled-and-persisted marker with no consumer — the digest is built and held
+earlier in the day. Delivery is a separate slot: the Worker's `DigestDeliveryTrigger` Hangfire cron
+fires `DigestDeliveryDue` at 07:00 Europe/Kyiv, and the Worker's `DeliveryHandler` consumes it and
+sends. This decouples "assembled" from "delivered at exactly 07:00" (F5 SAD §6.3, ADR-F5-0001).
 
 ---
 
@@ -96,7 +101,8 @@ graph LR
 | `RankingCompleted` | `RankingHandler` | `ReportingHandler`, `ResearchHandler`, `SearchIndexer` | `RunId` | `RunId`, `RankedCount`, `SuppressedCount`, `TopJobIds`, `OccurredAt` |
 | `ResearchRequested` | `RankingHandler` | `ResearchHandler` | `(RunId, CompanyId)` | `RunId`, `CompanyId`, `Reason` |
 | `ResearchCompleted` | `ResearchHandler` | `ReportingHandler` | `(RunId, CompanyId)` | `RunId`, `CompanyId`, `ResearchId`, `ClaimCount` |
-| `DigestReady` | `ReportingHandler` | `JobHunter.Telegram` | `RunId` | `RunId`, `DigestId`, `CardCount`, `GeneratedAt` |
+| `DigestReady` | `ReportingHandler` | *(none — assembled marker)* | `RunId` | `RunId`, `DigestId`, `CardCount`, `GeneratedAt` |
+| `DigestDeliveryDue` | Hangfire (`DigestDeliveryTrigger`, 07:00 Europe/Kyiv) | `DeliveryHandler` (Worker) | `DueAt` (per-card `(RunId, ChatId, CardKey)`) | `DueAt` |
 | `DigestDelivered` | `DeliveryHandler` | `MetricsHandler` | `(RunId, ChatId)` | `RunId`, `ChatId`, `CardsDelivered`, `DeliveredAt` |
 | `OwnerActionRecorded` | `JobHunter.Telegram` | `ApplicationHandler`, `SignalHandler` | `(JobId, Action, OccurredAt)` | `JobId`, `Action` (`Open`\|`Ignore`\|`Save`\|`Applied`), `ChatId`, `OccurredAt` |
 | `ApplicationStatusChanged` | `ApplicationHandler` | `SignalHandler`, `SearchIndexer` | `(ApplicationId, ToStatus, OccurredAt)` | `ApplicationId`, `JobId`, `FromStatus`, `ToStatus` |

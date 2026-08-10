@@ -18,8 +18,11 @@ by an architecture test that forbids interpolating a non-constant directly into 
 
 ## Delivered
 
-The formatters and the one escaper they all route through live in a new `JobHunter.Telegram/Formatting`
-namespace, so a single architecture test can fence the whole message surface.
+The formatters and the one escaper they all route through share a single `JobHunter.Telegram.Formatting`
+namespace, so one architecture test can fence the whole message surface. That namespace now lives in the
+`JobHunter.Telegram.Transport` project (the shared send-path adapter composed by both the Worker and the
+bot host, see [[T08-delivery-idempotence]]); the namespace was kept identical across the project move, so
+every reference below and the `SourceScan` still resolve unchanged.
 
 - **`MarkdownV2Escaper`** (Telegram/Formatting) — the **canonical** escaper, now shared. `Escape` backslash-
   escapes every one of the eighteen MarkdownV2 specials `_ * [ ] ( ) ~ ` > # + - = | { } . !` — one

@@ -147,7 +147,9 @@ precisely the failure the table exists to prevent.
 
 - **Consumes** `RankingCompleted` (F4), `scores`, `matches`, `jobs`, and F1's degraded-source summary.
 - **Consumes** `RunCostAborted` (F3) → renders the reduced-digest warning.
-- **Produces** `DigestReady` → the Telegram host; `DigestDelivered` → metrics.
+- **Produces** `DigestReady` (an assembled-and-persisted marker, no consumer). Delivery is a separate
+  slot: the Worker's `DigestDeliveryTrigger` fires `DigestDeliveryDue` at 07:00, and the Worker's
+  `DeliveryHandler` consumes it and produces `DigestDelivered` → metrics.
 - **Produces** `OwnerActionRecorded` → F6 application tracking, F7 signal capture.
 - **Writes** `signals` rows (schema owned by F7) in the same transaction as the action (AC-08).
 

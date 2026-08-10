@@ -85,7 +85,7 @@ See [[../../../IMPLEMENTATION-READINESS]] §4 for the full per-task checklist.
   never writes); `/stats` keeps the week-window, precision and trend arithmetic in the handler against
   `IClock`, leaving only the counts to Postgres.
 - **T12** — the rendering line is complete and the F5 ship-blocker is closed. The production
-  `DigestRenderer : IDigestRenderer` (in `JobHunter.Telegram/Formatting`) both the 07:00 `DeliveryHandler` and
+  `DigestRenderer : IDigestRenderer` (in `JobHunter.Telegram.Transport/Formatting`) both the 07:00 `DeliveryHandler` and
   `/digest` depend on now exists: it joins each card's display facts fresh through the `ICardDisplayQuery`
   read port (`CardDisplayQuery`, Dapper, architecture rule 4 — never writes), maps them onto the one shared
   `CardView`/`CardFormatter`, and emits the header, one message per card and the footer, each carrying the

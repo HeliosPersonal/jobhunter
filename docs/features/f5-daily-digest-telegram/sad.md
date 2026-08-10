@@ -131,9 +131,9 @@ sequenceDiagram
     A->>A: template fallback (S4)
   end
   A->>DB: persist digest + cards, each with a card_key
-  A->>DB: outbox ← DigestReady
+  A->>DB: outbox ← DigestReady (assembled marker — no consumer)
 
-  Note over D,T: 07:00 Europe/Kyiv
+  Note over D,T: 07:00 Europe/Kyiv — DigestDeliveryTrigger fires DigestDeliveryDue → DeliveryHandler
   D->>DB: load digest + cards
   D->>DB: SELECT delivered card_keys for (run_id, chat_id)
   D->>T: send header

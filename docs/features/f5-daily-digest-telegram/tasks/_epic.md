@@ -53,7 +53,7 @@ host, `JobHunter.Claude/Prompts/DigestNarrativePrompt.cs`, `Infrastructure/Persi
 
 | Produces | Consumer |
 |---|---|
-| `DigestReady` | the Telegram host |
+| `DigestReady` | *(none — assembled marker; delivery runs in the Worker off `DigestDeliveryDue`)* |
 | `DigestDelivered` | metrics |
 | `OwnerActionRecorded` | F6 application tracking, F7 signal capture |
 | `signals` rows | F7 (which owns the schema) |

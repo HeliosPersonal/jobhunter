@@ -4,8 +4,8 @@
 
 ## What
 
-`DeliveryHandler` consuming `DigestReady`: load the digest, load already-delivered card
-keys, send only the remainder, and write a delivery-log row **immediately after each successful send**
+`DeliveryHandler` consuming `DigestDeliveryDue` (the 07:00 slot): load the digest, load already-delivered
+card keys, send only the remainder, and write a delivery-log row **immediately after each successful send**
 ([[../adr/0002-delivery-idempotence|ADR-F5-0002]]).
 
 ## Done when
@@ -25,7 +25,8 @@ keys, send only the remainder, and write a delivery-log row **immediately after 
   reverse). That adapter is `JobHunter.Telegram.Transport`, composed by both the Worker (which actually runs
   `DeliveryHandler`, off its 07:00 Hangfire cron) and the bot host (Task #88); the handler owns pure,
   idempotent orchestration and is tested against fakes.
-- **`DeliveryHandler`** (`JobHunter.Application/Delivery`) consuming `DigestReady`: loads the persisted
+- **`DeliveryHandler`** (`JobHunter.Application/Delivery`) consuming `DigestDeliveryDue` (the Worker's 07:00
+  Hangfire tick, not `DigestReady` — which is a no-consumer assembled marker): loads the persisted
   digest (a missing one is surfaced so Wolverine redelivers once the write is visible), renders the ordered
   keyed sequence, loads the already-delivered keys for `(run, chat)`, and sends only the remainder —
   writing a `delivery_log` row **immediately after each successful send** (send-then-log, ADR-F5-0002).

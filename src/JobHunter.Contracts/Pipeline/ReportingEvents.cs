@@ -1,11 +1,12 @@
 namespace JobHunter.Contracts.Pipeline;
 
 /// <summary>
-/// A Run's digest was assembled and fully persisted, and is ready to deliver (event-catalog §3, F5 SAD §6.1).
-/// Published <em>after</em> the digest and its cards are committed (SAD S2), so a consumer that reacts to it
-/// always finds the stored artifact — delivery replays state rather than recomputing it. Consumed by the
-/// Telegram host, which sends the digest at 07:00 Europe/Kyiv. Carries the digest id and the number of cards
-/// so a consumer need not re-query to know the shape of the day.
+/// A Run's digest was assembled and fully persisted (event-catalog §3, F5 SAD §6.1). Published <em>after</em>
+/// the digest and its cards are committed (SAD S2). This is an assembled-and-persisted marker with no
+/// consumer: the digest is built and held earlier in the day, and delivery is a separate slot — the Worker's
+/// <c>DigestDeliveryTrigger</c> fires <c>DigestDeliveryDue</c> at 07:00 Europe/Kyiv and the Worker's
+/// <c>DeliveryHandler</c> sends by replaying the stored artifact. Carries the digest id and the number of
+/// cards so any future consumer need not re-query to know the shape of the day.
 ///
 /// <para>Idempotency key is the <see cref="RunId"/>: one digest per Run is a database constraint
 /// (<c>uq_digests_run</c>), so a re-assembly finds the existing digest and re-emits the same key rather than
@@ -24,8 +25,8 @@ public sealed record DigestReady(
 /// messages were sent this pass and how many cards were refused (a per-card 400), so the number is a fact
 /// about delivery, not a restatement of the digest's shape.
 ///
-/// <para>Idempotency key is <c>(RunId, ChatId)</c>: a redelivered <c>DigestReady</c> re-runs a delivery that
-/// finds every card already in the log and sends nothing, then re-emits this with the same key. It carries
+/// <para>Idempotency key is <c>(RunId, ChatId)</c>: a repeated <c>DigestDeliveryDue</c> tick re-runs a delivery
+/// that finds every card already in the log and sends nothing, then re-emits this with the same key. It carries
 /// only counts and the chat — nothing about the Owner beyond the chat id (F4 invariant).</para>
 /// </summary>
 public sealed record DigestDelivered(

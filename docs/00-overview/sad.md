@@ -168,9 +168,11 @@ src/
 ├─ JobHunter.Scrapers/          # one adapter per ATS: Greenhouse, Lever, Ashby, Workable, CareersPage
 ├─ JobHunter.Claude/            # AnthropicBatchClient, prompt builders, schema-bound parsers, CostAccountant
 ├─ JobHunter.Search/            # Typesense indexer + query service
+├─ JobHunter.Telegram.Transport/# Shared send-path adapter: TelegramNotifier, the digest/rating/reminder
+│                               # renderers, formatters, pacer, callback codec. Composed by BOTH hosts below.
 ├─ JobHunter.Api/               # ASP.NET Core Minimal API. Read models, admin ops, OpenAPI, Keycloak.
-├─ JobHunter.Worker/            # Worker Service. Hangfire schedules + all stage consumers.
-├─ JobHunter.Telegram/          # Bot host: digest rendering, long-poll, callback handling.
+├─ JobHunter.Worker/            # Worker Service. Hangfire schedules + all stage consumers + digest delivery.
+├─ JobHunter.Telegram/          # Bot host (inbound-only): long-poll, command + callback handling.
 └─ Aspire/
    ├─ JobHunter.AppHost/        # local-dev orchestration only
    └─ JobHunter.ServiceDefaults/# OTel, health, resilience, service discovery — referenced by all hosts
@@ -189,7 +191,7 @@ C4Container
   Container_Boundary(jh, "JobHunter") {
     Container(api, "JobHunter.Api", ".NET 10 Minimal API", "Read models, admin ops, OpenAPI. Keycloak-protected.")
     Container(worker, "JobHunter.Worker", ".NET 10 Worker Service", "Hangfire schedules + all nine stage consumers.")
-    Container(bot, "JobHunter.Telegram", ".NET 10 Worker Service", "Renders digests, long-polls, handles callbacks.")
+    Container(bot, "JobHunter.Telegram", ".NET 10 Worker Service", "Inbound-only: long-polls, handles commands + callbacks.")
   }
 
   ContainerDb(pg, "PostgreSQL", "production_jobhunter", "Companies, Jobs, Enrichments, Matches, Runs, Applications, Signals, Hangfire schema")
@@ -202,12 +204,12 @@ C4Container
   System_Ext(tg, "Telegram Bot API")
 
   Rel(owner, tg, "Reads / taps")
-  Rel(tg, bot, "Callbacks")
-  Rel(bot, tg, "Digest messages")
+  Rel(tg, bot, "Commands / callbacks")
+  Rel(worker, tg, "Digest + rating + reminder messages")
+  Rel(bot, tg, "Command / callback replies")
   Rel(worker, ats, "Fetch feeds", "HTTPS")
   Rel(worker, claude, "Submit / poll / retrieve", "HTTPS")
   Rel(worker, mq, "Publish + consume", "AMQP")
-  Rel(bot, mq, "Consume DigestReady", "AMQP")
   Rel(api, pg, "Read", "Dapper")
   Rel(worker, pg, "Read/write", "EF Core + outbox")
   Rel(bot, pg, "Read/write delivery log", "EF Core")
@@ -323,7 +325,9 @@ sequenceDiagram
   participant RK as RankingHandler
   participant DB as PostgreSQL
   participant C as Claude
-  participant B as JobHunter.Telegram
+  participant H as Hangfire (07:00)
+  participant D as DeliveryHandler (Worker)
+  participant B as JobHunter.Telegram (bot)
   participant T as Telegram API
   participant Ow as Owner
 
@@ -335,22 +339,22 @@ sequenceDiagram
 
   O->>C: SubmitBatch(Synthesis, 1 item, tier=Deep)
   C-->>O: digest narrative (counts, salary stats, market note)
-  O->>DB: persist Digest + Cards + outbox ← DigestReady
+  O->>DB: persist Digest + Cards + outbox ← DigestReady (assembled marker, no consumer)
 
-  B->>B: consume DigestReady
-  B->>DB: check delivery_log (run_id, chat_id, card_key)
+  H->>D: DigestDeliveryDue (07:00 Europe/Kyiv cron)
+  D->>DB: check delivery_log (run_id, chat_id, card_key)
   alt already delivered
-    B-->>B: skip (invariant 8)
+    D-->>D: skip (invariant 8)
   else
-    B->>T: sendMessage(header)
+    D->>T: sendMessage(header)
     loop top N cards
-      B->>T: sendMessage(card + inline keyboard)
-      B->>DB: insert delivery_log row
+      D->>T: sendMessage(card + inline keyboard)
+      D->>DB: insert delivery_log row
     end
   end
   T-->>Ow: 07:00 digest
   Ow->>T: tap Ignore
-  T->>B: callback_query
+  T->>B: callback_query (long-poll)
   B->>DB: Application.status = Ignored + Signal recorded
   B->>T: answerCallbackQuery("Won't show similar")
 ```
