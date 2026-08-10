@@ -12,6 +12,7 @@ public sealed class TelemetryLabelsTests
     [InlineData("tier")]
     [InlineData("environment")]
     [InlineData("outcome")]
+    [InlineData("rule")]
     public void Allowed_labels_are_recognised(string label)
     {
         TelemetryLabels.IsAllowed(label).ShouldBeTrue();
@@ -29,12 +30,12 @@ public sealed class TelemetryLabelsTests
         TelemetryLabels.IsAllowed(label).ShouldBeFalse();
     }
 
-    private static readonly string[] ExpectedKeys = ["stage", "ats_kind", "tier", "environment", "outcome"];
+    private static readonly string[] ExpectedKeys = ["stage", "ats_kind", "tier", "environment", "outcome", "rule"];
 
     [Fact]
-    public void The_allowlist_is_exactly_the_five_documented_keys()
+    public void The_allowlist_is_exactly_the_six_documented_keys()
     {
-        TelemetryLabels.Allowed.Count.ShouldBe(5);
+        TelemetryLabels.Allowed.Count.ShouldBe(6);
         TelemetryLabels.Allowed.ShouldBe(ExpectedKeys, ignoreOrder: true);
     }
 }

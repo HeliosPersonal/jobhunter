@@ -1,4 +1,5 @@
 using System.Globalization;
+using JobHunter.Application.Common;
 using JobHunter.Application.Enrichment;
 using JobHunter.Contracts.Pipeline;
 using JobHunter.Domain.Abstractions;
@@ -308,6 +309,10 @@ public sealed class MatchingSubmitHandler(
             }
 
             excluded++;
+            // Count the exclusion by rule (T21, done-when 2): a per-rule rate makes a mis-firing rule visible
+            // on a dashboard, the metric the regret sampler then confirms against real cheap-tier matches.
+            Telemetry.Prefiltered.Add(
+                1, new KeyValuePair<string, object?>(TelemetryLabels.Rule, verdict.Rule!.Value.ToString()));
             await RecordExclusionAsync(run, job.JobId, verdict, cancellationToken).ConfigureAwait(false);
         }
 

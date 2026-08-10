@@ -14,8 +14,15 @@ public static class TelemetryLabels
     public const string Environment = "environment";
     public const string Outcome = "outcome";
 
+    /// <summary>
+    /// The pre-match filter rule that excluded a job (F4 T21, ADR-F4-0003): the bounded <c>PreMatchRule</c>
+    /// enum, so <c>jobhunter.matching.prefiltered</c> can be charted by rule and a wrong rule is visible.
+    /// Safe cardinality — five values, never an id.
+    /// </summary>
+    public const string Rule = "rule";
+
     public static readonly IReadOnlySet<string> Allowed =
-        new HashSet<string>(StringComparer.Ordinal) { Stage, AtsKind, Tier, Environment, Outcome };
+        new HashSet<string>(StringComparer.Ordinal) { Stage, AtsKind, Tier, Environment, Outcome, Rule };
 
     /// <summary>True when <paramref name="label"/> is an allowed metric label.</summary>
     public static bool IsAllowed(string label) => Allowed.Contains(label);

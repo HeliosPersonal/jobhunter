@@ -32,11 +32,12 @@ public sealed class TelemetryTests
             Telemetry.IndexDrift,
             Telemetry.MatchScoreDistribution,
             Telemetry.RankingSuppressed,
+            Telemetry.Prefiltered,
         };
 
-        instruments.Length.ShouldBe(12);
+        instruments.Length.ShouldBe(13);
         instruments.ShouldAllBe(i => i.Meter.Name == Telemetry.MeterName);
-        instruments.Select(i => i.Name).Distinct().Count().ShouldBe(12);
+        instruments.Select(i => i.Name).Distinct().Count().ShouldBe(13);
     }
 
     [Fact]
@@ -56,6 +57,7 @@ public sealed class TelemetryTests
             Telemetry.IndexDrift.Name,
             Telemetry.MatchScoreDistribution.Name,
             Telemetry.RankingSuppressed.Name,
+            Telemetry.Prefiltered.Name,
         };
 
         names.ShouldAllBe(n => n.StartsWith("jobhunter.", StringComparison.Ordinal));

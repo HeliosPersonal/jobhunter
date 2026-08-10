@@ -68,6 +68,13 @@ public static class Telemetry
     public static readonly Counter<long> RankingSuppressed =
         Meter.CreateCounter<long>("jobhunter.ranking.suppressed", "jobs", "Matched jobs suppressed with a reason");
 
+    // F4 T21 (done-when 2, ADR-F4-0003): how many jobs the pre-match filter excluded from the deep tier,
+    // tagged by the PreMatchRule that ruled each out (label 'rule'). A counter, so a per-rule rate is what a
+    // dashboard charts — a rule excluding far more than its share is the first sign it is wrong, the
+    // counterpart the regret sampler then confirms against real matches (jobhunter.matching.regret).
+    public static readonly Counter<long> Prefiltered =
+        Meter.CreateCounter<long>("jobhunter.matching.prefiltered", "jobs", "Jobs excluded by the pre-match filter, by rule");
+
     // F7 T07 (AC-06): an Owner override contradicted the model's verdict — a never-suppress rule forced a
     // hidden job to appear, or an always-suppress rule hid a shown one. Counted so the tension is visible,
     // never a silent rewrite (invariant 11).

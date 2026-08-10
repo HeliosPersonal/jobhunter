@@ -1,3 +1,5 @@
+using System.Diagnostics.Metrics;
+using JobHunter.Application.Common;
 using JobHunter.Application.Enrichment;
 using JobHunter.Application.Matching;
 using JobHunter.Contracts.Pipeline;
@@ -459,6 +461,75 @@ public sealed class MatchingSubmitHandlerTests
 
         _client.LastSubmission.ShouldNotBeNull().Items.Count.ShouldBe(2);
         await _scores.DidNotReceive().UpsertAsync(Arg.Any<Score>(), Arg.Any<CancellationToken>());
+    }
+
+    // ---- T21 / ADR-F4-0003: every exclusion is counted by rule (jobhunter.matching.prefiltered) ---
+
+    [Fact]
+    public async Task Each_excluded_job_increments_the_prefiltered_counter_tagged_with_its_rule()
+    {
+        var run = MatchingRun();
+        _runs.FindAsync(RunId, Arg.Any<CancellationToken>()).Returns(run);
+        // One survivor plus two employment-type exclusions: the counter must record two, both tagged
+        // EmploymentType, so a per-rule chart shows which rule is doing the excluding (T21 done-when 2).
+        GivenScope(Job(), ExcludedJob("Contract Engineer"), ExcludedJob("Contract Architect"));
+        GivenEstimate(0.44m);
+
+        var measurements = await CapturePrefilteredAsync(() =>
+            CreateHandler().Handle(new EnrichmentCompleted(RunId, 3, 0, Now), _bus, CancellationToken.None));
+
+        measurements.Sum(m => m.Value).ShouldBe(2);
+        measurements.ShouldAllBe(m => m.Rule == nameof(PreMatchRule.EmploymentType));
+    }
+
+    [Fact]
+    public async Task No_exclusions_records_nothing_on_the_prefiltered_counter()
+    {
+        var run = MatchingRun();
+        _runs.FindAsync(RunId, Arg.Any<CancellationToken>()).Returns(run);
+        GivenScope(Job(), Job("Platform Engineer"));
+        GivenEstimate(0.44m);
+
+        var measurements = await CapturePrefilteredAsync(() =>
+            CreateHandler().Handle(new EnrichmentCompleted(RunId, 2, 0, Now), _bus, CancellationToken.None));
+
+        measurements.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// Captures every measurement recorded on <c>jobhunter.matching.prefiltered</c> during <paramref name="act"/>,
+    /// with the <c>rule</c> tag each carries, so a test can assert both the count and the rule attribution.
+    /// </summary>
+    private static async Task<IReadOnlyList<(long Value, string? Rule)>> CapturePrefilteredAsync(Func<Task> act)
+    {
+        var instrumentName = Telemetry.Prefiltered.Name;
+        var measurements = new List<(long Value, string? Rule)>();
+        using var listener = new MeterListener();
+        listener.InstrumentPublished = (instrument, l) =>
+        {
+            if (instrument.Name == instrumentName)
+            {
+                l.EnableMeasurementEvents(instrument);
+            }
+        };
+        listener.SetMeasurementEventCallback<long>((_, measurement, tags, _) =>
+        {
+            string? rule = null;
+            foreach (var tag in tags)
+            {
+                if (tag.Key == TelemetryLabels.Rule)
+                {
+                    rule = tag.Value as string;
+                }
+            }
+
+            measurements.Add((measurement, rule));
+        });
+        listener.Start();
+
+        await act();
+
+        return measurements;
     }
 
     // ---- AC-08: the previous Run's failed items retry once -------------------------------------
