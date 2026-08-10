@@ -57,11 +57,11 @@
           <pre class="mermaid">
 sequenceDiagram
   participant H as Hangfire (6h)
-  participant D as DiscoveryHandler
+  participant D as FetchSourceHandler
   participant S as ATS board
   participant N as NormalizationHandler
   participant X as DeduplicationHandler
-  participant I as SearchIndexer
+  participant I as SearchIndexingHandler
   H->>D: SourceFetchRequested
   D->>S: GET board (robots + rate budget honoured)
   S-->>D: raw JSON
@@ -86,21 +86,19 @@ sequenceDiagram
 sequenceDiagram
   participant H as Hangfire (daily)
   participant R as RunOrchestrator
-  participant E as EnrichmentHandler
-  participant P as BatchPoller
-  participant M as MatchingHandler
+  participant E as EnrichmentSubmitHandler
+  participant P as BatchPollHandler
+  participant M as MatchingSubmitHandler
   participant K as RankingHandler
-  participant C as ResearchHandler
-  participant Rep as ReportingHandler
-  H->>R: RunStarted
-  R->>E: enrich today's Jobs
-  E->>P: EnrichmentBatchSubmitted
+  participant Rep as DigestAssembler
+  H->>R: StartDailyRun
+  R->>R: RunStarted (audit marker)
+  R->>E: EnrichmentSubmissionDue
+  E->>P: BatchPollDue
   P-->>M: EnrichmentCompleted
-  M->>P: MatchingBatchSubmitted (CV crosses here, once)
+  M->>P: MatchingPollDue (CV crosses here, once)
   P-->>K: MatchingCompleted
   K->>Rep: RankingCompleted (Scores)
-  K->>C: ResearchRequested (top-N companies)
-  C-->>Rep: ResearchCompleted (cited dossiers)
   Rep->>Rep: DigestReady (assembled marker)
           </pre>
         </div>
@@ -115,10 +113,10 @@ sequenceDiagram
           <span class="cap">Crash and resume during matching</span>
           <pre class="mermaid">
 sequenceDiagram
-  participant M as MatchingHandler
+  participant M as MatchingSubmitHandler
   participant DB as Postgres
   participant A as Anthropic Batches
-  participant P as BatchPoller
+  participant P as MatchingPollHandler
   M->>A: submit matching Batch
   M->>DB: persist Batch id + Estimated cost
   Note over M,DB: Worker crashes here
@@ -178,11 +176,11 @@ sequenceDiagram
           <pre class="mermaid">
 sequenceDiagram
   participant H as Hangfire (6 год)
-  participant D as DiscoveryHandler
+  participant D as FetchSourceHandler
   participant S as ATS-дошка
   participant N as NormalizationHandler
   participant X as DeduplicationHandler
-  participant I as SearchIndexer
+  participant I as SearchIndexingHandler
   H->>D: SourceFetchRequested
   D->>S: GET дошки (robots + бюджет швидкості дотримані)
   S-->>D: сирий JSON
@@ -207,21 +205,19 @@ sequenceDiagram
 sequenceDiagram
   participant H as Hangfire (щодня)
   participant R as RunOrchestrator
-  participant E as EnrichmentHandler
-  participant P as BatchPoller
-  participant M as MatchingHandler
+  participant E as EnrichmentSubmitHandler
+  participant P as BatchPollHandler
+  participant M as MatchingSubmitHandler
   participant K as RankingHandler
-  participant C as ResearchHandler
-  participant Rep as ReportingHandler
-  H->>R: RunStarted
-  R->>E: збагатити сьогоднішні Jobs
-  E->>P: EnrichmentBatchSubmitted
+  participant Rep as DigestAssembler
+  H->>R: StartDailyRun
+  R->>R: RunStarted (аудит-маркер)
+  R->>E: EnrichmentSubmissionDue
+  E->>P: BatchPollDue
   P-->>M: EnrichmentCompleted
-  M->>P: MatchingBatchSubmitted (CV перетинає тут, один раз)
+  M->>P: MatchingPollDue (CV перетинає тут, один раз)
   P-->>K: MatchingCompleted
   K->>Rep: RankingCompleted (Scores)
-  K->>C: ResearchRequested (топ-N компаній)
-  C-->>Rep: ResearchCompleted (цитовані досьє)
   Rep->>Rep: DigestReady (зібраний маркер)
           </pre>
         </div>
@@ -236,10 +232,10 @@ sequenceDiagram
           <span class="cap">Збій і відновлення під час matching</span>
           <pre class="mermaid">
 sequenceDiagram
-  participant M as MatchingHandler
+  participant M as MatchingSubmitHandler
   participant DB as Postgres
   participant A as Anthropic Batches
-  participant P as BatchPoller
+  participant P as MatchingPollHandler
   M->>A: відправити matching Batch
   M->>DB: зберегти id Batch + Estimated вартість
   Note over M,DB: Worker падає тут

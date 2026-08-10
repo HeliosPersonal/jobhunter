@@ -133,7 +133,7 @@ flowchart LR
   end
   app["Application"]
   dom["Domain"]
-  contracts["Contracts<br/>(referenced by all, references nothing)"]
+  contracts["Contracts<br/>(referenced directly by Application &amp; Scrapers, transitively by hosts; references nothing)"]
   api2 --> infra
   wrk2 --> infra
   tel2 --> infra
@@ -157,7 +157,7 @@ flowchart LR
           <tbody>
             <tr><td class="p">JobHunter.Domain</td><td>Entities, value objects, domain events, ports. Zero external deps.</td></tr>
             <tr><td class="p">JobHunter.Application</td><td>Use cases and message handlers. Depends only on Domain.</td></tr>
-            <tr><td class="p">JobHunter.Contracts</td><td>Versioned integration events + DTOs, no behaviour. Referenced by everything.</td></tr>
+            <tr><td class="p">JobHunter.Contracts</td><td>Versioned integration events + DTOs, no behaviour. Referenced directly by Application &amp; Scrapers (hosts transitively); references nothing.</td></tr>
             <tr><td class="p">JobHunter.Infrastructure</td><td>Adapters, EF Core persistence, outbox/inbox. Depends on Application + Domain.</td></tr>
             <tr><td class="p">JobHunter.Scrapers</td><td>One adapter per ATS — Greenhouse, Lever, Ashby, Workable, careers page — plus research fetchers.</td></tr>
             <tr><td class="p">JobHunter.Claude</td><td>AnthropicBatchClient, prompt builders, schema-bound parsers, CostAccountant. Ollama fallback client.</td></tr>
@@ -176,24 +176,24 @@ flowchart LR
           <span class="cap">The main event chain (producer → consumer)</span>
           <pre class="mermaid">
 flowchart TB
-  hang["Hangfire 6h"] -->|SourceFetchRequested| disc["DiscoveryHandler"]
+  hang["Hangfire 6h"] -->|SourceFetchRequested| disc["FetchSourceHandler"]
   disc -->|RawPostingIngested| norm["NormalizationHandler"]
   norm -->|JobNormalized| dedup["DeduplicationHandler"]
-  dedup -->|JobDiscovered| orch["RunOrchestrator + SearchIndexer"]
-  hang2["Hangfire daily"] -->|RunStarted| enr["EnrichmentHandler"]
-  enr -->|EnrichmentBatchSubmitted| poll["BatchPoller"]
-  poll -->|EnrichmentCompleted| match["MatchingHandler"]
-  match -->|MatchingBatchSubmitted| poll
-  poll -->|MatchingCompleted| rank["RankingHandler"]
-  rank -->|RankingCompleted| report["ReportingHandler"]
-  rank -->|ResearchRequested| research["ResearchHandler"]
-  research -->|ResearchCompleted| report
+  dedup -->|JobDiscovered| idx["JobIndexRequestTranslator → SearchIndexingHandler"]
+  hang2["Hangfire daily"] -->|StartDailyRun| orch["RunOrchestrator"]
+  orch -->|EnrichmentSubmissionDue| enr["EnrichmentSubmitHandler"]
+  enr -->|BatchPollDue| poll["BatchPollHandler"]
+  poll -->|EnrichmentCompleted| match["MatchingSubmitHandler"]
+  match -->|MatchingPollDue| mpoll["MatchingPollHandler"]
+  mpoll -->|MatchingCompleted| rank["RankingHandler"]
+  rank -->|RankingCompleted| report["DigestAssembler"]
+  rank -.->|ResearchRequested (designed, not yet wired)| research["(research fan-out)"]
   report -->|DigestReady| marker["(assembled marker)"]
   hang3["Hangfire 07:00 Kyiv"] -->|DigestDeliveryDue| deliver["DeliveryHandler"]
-  deliver -->|DigestDelivered| metrics["MetricsHandler"]
+  deliver -->|DigestDelivered| metrics["(Telemetry — no consumer)"]
           </pre>
         </div>
-        <p class="muted">Owner-side and exception events close the loop: <code>OwnerActionRecorded</code> (from the bot) feeds the ApplicationHandler and SignalHandler; <code>PreferenceModelUpdated</code> (weekly fitting job) feeds Ranking; <code>RunFailed</code>, <code>RunCostAborted</code> and <code>SourceQuarantined</code> page the Owner via Telegram.</p>
+        <p class="muted">Owner-side and exception events close the loop: <code>OwnerActionRecorded</code> is consumed by <code>OwnerActionHandler</code> (its producer — the Applied tap — is not yet wired); <code>PreferenceModelUpdated</code> (weekly fitting job) feeds the next Run's ranking; <code>RunCostAborted</code> and <code>SourceQuarantined</code> are published, and a reduced digest still ships — the Owner-alert consumers are recorded inline via <code>Telemetry</code>, not yet wired to Telegram.</p>
       </section>
 
       <section class="sec">
@@ -333,7 +333,7 @@ flowchart LR
           <tbody>
             <tr><td class="p">JobHunter.Domain</td><td>Сутності, об'єкти-значення, доменні події, порти. Нуль зовнішніх залежностей.</td></tr>
             <tr><td class="p">JobHunter.Application</td><td>Сценарії використання та обробники повідомлень. Залежить лише від Domain.</td></tr>
-            <tr><td class="p">JobHunter.Contracts</td><td>Версіоновані інтеграційні події + DTO, без поведінки. На нього посилаються всі.</td></tr>
+            <tr><td class="p">JobHunter.Contracts</td><td>Версіоновані інтеграційні події + DTO, без поведінки. На нього посилаються напряму Application і Scrapers (хости — транзитивно); сам не посилається ні на що.</td></tr>
             <tr><td class="p">JobHunter.Infrastructure</td><td>Адаптери, EF Core persistence, outbox/inbox. Залежить від Application + Domain.</td></tr>
             <tr><td class="p">JobHunter.Scrapers</td><td>По одному адаптеру на ATS — Greenhouse, Lever, Ashby, Workable, сторінка кар'єри — плюс дослідницькі fetcher-и.</td></tr>
             <tr><td class="p">JobHunter.Claude</td><td>AnthropicBatchClient, білдери промптів, парсери за схемою, CostAccountant. Резервний клієнт Ollama.</td></tr>
@@ -352,24 +352,24 @@ flowchart LR
           <span class="cap">Основний ланцюг подій (виробник → споживач)</span>
           <pre class="mermaid">
 flowchart TB
-  hang["Hangfire 6 год"] -->|SourceFetchRequested| disc["DiscoveryHandler"]
+  hang["Hangfire 6 год"] -->|SourceFetchRequested| disc["FetchSourceHandler"]
   disc -->|RawPostingIngested| norm["NormalizationHandler"]
   norm -->|JobNormalized| dedup["DeduplicationHandler"]
-  dedup -->|JobDiscovered| orch["RunOrchestrator + SearchIndexer"]
-  hang2["Hangfire щодня"] -->|RunStarted| enr["EnrichmentHandler"]
-  enr -->|EnrichmentBatchSubmitted| poll["BatchPoller"]
-  poll -->|EnrichmentCompleted| match["MatchingHandler"]
-  match -->|MatchingBatchSubmitted| poll
-  poll -->|MatchingCompleted| rank["RankingHandler"]
-  rank -->|RankingCompleted| report["ReportingHandler"]
-  rank -->|ResearchRequested| research["ResearchHandler"]
-  research -->|ResearchCompleted| report
+  dedup -->|JobDiscovered| idx["JobIndexRequestTranslator → SearchIndexingHandler"]
+  hang2["Hangfire щодня"] -->|StartDailyRun| orch["RunOrchestrator"]
+  orch -->|EnrichmentSubmissionDue| enr["EnrichmentSubmitHandler"]
+  enr -->|BatchPollDue| poll["BatchPollHandler"]
+  poll -->|EnrichmentCompleted| match["MatchingSubmitHandler"]
+  match -->|MatchingPollDue| mpoll["MatchingPollHandler"]
+  mpoll -->|MatchingCompleted| rank["RankingHandler"]
+  rank -->|RankingCompleted| report["DigestAssembler"]
+  rank -.->|ResearchRequested (заплановано, ще не під'єднано)| research["(research fan-out)"]
   report -->|DigestReady| marker["(зібраний маркер)"]
   hang3["Hangfire 07:00 Київ"] -->|DigestDeliveryDue| deliver["DeliveryHandler"]
-  deliver -->|DigestDelivered| metrics["MetricsHandler"]
+  deliver -->|DigestDelivered| metrics["(Telemetry — без споживача)"]
           </pre>
         </div>
-        <p class="muted">Події з боку власника та винятки замикають цикл: <code>OwnerActionRecorded</code> (від бота) живить ApplicationHandler і SignalHandler; <code>PreferenceModelUpdated</code> (щотижневе завдання) живить Ranking; <code>RunFailed</code>, <code>RunCostAborted</code> і <code>SourceQuarantined</code> сповіщають власника через Telegram.</p>
+        <p class="muted">Події з боку власника та винятки замикають цикл: <code>OwnerActionRecorded</code> споживає <code>OwnerActionHandler</code> (його виробник — натискання Applied — ще не під'єднано); <code>PreferenceModelUpdated</code> (щотижневе завдання) живить ранжування наступного Run; <code>RunCostAborted</code> і <code>SourceQuarantined</code> публікуються, і скорочений дайджест усе одно надсилається — споживачі сповіщень власника поки що записуються інлайн через <code>Telemetry</code>, ще не під'єднані до Telegram.</p>
       </section>
 
       <section class="sec">

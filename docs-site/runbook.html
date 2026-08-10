@@ -46,22 +46,22 @@
     <article class="page" data-lang="en">
       <p class="kicker">Operate it</p>
       <h2 class="title">Deploy &amp; operate</h2>
-      <p class="lede">Ship on push to <code>main</code> through a self-hosted runner into k3s; watch it through Grafana Cloud; drive and diagnose it from Telegram; recover from the ten runbooks. Every alert maps to exactly one runbook.</p>
+      <p class="lede">Ship on push to <code>develop</code> through a self-hosted runner into k3s staging (the <code>main</code> → production path is planned, F5-gated); watch it through Grafana Cloud; drive and diagnose it from Telegram; recover from the ten runbooks. Every alert maps to exactly one runbook.</p>
 
       <section class="sec">
         <p class="sec-eyebrow">From push to pods</p>
         <h3 class="sec-title num">The CI/CD pipeline</h3>
         <p>GitHub Actions builds and tests on a hosted runner, then a self-hosted <code>helios</code> runner applies Terraform and Kustomize (the k3s API is not publicly reachable). Images go to GHCR tagged by commit SHA; overlays reference the SHA, never <code>:latest</code>.</p>
         <div class="diagram-frame">
-          <span class="cap">develop → staging, main → production</span>
+          <span class="cap">develop → staging (live); main → production (planned, F5-gated)</span>
           <pre class="mermaid">
 flowchart LR
-  push["push / PR"] --> bt["build-and-test<br/>restore · build (warnings=errors) · test + coverage &gt;90% · kustomize render"]
-  bt --> img["build-images<br/>matrix Api/Worker/Telegram → GHCR @SHA"]
+  push["push / PR"] --> bt["build-and-test<br/>restore · build (warnings=errors) · coverage gate &gt;90% · kustomize render"]
+  bt --> img["build-images<br/>matrix Api/Worker/Telegram → GHCR @SHA (lowercased)"]
   bt --> tf["terraform<br/>self-hosted helios · plan/apply"]
   img --> dep["deploy-staging<br/>apply -k overlay · rollout status"]
   tf --> dep
-  dep --> smoke["production smoke<br/>GET api:8080/health"]
+  dep -.->|planned, F5-gated| smoke["main → production + smoke<br/>GET api:8080/health"]
           </pre>
         </div>
         <div class="note">Migrations run as a pre-deploy Kubernetes <code>Job</code> (<code>args: ["migrate"]</code>), never at app startup. The Worker is <code>replicas: 1</code> with a <code>Recreate</code> strategy — the Hangfire scheduler and Run orchestration are a singleton by design. Only the API is exposed via ingress at <code>jobhunter.devoverflow.org</code>; traffic arrives Internet → Cloudflare → cloudflared tunnel → NGINX.</div>
@@ -167,22 +167,22 @@ flowchart LR
     <article class="page i18n-hide" data-lang="uk">
       <p class="kicker">Експлуатація</p>
       <h2 class="title">Деплой та експлуатація</h2>
-      <p class="lede">Випуск при push у <code>main</code> через self-hosted runner у k3s; спостереження через Grafana Cloud; керування й діагностика з Telegram; відновлення за десятьма runbook-ами. Кожен алерт відповідає рівно одному runbook.</p>
+      <p class="lede">Випуск при push у <code>develop</code> через self-hosted runner у k3s staging (шлях <code>main</code> → production запланований, за F5); спостереження через Grafana Cloud; керування й діагностика з Telegram; відновлення за десятьма runbook-ами. Кожен алерт відповідає рівно одному runbook.</p>
 
       <section class="sec">
         <p class="sec-eyebrow">Від push до подів</p>
         <h3 class="sec-title num">Конвеєр CI/CD</h3>
         <p>GitHub Actions збирає й тестує на hosted runner, потім self-hosted <code>helios</code> runner застосовує Terraform і Kustomize (API k3s недоступний публічно). Образи йдуть у GHCR з тегом за SHA коміту; overlays посилаються на SHA, ніколи на <code>:latest</code>.</p>
         <div class="diagram-frame">
-          <span class="cap">develop → staging, main → production</span>
+          <span class="cap">develop → staging (наживо); main → production (заплановано, за F5)</span>
           <pre class="mermaid">
 flowchart LR
-  push["push / PR"] --> bt["build-and-test<br/>restore · build (warnings=errors) · test + покриття &gt;90% · kustomize render"]
-  bt --> img["build-images<br/>матриця Api/Worker/Telegram → GHCR @SHA"]
+  push["push / PR"] --> bt["build-and-test<br/>restore · build (warnings=errors) · coverage gate &gt;90% · kustomize render"]
+  bt --> img["build-images<br/>матриця Api/Worker/Telegram → GHCR @SHA (у нижньому регістрі)"]
   bt --> tf["terraform<br/>self-hosted helios · plan/apply"]
   img --> dep["deploy-staging<br/>apply -k overlay · статус rollout"]
   tf --> dep
-  dep --> smoke["production smoke<br/>GET api:8080/health"]
+  dep -.->|заплановано, за F5| smoke["main → production + smoke<br/>GET api:8080/health"]
           </pre>
         </div>
         <div class="note">Міграції виконуються як pre-deploy Kubernetes <code>Job</code> (<code>args: ["migrate"]</code>), ніколи при старті застосунку. Worker — це <code>replicas: 1</code> зі стратегією <code>Recreate</code> — планувальник Hangfire і оркестрація Run є singleton за задумом. Лише API виставлений через ingress на <code>jobhunter.devoverflow.org</code>; трафік іде Internet → Cloudflare → cloudflared tunnel → NGINX.</div>

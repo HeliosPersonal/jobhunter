@@ -107,7 +107,7 @@
           <li><strong>F8 — the uncited-claim and SSRF suites.</strong></li>
           <li><strong>F9 — the index scan, rebuild equivalence and endpoint-convention suites.</strong></li>
         </ul>
-        <div class="note">Coverage must stay above <strong>90%</strong> (line and branch), CI-enforced by a Coverlet threshold that fails <code>dotnet test</code> itself. Excluded: the three host <code>Program.cs</code> roots, the Aspire AppHost, ServiceDefaults and Contracts.</div>
+        <div class="note">Coverage must stay above <strong>90%</strong> (line and branch), CI-enforced by a dedicated <em>Enforce coverage gate</em> step that merges the per-assembly cobertura reports with ReportGenerator and fails the build below 90% line or branch. (The Coverlet MSBuild threshold in <code>tests/Directory.Build.props</code> is a local-only convenience; CI collects coverage via <code>--collect:"XPlat Code Coverage"</code>.) Excluded via <code>coverage.runsettings</code>: the Aspire AppHost, ServiceDefaults, Contracts and TestKit, all migrations, and any <code>[ExcludeFromCodeCoverage]</code> type — which is how the three host <code>Program.cs</code> roots are excluded.</div>
       </section>
 
       <nav class="foot">
@@ -181,7 +181,7 @@
           <li><strong>F8 — набори uncited-claim та SSRF.</strong></li>
           <li><strong>F9 — набори index scan, rebuild equivalence та endpoint-convention.</strong></li>
         </ul>
-        <div class="note">Покриття має лишатися вище <strong>90%</strong> (рядки й гілки), гарантовано в CI порогом Coverlet, що валить сам <code>dotnet test</code>. Виключені: три хостові корені <code>Program.cs</code>, Aspire AppHost, ServiceDefaults і Contracts.</div>
+        <div class="note">Покриття має лишатися вище <strong>90%</strong> (рядки й гілки), гарантовано в CI окремим кроком <em>Enforce coverage gate</em>, що зливає покриття по збірках через ReportGenerator і валить збірку нижче 90% за рядками чи гілками. (Поріг Coverlet у <code>tests/Directory.Build.props</code> — лише локальна зручність; CI збирає покриття через <code>--collect:"XPlat Code Coverage"</code>.) Виключені через <code>coverage.runsettings</code>: Aspire AppHost, ServiceDefaults, Contracts і TestKit, усі міграції та будь-який тип із <code>[ExcludeFromCodeCoverage]</code> — саме так виключені три хостові корені <code>Program.cs</code>.</div>
       </section>
 
       <nav class="foot">
