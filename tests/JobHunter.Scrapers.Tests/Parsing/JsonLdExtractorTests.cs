@@ -73,6 +73,22 @@ public sealed class JsonLdExtractorTests
     }
 
     [Fact]
+    public void TypeArrayWithANonStringElement_stillMatchesTheJobPostingString()
+    {
+        // The number element takes the non-string arm of the array predicate (short-circuit), and the
+        // "JobPosting" string that follows it still matches — a mixed-type @type array is tolerated.
+        var html =
+            "<script type=\"application/ld+json\">" +
+            "{\"@type\":[123,\"JobPosting\"],\"identifier\":\"mixed-1\",\"url\":\"https://e/x\"}" +
+            "</script>";
+
+        var nodes = JsonLdExtractor.JobPostings(html);
+
+        nodes.Count.ShouldBe(1);
+        nodes[0].GetProperty("identifier").GetString().ShouldBe("mixed-1");
+    }
+
+    [Fact]
     public void TypeThatIsNeitherStringNorArray_isNotAMatch()
     {
         var html =
