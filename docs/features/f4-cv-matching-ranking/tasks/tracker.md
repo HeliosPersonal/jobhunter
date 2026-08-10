@@ -41,7 +41,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T18 | [[T18-founding-role-seniority-floor\|Soften the seniority-floor pre-match rule for early-stage/founding roles]] | app | T12 | S | done |
 | T19 | [[T19-golden-target-family-slice\|Add a target-role-family slice to the golden ranking set]] | tests | T11, T14, T15 | M | done |
 | T20 | [[T20-precision-at-10-loop\|Weekly precision@10 rating loop]] | app | T11, F5, F7-T03, F10 | M | done |
-| T21 | [[T21-regret-sampler\|Regret sampler, matching metrics and live cost measurement]] | app | T12, T13, F5 | M | pending |
+| T21 | [[T21-regret-sampler\|Regret sampler, matching metrics and live cost measurement]] | app | T12, T13, F5 | M | done |
 
 **15 tasks · 12×M + 3×L ≈ 9 person-days.** T20 was split from T11: the golden set (the deterministic
 gate) ships in T11; the weekly `precision@10` rating loop is T20, blocked on the `signals` table (F7 T03),

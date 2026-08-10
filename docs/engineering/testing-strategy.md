@@ -184,8 +184,14 @@ Recorded so it is not mistaken for an oversight:
 | Pull request | Unit, Fixture, Integration, Messaging, Golden set + architecture tests + coverage gate |
 | Push to `develop` | The above, then build and deploy to staging |
 | Push to `main` | The above, then build, deploy to production, smoke test |
-| Weekly | Contract tests against live ATS endpoints (alert-only) |
+| Weekly | Contract tests against live ATS endpoints, and the F4 T21 live cost/cache measurement (alert-only) |
 | Nightly | Live model drift (alert-only) |
+
+The weekly cost/cache run (`LiveAnthropicCostAndCacheTests`, F4 T21) is gated on `ANTHROPIC_API_KEY`:
+it submits a real 20-item matching batch, confirms the CV prompt cache actually hits against the live
+API and that the measured cost lands at or under the ceiling, so the ~$1.03/day figure in
+[[../operations/infrastructure]] §8 is verified rather than asserted. Absent the key it skips, so it
+never runs — or bills — in the PR suite.
 
 ---
 

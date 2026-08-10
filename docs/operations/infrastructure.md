@@ -241,8 +241,13 @@ Two optimisations account for the difference, both owned by
    worst case the ceiling gates and the cached run comes in at or under it. The mechanism is asserted
    with zero network — a byte-identical prefix carrying exactly one breakpoint on every item, and a
    parsed `cache_read_input_tokens > 0` on every item after the first. The **empirical** cache-hit
-   rate against the live API, and the measured Run cost that confirms the $1.03 above, are verified by
-   the opt-in weekly live suite together with the regret sampler (F4 T21).
+   rate against the live API, and the measured cost that confirms the $1.03 above, are verified by the
+   opt-in weekly live suite together with the regret sampler (F4 T21): `LiveAnthropicCostAndCacheTests`
+   submits a 20-item matching batch at the cheap tier against the real Message Batches API, asserts the
+   CV prefix is served from cache on every item after the first (>90% cache-hit rate), and prices the
+   provider-reported usage through the same `CostAccountant` the ceiling uses, confirming the batch
+   lands at or under the pessimistic ceiling. It is gated on `ANTHROPIC_API_KEY` and skips in the PR
+   suite, so it spends money only when armed — weekly, alert-only.
 
 **Sensitivity.** Cost scales close to linearly with jobs discovered per day: 75/day ≈ $16/month,
 300/day ≈ $62/month at the optimised configuration. Raising the deep tier to `claude-opus-5` roughly
