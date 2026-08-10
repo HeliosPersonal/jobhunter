@@ -129,6 +129,7 @@ flowchart LR
     cl["Claude"]
     scr["Scrapers"]
     srch["Search"]
+    trans["Telegram.Transport"]
   end
   app["Application"]
   dom["Domain"]
@@ -139,10 +140,15 @@ flowchart LR
   api2 --> srch
   wrk2 --> cl
   wrk2 --> scr
+  wrk2 --> srch
+  wrk2 --> trans
+  tel2 --> srch
+  tel2 --> trans
   infra --> app
   cl --> app
   scr --> app
   srch --> app
+  trans --> app
   app --> dom
           </pre>
         </div>
@@ -300,6 +306,7 @@ flowchart LR
     cl["Claude"]
     scr["Scrapers"]
     srch["Search"]
+    trans["Telegram.Transport"]
   end
   app["Application"]
   dom["Domain"]
@@ -309,10 +316,15 @@ flowchart LR
   api2 --> srch
   wrk2 --> cl
   wrk2 --> scr
+  wrk2 --> srch
+  wrk2 --> trans
+  tel2 --> srch
+  tel2 --> trans
   infra --> app
   cl --> app
   scr --> app
   srch --> app
+  trans --> app
   app --> dom
           </pre>
         </div>

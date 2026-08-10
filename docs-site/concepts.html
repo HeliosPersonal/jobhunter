@@ -88,15 +88,18 @@ stateDiagram-v2
   Ranking --> Researching
   Researching --> Reporting
   Reporting --> Delivered
+  Created --> CostAborted
   Enriching --> CostAborted
-  Matching --> CostAborted
-  Researching --> CostAborted
   Enriching --> Failed
   Matching --> Failed
   Reporting --> Failed
-  CostAborted --> Reporting: reduced digest still ships
   Delivered --> [*]
   Failed --> [*]
+  CostAborted --> [*]
+  note right of CostAborted
+    Terminal. The reduced digest ships via a
+    separate RunCostAborted handler, not a state edge.
+  end note
           </pre>
         </div>
         <p class="muted">Re-running a stage supersedes by <code>(job_id, run_id, stage)</code> — it never duplicates cost or delivery. That is what "resumable" means here.</p>
@@ -188,15 +191,18 @@ stateDiagram-v2
   Ranking --> Researching
   Researching --> Reporting
   Reporting --> Delivered
+  Created --> CostAborted
   Enriching --> CostAborted
-  Matching --> CostAborted
-  Researching --> CostAborted
   Enriching --> Failed
   Matching --> Failed
   Reporting --> Failed
-  CostAborted --> Reporting: скорочений дайджест усе одно виходить
   Delivered --> [*]
   Failed --> [*]
+  CostAborted --> [*]
+  note right of CostAborted
+    Термінальний. Скорочений дайджест виходить через
+    окремий обробник RunCostAborted, а не через перехід станів.
+  end note
           </pre>
         </div>
         <p class="muted">Повторний запуск стадії заміщує за <code>(job_id, run_id, stage)</code> — він ніколи не дублює вартість чи доставку. Саме це тут означає «відновлюваний».</p>

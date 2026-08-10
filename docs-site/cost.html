@@ -50,11 +50,11 @@
 
       <section class="sec">
         <p class="sec-eyebrow">The envelope</p>
-        <h3 class="sec-title num">Roughly $32 a month at a normal volume</h3>
+        <h3 class="sec-title num">Roughly $31.50 a month at a normal volume</h3>
         <div class="econ">
-          <div class="metric"><span class="lbl">Per Run (worst case)</span><span class="val">~$1.02</span><span class="sub">enrich + match + synth + research, cached</span></div>
+          <div class="metric"><span class="lbl">Per Run (optimised/cached)</span><span class="val">~$1.03</span><span class="sub">enrich + match + synth + research; naive worst case ~$2.16</span></div>
           <div class="metric"><span class="lbl">75 jobs/day</span><span class="val">~$16</span><span class="sub">per month</span></div>
-          <div class="metric"><span class="lbl">Baseline</span><span class="val">~$32</span><span class="sub">per month, all-in</span></div>
+          <div class="metric"><span class="lbl">Baseline</span><span class="val">~$31.50</span><span class="sub">per month, all-in</span></div>
           <div class="metric"><span class="lbl">300 jobs/day</span><span class="val">~$62</span><span class="sub">per month</span></div>
         </div>
         <p class="muted">The self-hosted infrastructure adds ~$0; the monthly figure moves almost entirely with Anthropic volume.</p>
@@ -63,7 +63,7 @@
       <section class="sec">
         <p class="sec-eyebrow">Where a Run's money goes</p>
         <h3 class="sec-title num">Per-Run breakdown</h3>
-        <p>Matching is the largest line item — and the one the pre-filter attacks. Passing roughly 40% of jobs to the Deep tier removes about 60% of that cost.</p>
+        <p>Matching is the largest line item — and the one the pre-filter attacks. Passing roughly 40% of jobs to the Deep tier removes about 60% of that cost. The naive worst case — every job through Deep with no cache — lands near <strong>$2.16</strong>; the optimised, cached figure below is ~$1.03.</p>
         <table class="map">
           <thead><tr><th>Stage</th><th>Tier</th><th class="n">Items</th><th class="n">Cost</th></tr></thead>
           <tbody>
@@ -71,7 +71,7 @@
             <tr><td>Matching</td><td class="mono">Deep</td><td class="n">150 → 60</td><td class="n">$1.58 → $0.44</td></tr>
             <tr><td>Synthesis</td><td class="mono">Deep</td><td class="n">1</td><td class="n">$0.01</td></tr>
             <tr><td>Research</td><td class="mono">Deep</td><td class="n">5</td><td class="n">$0.14</td></tr>
-            <tr class="tot"><td>Per Run</td><td></td><td class="n"></td><td class="n">~$1.02</td></tr>
+            <tr class="tot"><td>Per Run (optimised/cached)</td><td></td><td class="n"></td><td class="n">~$1.03</td></tr>
           </tbody>
         </table>
         <div class="diagram-frame">
@@ -82,7 +82,7 @@ flowchart LR
   B -->|60 items| C["Matching · Deep<br/>$1.58 → $0.44"]
   C --> D["Synthesis · Deep<br/>$0.01"]
   C --> E["Research · Deep<br/>5 items · $0.14"]
-  D --> F["≈ $1.02 / Run"]
+  D --> F["≈ $1.03 / Run (cached)"]
   E --> F
           </pre>
         </div>
@@ -123,11 +123,11 @@ flowchart LR
 
       <section class="sec">
         <p class="sec-eyebrow">Бюджет</p>
-        <h3 class="sec-title num">Приблизно $32 на місяць за звичайного обсягу</h3>
+        <h3 class="sec-title num">Приблизно $31.50 на місяць за звичайного обсягу</h3>
         <div class="econ">
-          <div class="metric"><span class="lbl">На Run (найгірший)</span><span class="val">~$1.02</span><span class="sub">enrich + match + synth + research, кеш</span></div>
+          <div class="metric"><span class="lbl">На Run (оптимізовано/кеш)</span><span class="val">~$1.03</span><span class="sub">enrich + match + synth + research; наївний найгірший ~$2.16</span></div>
           <div class="metric"><span class="lbl">75 вакансій/день</span><span class="val">~$16</span><span class="sub">на місяць</span></div>
-          <div class="metric"><span class="lbl">База</span><span class="val">~$32</span><span class="sub">на місяць, усе разом</span></div>
+          <div class="metric"><span class="lbl">База</span><span class="val">~$31.50</span><span class="sub">на місяць, усе разом</span></div>
           <div class="metric"><span class="lbl">300 вакансій/день</span><span class="val">~$62</span><span class="sub">на місяць</span></div>
         </div>
         <p class="muted">Self-hosted інфраструктура додає ~$0; місячна цифра рухається майже повністю з обсягом Anthropic.</p>
@@ -136,7 +136,7 @@ flowchart LR
       <section class="sec">
         <p class="sec-eyebrow">Куди йдуть гроші Run</p>
         <h3 class="sec-title num">Розклад на один Run</h3>
-        <p>Matching — найбільша стаття, і саме її атакує pre-filter. Пропускання приблизно 40% вакансій на рівень Deep прибирає близько 60% цієї вартості.</p>
+        <p>Matching — найбільша стаття, і саме її атакує pre-filter. Пропускання приблизно 40% вакансій на рівень Deep прибирає близько 60% цієї вартості. Наївний найгірший випадок — кожна вакансія через Deep без кешу — біля <strong>$2.16</strong>; оптимізована, кешована цифра нижче — ~$1.03.</p>
         <table class="map">
           <thead><tr><th>Стадія</th><th>Ярус</th><th class="n">Елементи</th><th class="n">Вартість</th></tr></thead>
           <tbody>
@@ -144,7 +144,7 @@ flowchart LR
             <tr><td>Matching</td><td class="mono">Deep</td><td class="n">150 → 60</td><td class="n">$1.58 → $0.44</td></tr>
             <tr><td>Synthesis</td><td class="mono">Deep</td><td class="n">1</td><td class="n">$0.01</td></tr>
             <tr><td>Research</td><td class="mono">Deep</td><td class="n">5</td><td class="n">$0.14</td></tr>
-            <tr class="tot"><td>На Run</td><td></td><td class="n"></td><td class="n">~$1.02</td></tr>
+            <tr class="tot"><td>На Run (оптимізовано/кеш)</td><td></td><td class="n"></td><td class="n">~$1.03</td></tr>
           </tbody>
         </table>
         <div class="diagram-frame">
@@ -155,7 +155,7 @@ flowchart LR
   B -->|60 елементів| C["Matching · Deep<br/>$1.58 → $0.44"]
   C --> D["Synthesis · Deep<br/>$0.01"]
   C --> E["Research · Deep<br/>5 елементів · $0.14"]
-  D --> F["≈ $1.02 / Run"]
+  D --> F["≈ $1.03 / Run (кеш)"]
   E --> F
           </pre>
         </div>

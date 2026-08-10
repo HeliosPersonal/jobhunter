@@ -52,7 +52,7 @@
         <p class="sec-eyebrow">Before you start</p>
         <h3 class="sec-title num">Prerequisites</h3>
         <ul class="clean">
-          <li><strong>.NET SDK 10.0.302+</strong> (target <code>net10.0</code>).</li>
+          <li><strong>.NET SDK 10.0.300</strong> (pinned in <code>global.json</code>, <code>rollForward: latestPatch</code>; target <code>net10.0</code>).</li>
           <li><strong>The Aspire workload:</strong> <code>dotnet workload install aspire</code>.</li>
           <li><strong>Docker Desktop or Colima</strong> — any current version. Testcontainers uses it for the test suite too.</li>
           <li><strong>dotnet-ef 10.x</strong> for migrations.</li>
@@ -80,7 +80,7 @@ dotnet run --project src/Aspire/JobHunter.AppHost</pre>
             <tbody>
               <tr><td class="p">Aspire dashboard</td><td><code>https://localhost:17090</code> — live logs, traces, metrics</td></tr>
               <tr><td class="p">API + Scalar/OpenAPI</td><td><code>https://localhost:7001/scalar</code></td></tr>
-              <tr><td class="p">Typesense</td><td><code>http://localhost:8108</code> (dev api-key <code>dev-typesense-key</code>)</td></tr>
+              <tr><td class="p">Typesense</td><td><code>http://localhost:8108</code> (dev api-key <code>local-dev-key</code>)</td></tr>
               <tr><td class="p">pgweb · RabbitMQ · RedisInsight</td><td>opened from the Aspire dashboard (RabbitMQ mgmt: <code>guest</code>/<code>guest</code>)</td></tr>
             </tbody>
           </table>
@@ -90,7 +90,7 @@ dotnet run --project src/Aspire/JobHunter.AppHost</pre>
 
       <section class="sec">
         <p class="sec-eyebrow">Everyday commands</p>
-        <h3 class="sec-title num">Build, test, migrate, drive a stage</h3>
+        <h3 class="sec-title num">Build, test, migrate, run Worker verbs</h3>
         <pre class="code">dotnet build &amp;&amp; dotnet test           <span class="c"># full hermetic suite, needs Docker</span>
 ./coverage.sh                          <span class="c"># coverage report, same gate as CI (&gt;90%)</span>
 
@@ -99,9 +99,9 @@ dotnet ef migrations add F2_AddJobsAndAliases \
   --startup-project src/JobHunter.Worker \
   --output-dir Persistence/Migrations
 
-dotnet run --project src/JobHunter.Worker -- run-stage discovery --company stripe.com
-dotnet run --project src/JobHunter.Worker -- run-once --dry-run   <span class="c"># full Run, no LLM, no delivery</span>
-dotnet run --project src/JobHunter.Worker -- seed --companies tools/seed/companies.yaml</pre>
+dotnet run --project src/JobHunter.Worker -- migrate                              <span class="c"># apply migrations</span>
+dotnet run --project src/JobHunter.Worker -- seed --file tools/seed/companies.yaml <span class="c"># seed the company registry</span>
+dotnet run --project src/JobHunter.Worker -- replay-dlq                            <span class="c"># other verbs: reprocess · prune-raw · backfill-signals</span></pre>
         <p class="muted">Prefer no Aspire? <code>compose.yaml</code> brings up the backing services and you set <code>ConnectionStrings__JobHunter</code> and <code>ConnectionStrings__Messaging</code> by hand.</p>
       </section>
 
@@ -118,7 +118,7 @@ dotnet run --project src/JobHunter.Worker -- seed --companies tools/seed/compani
             <tr><td class="p">Allowlists</td><td>Bot: <code>OwnerAuthorizer</code> drops any chat id not on the list. API: Keycloak realm <code>jobhunter</code>, scopes <code>jobhunter:read</code> / <code>jobhunter:admin</code>, default-deny.</td></tr>
           </tbody>
         </table>
-        <div class="note">Where config lives: local dev uses user-secrets + appsettings; deployed non-secret config is a Terraform-managed ConfigMap <code>jobhunter-infra-config</code>; secrets come from Infisical at pod startup (paths <code>/app/connections</code>, <code>/app/auth</code>, <code>/app/services</code>). Options validate at <em>startup</em> via <code>.Validate().ValidateOnStart()</code>, never at first use.</div>
+        <div class="note">Where config lives: no <code>appsettings*.json</code> is checked into the repo — local dev binds from environment variables plus .NET user-secrets (<code>AddEnvVariablesAndConfigureSecrets</code>); deployed non-secret config is a Terraform-managed ConfigMap <code>jobhunter-infra-config</code>; secrets come from Infisical at pod startup (paths <code>/app/connections</code>, <code>/app/auth</code>, <code>/app/services</code>). Options validate at <em>startup</em> via <code>.Validate().ValidateOnStart()</code>, never at first use.</div>
       </section>
 
       <nav class="foot">
@@ -137,7 +137,7 @@ dotnet run --project src/JobHunter.Worker -- seed --companies tools/seed/compani
         <p class="sec-eyebrow">Перед початком</p>
         <h3 class="sec-title num">Передумови</h3>
         <ul class="clean">
-          <li><strong>.NET SDK 10.0.302+</strong> (ціль <code>net10.0</code>).</li>
+          <li><strong>.NET SDK 10.0.300</strong> (зафіксовано в <code>global.json</code>, <code>rollForward: latestPatch</code>; ціль <code>net10.0</code>).</li>
           <li><strong>Робоче навантаження Aspire:</strong> <code>dotnet workload install aspire</code>.</li>
           <li><strong>Docker Desktop або Colima</strong> — будь-яка актуальна версія. Testcontainers також використовує його для тестів.</li>
           <li><strong>dotnet-ef 10.x</strong> для міграцій.</li>
@@ -165,7 +165,7 @@ dotnet run --project src/Aspire/JobHunter.AppHost</pre>
             <tbody>
               <tr><td class="p">Панель Aspire</td><td><code>https://localhost:17090</code> — живі логи, трейси, метрики</td></tr>
               <tr><td class="p">API + Scalar/OpenAPI</td><td><code>https://localhost:7001/scalar</code></td></tr>
-              <tr><td class="p">Typesense</td><td><code>http://localhost:8108</code> (dev api-key <code>dev-typesense-key</code>)</td></tr>
+              <tr><td class="p">Typesense</td><td><code>http://localhost:8108</code> (dev api-key <code>local-dev-key</code>)</td></tr>
               <tr><td class="p">pgweb · RabbitMQ · RedisInsight</td><td>відкриваються з панелі Aspire (RabbitMQ mgmt: <code>guest</code>/<code>guest</code>)</td></tr>
             </tbody>
           </table>
@@ -175,7 +175,7 @@ dotnet run --project src/Aspire/JobHunter.AppHost</pre>
 
       <section class="sec">
         <p class="sec-eyebrow">Щоденні команди</p>
-        <h3 class="sec-title num">Білд, тести, міграції, запуск стадії</h3>
+        <h3 class="sec-title num">Білд, тести, міграції, verbs Worker</h3>
         <pre class="code">dotnet build &amp;&amp; dotnet test           <span class="c"># повний герметичний набір, потрібен Docker</span>
 ./coverage.sh                          <span class="c"># звіт покриття, той самий поріг, що в CI (&gt;90%)</span>
 
@@ -184,9 +184,9 @@ dotnet ef migrations add F2_AddJobsAndAliases \
   --startup-project src/JobHunter.Worker \
   --output-dir Persistence/Migrations
 
-dotnet run --project src/JobHunter.Worker -- run-stage discovery --company stripe.com
-dotnet run --project src/JobHunter.Worker -- run-once --dry-run   <span class="c"># повний Run, без LLM, без доставки</span>
-dotnet run --project src/JobHunter.Worker -- seed --companies tools/seed/companies.yaml</pre>
+dotnet run --project src/JobHunter.Worker -- migrate                              <span class="c"># застосувати міграції</span>
+dotnet run --project src/JobHunter.Worker -- seed --file tools/seed/companies.yaml <span class="c"># засіяти реєстр компаній</span>
+dotnet run --project src/JobHunter.Worker -- replay-dlq                            <span class="c"># інші verbs: reprocess · prune-raw · backfill-signals</span></pre>
         <p class="muted">Без Aspire? <code>compose.yaml</code> піднімає сервіси, а ви вручну задаєте <code>ConnectionStrings__JobHunter</code> і <code>ConnectionStrings__Messaging</code>.</p>
       </section>
 
@@ -203,7 +203,7 @@ dotnet run --project src/JobHunter.Worker -- seed --companies tools/seed/compani
             <tr><td class="p">Allowlist-и</td><td>Бот: <code>OwnerAuthorizer</code> відкидає будь-який chat id не зі списку. API: Keycloak realm <code>jobhunter</code>, скоупи <code>jobhunter:read</code> / <code>jobhunter:admin</code>, default-deny.</td></tr>
           </tbody>
         </table>
-        <div class="note">Де живе конфіг: локальна розробка — user-secrets + appsettings; несекретний конфіг у продакшені — ConfigMap <code>jobhunter-infra-config</code> під Terraform; секрети надходять з Infisical при старті пода (шляхи <code>/app/connections</code>, <code>/app/auth</code>, <code>/app/services</code>). Опції валідуються при <em>старті</em> через <code>.Validate().ValidateOnStart()</code>, ніколи при першому використанні.</div>
+        <div class="note">Де живе конфіг: жоден <code>appsettings*.json</code> не закомічено в репозиторій — локальна розробка зчитує конфіг зі змінних середовища плюс .NET user-secrets (<code>AddEnvVariablesAndConfigureSecrets</code>); несекретний конфіг у продакшені — ConfigMap <code>jobhunter-infra-config</code> під Terraform; секрети надходять з Infisical при старті пода (шляхи <code>/app/connections</code>, <code>/app/auth</code>, <code>/app/services</code>). Опції валідуються при <em>старті</em> через <code>.Validate().ValidateOnStart()</code>, ніколи при першому використанні.</div>
       </section>
 
       <nav class="foot">

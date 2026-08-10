@@ -91,7 +91,7 @@ flowchart LR
       <section class="sec">
         <p class="sec-eyebrow">What you can see</p>
         <h3 class="sec-title num">Observability</h3>
-        <p>Every host calls <code>AddServiceDefaults()</code>; traces, logs and metrics go OTLP → Grafana Alloy → Grafana Cloud, correlated by <code>run_id</code> / <code>job_id</code>. Eight domain instruments live in <code>Telemetry.cs</code>:</p>
+        <p>Every host calls <code>AddServiceDefaults()</code>; traces, logs and metrics go OTLP → Grafana Alloy → Grafana Cloud, correlated by <code>run_id</code> / <code>job_id</code>. The core eight domain instruments live in <code>Telemetry.cs</code>, alongside later feature-specific ones (17 in total):</p>
         <div class="grid2">
           <div class="card">
             <h4>Metrics</h4>
@@ -117,7 +117,7 @@ flowchart LR
       <section class="sec">
         <p class="sec-eyebrow">Driving it by hand</p>
         <h3 class="sec-title num">The Telegram command surface</h3>
-        <p>22 commands, asserted a bijection with the <code>CommandRegistry</code>. Sensitive commands need a confirmation tap; ✎ marks a command that changes state. Unknown input is matched by Damerau–Levenshtein (distance ≤ 2 suggests) — never by an LLM.</p>
+        <p>23 commands, asserted a bijection with the <code>CommandRegistry</code>. Sensitive commands need a confirmation tap; ✎ marks a command that changes state. Unknown input is matched by Damerau–Levenshtein (distance ≤ 2 suggests) — never by an LLM.</p>
         <div class="grid2">
           <div class="card">
             <h4>Digest &amp; search</h4>
@@ -212,7 +212,7 @@ flowchart LR
       <section class="sec">
         <p class="sec-eyebrow">Що видно</p>
         <h3 class="sec-title num">Спостережуваність</h3>
-        <p>Кожен хост викликає <code>AddServiceDefaults()</code>; трейси, логи й метрики йдуть OTLP → Grafana Alloy → Grafana Cloud, корельовані за <code>run_id</code> / <code>job_id</code>. Вісім доменних інструментів живуть у <code>Telemetry.cs</code>:</p>
+        <p>Кожен хост викликає <code>AddServiceDefaults()</code>; трейси, логи й метрики йдуть OTLP → Grafana Alloy → Grafana Cloud, корельовані за <code>run_id</code> / <code>job_id</code>. Основні вісім доменних інструментів живуть у <code>Telemetry.cs</code>, поряд із пізнішими інструментами для окремих функцій (усього 17):</p>
         <div class="grid2">
           <div class="card">
             <h4>Метрики</h4>
@@ -238,7 +238,7 @@ flowchart LR
       <section class="sec">
         <p class="sec-eyebrow">Керування вручну</p>
         <h3 class="sec-title num">Набір команд Telegram</h3>
-        <p>22 команди, стверджена бієкція з <code>CommandRegistry</code>. Чутливі команди потребують підтверджувального дотику; ✎ позначає команду, що змінює стан. Невідомий ввід зіставляється за Damerau–Levenshtein (відстань ≤ 2 пропонує) — ніколи LLM.</p>
+        <p>23 команди, стверджена бієкція з <code>CommandRegistry</code>. Чутливі команди потребують підтверджувального дотику; ✎ позначає команду, що змінює стан. Невідомий ввід зіставляється за Damerau–Levenshtein (відстань ≤ 2 пропонує) — ніколи LLM.</p>
         <div class="grid2">
           <div class="card">
             <h4>Дайджест і пошук</h4>
