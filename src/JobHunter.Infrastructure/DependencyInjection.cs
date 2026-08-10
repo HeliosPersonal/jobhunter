@@ -86,6 +86,9 @@ public static class DependencyInjection
         // (run_id, chat_id, card_key) constraint is invariant 8 (ADR-F5-0002).
         services.AddScoped<IDigestRepository, DigestRepository>();
         services.AddScoped<IDeliveryLog, DeliveryLog>();
+        // F4 T20 weekly rating loop: the per-week idempotence gate — a raw ON CONFLICT DO NOTHING upsert whose
+        // unique (week_start, chat_id) constraint prompts the Owner once a week and never double-counts ratings.
+        services.AddScoped<IRatingRoundLog, RatingRoundLog>();
         // F5 digest assembly (T03): the read side the assembler draws its cards and suppression breakdown from
         // — every score in the Run joined to its current match's reasons and USD salary, ordered best-first.
         services.AddScoped<IDigestScopeQuery, DigestScopeQuery>();
