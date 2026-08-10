@@ -7,6 +7,7 @@
     <ProjectReference Include="..\JobHunter.Claude\JobHunter.Claude.csproj" />
     <ProjectReference Include="..\JobHunter.Scrapers\JobHunter.Scrapers.csproj" />
     <ProjectReference Include="..\JobHunter.Search\JobHunter.Search.csproj" />
+    <ProjectReference Include="..\JobHunter.Telegram.Transport\JobHunter.Telegram.Transport.csproj" />
   </ItemGroup>
 
   <ItemGroup>

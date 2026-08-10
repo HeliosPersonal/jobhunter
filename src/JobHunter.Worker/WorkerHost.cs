@@ -8,6 +8,7 @@ using JobHunter.Infrastructure.Scheduling;
 using JobHunter.Scrapers;
 using JobHunter.Search;
 using JobHunter.ServiceDefaults;
+using JobHunter.Telegram;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Wolverine;
@@ -68,6 +69,14 @@ public static class WorkerHost
             .ValidateOnStart();
         builder.Services.AddSingleton(sp =>
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<JobHunter.Application.Delivery.DeliveryOptions>>().Value);
+
+        // The scheduled send handlers — the 07:00 DeliveryHandler, the weekly WeeklyRatingHandler, the 08:00
+        // ReminderSweepHandler and the F4 RegretSampler — are Wolverine handlers the Worker runs off its Hangfire
+        // crons, and they send through INotifier and the three renderers. Those live in the shared Telegram
+        // transport adapter, which both this host and the bus-less bot host compose; the Worker composes only the
+        // outbound send path (never the bot's inbound command/callback wiring), so the token-bearing client, the
+        // pacer and the renderers resolve here without pulling in the long-poll loop (Task #88).
+        builder.Services.AddJobHunterTelegramTransport(builder.Configuration);
 
         // The Worker owns indexing: it runs the SearchIndexingHandler (writes a document per JobIndexRequested)
         // and the nightly reconcile/rebuild (F9-T02/T08), so it composes the Typesense adapter. The Api also

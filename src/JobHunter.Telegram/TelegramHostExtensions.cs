@@ -26,59 +26,23 @@ public static class TelegramHostExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        // The outbound send path — INotifier, the three renderers, the pacer, the codec and the token-bearing
+        // client — is the shared adapter both this host and the Worker compose (Task #88). It binds and
+        // BotToken-validates TelegramOptions; the allowlist is an inbound concern, validated here on top.
+        services.AddJobHunterTelegramTransport(configuration);
+
         services.AddOptions<TelegramOptions>()
-            .Bind(configuration.GetSection(TelegramOptions.SectionName))
-            .Validate(o => !string.IsNullOrWhiteSpace(o.BotToken), "Telegram:BotToken is required.")
             .Validate(o => o.AllowedChatIds.Count > 0, "Telegram:AllowedChatIds must list at least one chat.")
             .ValidateOnStart();
 
         services.AddSingleton<OwnerAuthorizer>();
         services.AddSingleton<ITelegramUpdateProcessor, OwnerGatedUpdateProcessor>();
 
-        // The pacer is a singleton so its slot is shared across every send — one queue, one rate budget.
-        services.AddSingleton(sp => new TelegramSendPacer(
-            sp.GetRequiredService<IClock>(),
-            sp.GetRequiredService<IOptions<TelegramOptions>>().Value.MinSendInterval));
-
-        // The bot token lives only here, on the base address; the request paths are relative and token-free.
-        services.AddHttpClient(TelegramNotifier.HttpClientName)
-            .ConfigureHttpClient((sp, client) =>
-            {
-                var options = sp.GetRequiredService<IOptions<TelegramOptions>>().Value;
-                client.BaseAddress = new Uri($"https://api.telegram.org/bot{options.BotToken}/");
-            });
-
-        // One TelegramNotifier instance backs both roles: the INotifier the delivery loop sends through and the
-        // ICallbackResponder a tap acknowledges through, so acks share the same client and token-free paths.
-        services.AddSingleton(sp => new TelegramNotifier(
-            sp.GetRequiredService<IHttpClientFactory>().CreateClient(TelegramNotifier.HttpClientName),
-            sp.GetRequiredService<TelegramSendPacer>(),
-            sp.GetRequiredService<IOptions<TelegramOptions>>().Value.MaxSendAttempts,
-            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<TelegramNotifier>>()));
-        services.AddSingleton<INotifier>(sp => sp.GetRequiredService<TelegramNotifier>());
-        services.AddSingleton<ICallbackResponder>(sp => sp.GetRequiredService<TelegramNotifier>());
-
-        // The card-action callback path (T10): the HMAC short-id codec, and the router that opens a DI scope
-        // per tap and drives the CallbackHandler. The processor above depends on the router, not the handler,
-        // so its routing decision stays a singleton while the action write runs scoped.
-        services.AddSingleton<CallbackDataCodec>();
+        // The card-action callback path (T10): the router that opens a DI scope per tap and drives the
+        // CallbackHandler. The processor above depends on the router, not the handler, so its routing decision
+        // stays a singleton while the action write runs scoped. The HMAC short-id codec it resolves against is
+        // the same singleton the shared transport registered for the renderers to sign with.
         services.AddSingleton<ICallbackRouter, ScopedCallbackRouter>();
-
-        // The production digest renderer (T12): the IDigestRenderer both the 07:00 delivery loop and /digest
-        // depend on. Scoped, because it joins each card's display facts through the scoped ICardDisplayQuery;
-        // the codec it signs callback payloads with is the same singleton the callback path resolves against.
-        services.AddScoped<IDigestRenderer, Formatting.DigestRenderer>();
-
-        // The weekly rating renderer (F4 T20): the IWeeklyRatingRenderer the precision@10 loop sends its
-        // "was this worth opening?" prompts through. Scoped for the same reason as the digest renderer — it
-        // joins each top-ten card's display facts through the scoped ICardDisplayQuery — and it signs its
-        // rating buttons with the same CallbackDataCodec singleton the callback path resolves them against.
-        services.AddScoped<IWeeklyRatingRenderer, Formatting.WeeklyRatingRenderer>();
-
-        // The reminder renderer (F6 T06): the IReminderRenderer the 08:00 reminder sweep nudges through. It
-        // reads only the public job facts on the DueReminder and shares the one MarkdownV2 escaper, so a
-        // hostile title cannot break the send. Stateless, so a singleton is enough.
-        services.AddSingleton<IReminderRenderer, Formatting.ReminderRenderer>();
 
         // The command path (T11): the router and its handlers are scoped because a command reads the store,
         // and the singleton processor dispatches through the scope-opening ScopedCommandDispatcher — the same
