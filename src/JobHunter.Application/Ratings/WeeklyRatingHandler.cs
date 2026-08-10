@@ -68,7 +68,14 @@ public sealed class WeeklyRatingHandler(
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var rendered = _renderer.Render(card);
+            // A card whose job has gone since delivery renders to null: it still counts in the delivered top-ten
+            // denominator, but there is nothing to show, so it is skipped rather than sent as a fabricated blank.
+            var rendered = await _renderer.RenderAsync(card, cancellationToken).ConfigureAwait(false);
+            if (rendered is null)
+            {
+                continue;
+            }
+
             await _notifier.SendAsync(chatId, rendered, cancellationToken).ConfigureAwait(false);
             prompted++;
         }

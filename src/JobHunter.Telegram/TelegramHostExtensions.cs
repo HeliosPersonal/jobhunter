@@ -69,6 +69,12 @@ public static class TelegramHostExtensions
         // the codec it signs callback payloads with is the same singleton the callback path resolves against.
         services.AddScoped<IDigestRenderer, Formatting.DigestRenderer>();
 
+        // The weekly rating renderer (F4 T20): the IWeeklyRatingRenderer the precision@10 loop sends its
+        // "was this worth opening?" prompts through. Scoped for the same reason as the digest renderer — it
+        // joins each top-ten card's display facts through the scoped ICardDisplayQuery — and it signs its
+        // rating buttons with the same CallbackDataCodec singleton the callback path resolves them against.
+        services.AddScoped<IWeeklyRatingRenderer, Formatting.WeeklyRatingRenderer>();
+
         // The reminder renderer (F6 T06): the IReminderRenderer the 08:00 reminder sweep nudges through. It
         // reads only the public job facts on the DueReminder and shares the one MarkdownV2 escaper, so a
         // hostile title cannot break the send. Stateless, so a singleton is enough.

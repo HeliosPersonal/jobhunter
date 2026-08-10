@@ -35,10 +35,16 @@ internal sealed class FakeNotifier : INotifier
 /// </summary>
 internal sealed class FakeWeeklyRatingRenderer : IWeeklyRatingRenderer
 {
-    public RenderedMessage Render(WeeklyTopCard card)
+    /// <summary>Job ids whose card the renderer treats as gone — they render to null and are skipped.</summary>
+    public HashSet<Guid> VanishedJobs { get; } = [];
+
+    public Task<RenderedMessage?> RenderAsync(WeeklyTopCard card, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(card);
-        return RenderedMessage.PlainText(card.JobId.ToString());
+        RenderedMessage? rendered = VanishedJobs.Contains(card.JobId)
+            ? null
+            : RenderedMessage.PlainText(card.JobId.ToString());
+        return Task.FromResult(rendered);
     }
 }
 

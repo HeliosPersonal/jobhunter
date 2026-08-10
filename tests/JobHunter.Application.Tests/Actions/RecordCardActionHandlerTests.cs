@@ -45,6 +45,7 @@ public sealed class RecordCardActionHandlerTests
     [Theory]
     [InlineData(CardAction.Ignore, SignalKind.Ignored)]
     [InlineData(CardAction.Save, SignalKind.Saved)]
+    [InlineData(CardAction.Rate, SignalKind.Rated)]
     public async Task A_card_action_captures_one_card_signal_with_the_snapshot_at_the_tap(
         CardAction action, SignalKind expectedKind)
     {

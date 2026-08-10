@@ -70,6 +70,7 @@ public sealed class RecordCardActionHandler
     {
         CardAction.Ignore => SignalKind.Ignored,
         CardAction.Save => SignalKind.Saved,
+        CardAction.Rate => SignalKind.Rated,
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, "Not a capturable card action."),
     };
 }

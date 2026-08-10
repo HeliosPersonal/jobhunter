@@ -89,4 +89,66 @@ public sealed class CallbackDataCodecTests
     {
         Should.Throw<ArgumentNullException>(() => new CallbackDataCodec(null!));
     }
+
+    // The weekly rating tap (F4 T20) carries its own signed job id, so it resolves from the payload alone —
+    // no candidate lookup, no time window. The signature stops a rating being forged for a job never prompted.
+
+    private static readonly Guid RatedJob = new("33333333-3333-3333-3333-333333333333");
+
+    [Fact]
+    public void A_rating_payload_resolves_back_to_its_job_id()
+    {
+        var codec = Build();
+
+        var resolved = codec.ResolveRating(codec.EncodeRating(RatedJob));
+
+        resolved.ShouldBe(RatedJob);
+    }
+
+    [Fact]
+    public void Rating_encoding_is_deterministic_for_a_given_job_and_secret()
+    {
+        var codec = Build();
+
+        codec.EncodeRating(RatedJob).ShouldBe(codec.EncodeRating(RatedJob));
+    }
+
+    [Fact]
+    public void A_rating_payload_stays_within_the_callback_data_budget()
+    {
+        // "rat:" + payload must leave headroom under Telegram's 64-byte callback_data limit.
+        var codec = Build();
+
+        codec.EncodeRating(RatedJob).Length.ShouldBeLessThan(60);
+    }
+
+    [Fact]
+    public void A_rating_payload_signed_with_a_different_secret_does_not_resolve()
+    {
+        var forged = Build("a-different-secret").EncodeRating(RatedJob);
+
+        Build().ResolveRating(forged).ShouldBeNull();
+    }
+
+    [Fact]
+    public void A_tampered_rating_payload_does_not_resolve()
+    {
+        var codec = Build();
+        var payload = codec.EncodeRating(RatedJob);
+
+        // Flip the first character; the truncated signature no longer matches the job id it guards.
+        var tampered = (payload[0] == 'A' ? 'B' : 'A') + payload[1..];
+
+        codec.ResolveRating(tampered).ShouldBeNull();
+    }
+
+    [Fact]
+    public void A_forged_or_unparseable_rating_payload_does_not_resolve_and_does_not_throw()
+    {
+        var codec = Build();
+
+        codec.ResolveRating("not-a-real-payload").ShouldBeNull();
+        codec.ResolveRating(string.Empty).ShouldBeNull();
+        codec.ResolveRating(null).ShouldBeNull();
+    }
 }

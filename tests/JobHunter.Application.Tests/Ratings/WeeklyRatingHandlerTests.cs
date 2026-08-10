@@ -26,6 +26,7 @@ public sealed class WeeklyRatingHandlerTests
     private static readonly Guid RunId = Guid.Parse("00000000-0000-0000-0000-0000000000C8");
 
     private readonly FakeNotifier _notifier = new();
+    private readonly FakeWeeklyRatingRenderer _renderer = new();
     private readonly FakeRatingRoundLog _roundLog = new();
     private readonly FakeClock _clock = new(Now);
     private readonly IWeeklyTopCardsQuery _topCards = Substitute.For<IWeeklyTopCardsQuery>();
@@ -43,7 +44,7 @@ public sealed class WeeklyRatingHandlerTests
             .ToList();
 
     private WeeklyRatingHandler CreateHandler() =>
-        new(_topCards, new FakeWeeklyRatingRenderer(), _roundLog, _notifier, _clock,
+        new(_topCards, _renderer, _roundLog, _notifier, _clock,
             new DeliveryOptions { OwnerChatId = OwnerChat }, NullLogger<WeeklyRatingHandler>.Instance);
 
     private static WeeklyRatingDue Message() => new(Now);
@@ -84,6 +85,21 @@ public sealed class WeeklyRatingHandlerTests
         await CreateHandler().Handle(Message(), CancellationToken.None);
 
         _notifier.SentSubjects.Count.ShouldBe(afterFirst);
+    }
+
+    [Fact]
+    public async Task A_card_whose_job_has_vanished_is_skipped_but_the_others_are_still_prompted()
+    {
+        var cards = Cards(3);
+        _renderer.VanishedJobs.Add(cards[1].JobId);
+        _topCards
+            .TopCardsAsync(Arg.Any<DateTimeOffset>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
+            .Returns(cards);
+
+        await CreateHandler().Handle(Message(), CancellationToken.None);
+
+        _notifier.SentSubjects.Count.ShouldBe(2);
+        _notifier.SentSubjects.ShouldNotContain(cards[1].JobId.ToString());
     }
 
     [Fact]

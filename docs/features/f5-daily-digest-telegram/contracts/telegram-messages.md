@@ -131,6 +131,24 @@ The HMAC means a payload cannot be forged by guessing a card key, and the short 
 `digest_cards` — so an id that no longer resolves produces a clear message rather than a silent
 no-op (AC-09).
 
+The weekly rating button (F4 T20) uses a distinct, **self-contained** payload. A rating prompt is
+answered up to a week after delivery, so its payload must resolve on its own rather than against a
+sliding window of recently delivered cards:
+
+```
+rat:{payload}
+
+action  = rat                                                   (3 chars)
+payload = base64url(jobId[16 bytes] ‖ HMAC-SHA256(jobId, botSecret)[0..8])   (32 chars)
+
+Total: 36 bytes.
+```
+
+The signed job id is carried in the payload itself, so `rat:` resolves from the payload alone — no
+candidate query, no time window. The HMAC still means a payload cannot be forged: only the bot holds
+the secret, and it mints `rat:` buttons only for the week's top-ten prompts. A payload that fails the
+signature check gets the same `This role has closed` message and records nothing (AC-09).
+
 Acknowledgements, all under one second (QG-3):
 
 | Action | `answerCallbackQuery` text | Keyboard after |
@@ -139,6 +157,7 @@ Acknowledgements, all under one second (QG-3):
 | Ignore | `Won't show similar` | `[ Ignored ]` only |
 | Save | `Saved` | `[ Open ] [ Saved ✓ ] [ Applied ]` |
 | Applied | `Marked as applied` | `[ Open ] [ Applied ✓ ]` |
+| Rate (F4 T20) | `Thanks — noted` | `[ Rated 👍 ]` only |
 
 `Won't show similar` is deliberate phrasing. It tells the Owner their tap taught the system, which is
 the retention mechanism from [[../../../DECISION-LOG|D7]]. `Ignored` alone would be a dead end.

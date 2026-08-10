@@ -124,6 +124,60 @@ public sealed class CallbackHandlerTests
     }
 
     [Fact]
+    public async Task A_rating_tap_captures_a_Rated_signal_resolved_from_the_payload_not_the_window()
+    {
+        var responder = new RecordingCallbackResponder();
+        Signal? captured = null;
+        _signals.TryCaptureAsync(Arg.Do<Signal>(s => captured = s), Arg.Any<CancellationToken>()).Returns(true);
+        var handler = Build(responder);
+        var tap = new TelegramCallbackQuery(
+            "cb1", $"rat:{Codec.EncodeRating(JobId)}", new TelegramMessage(new TelegramChat(ChatId), null, MessageId));
+
+        await handler.HandleAsync(tap, CancellationToken.None);
+
+        captured.ShouldNotBeNull();
+        captured!.JobId.ShouldBe(JobId);
+        captured.Kind.ShouldBe(SignalKind.Rated);
+        // The rating resolves from its self-contained signed payload — never through the windowed card query.
+        await _cards.DidNotReceive().CandidatesSinceAsync(Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_rating_tap_acknowledges_and_shows_the_rated_keyboard()
+    {
+        var responder = new RecordingCallbackResponder();
+        var handler = Build(responder);
+        var tap = new TelegramCallbackQuery(
+            "cb1", $"rat:{Codec.EncodeRating(JobId)}", new TelegramMessage(new TelegramChat(ChatId), null, MessageId));
+
+        await handler.HandleAsync(tap, CancellationToken.None);
+
+        responder.LastAck!.Value.Text.ShouldBe("Thanks — noted");
+        var row = responder.LastEdit!.Value.Keyboard.ShouldHaveSingleItem();
+        var only = row.ShouldHaveSingleItem();
+        only.Label.ShouldBe("Rated 👍");
+    }
+
+    [Fact]
+    public async Task A_forged_rating_payload_says_so_plainly_and_records_nothing()
+    {
+        var responder = new RecordingCallbackResponder();
+        var forged = Build2("a-different-secret").EncodeRating(JobId);
+        var tap = new TelegramCallbackQuery(
+            "cb1", $"rat:{forged}", new TelegramMessage(new TelegramChat(ChatId), null, MessageId));
+
+        await Build(responder).HandleAsync(tap, CancellationToken.None);
+
+        responder.LastAck!.Value.Text.ShouldBe("This role has closed");
+        responder.Edits.ShouldBeEmpty();
+        await _signals.DidNotReceive().TryCaptureAsync(Arg.Any<Signal>(), Arg.Any<CancellationToken>());
+    }
+
+    // A codec under a different secret, to forge a rating payload the real codec must reject.
+    private static CallbackDataCodec Build2(string secret) =>
+        new(Options.Create(new TelegramOptions { BotToken = secret, AllowedChatIds = [ChatId] }));
+
+    [Fact]
     public async Task Open_acknowledges_without_a_toast_and_leaves_the_keyboard_untouched()
     {
         var responder = new RecordingCallbackResponder();

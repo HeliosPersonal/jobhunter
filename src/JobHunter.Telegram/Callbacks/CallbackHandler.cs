@@ -59,37 +59,59 @@ internal sealed class CallbackHandler
 
         // A payload that will not parse, or a callback with no message to edit, cannot resolve to a card —
         // acknowledge plainly and stop, never a silent no-op.
-        if (!TryParse(callback.Data, out var action, out var shortId) ||
+        if (!TryParse(callback.Data, out var action, out var payload) ||
             callback.Message?.Chat is not { } chat)
         {
             await AcknowledgeClosedAsync(callback.Id, cancellationToken).ConfigureAwait(false);
             return;
         }
 
-        // Resolve the short id among the cards delivered within the window the Telegram layer owns; a stale or
-        // forged id resolves to nothing and gets the same plain message (AC-09).
-        var candidates = await _cards
-            .CandidatesSinceAsync(_clock.UtcNow - _window, cancellationToken)
-            .ConfigureAwait(false);
-        var key = _codec.Resolve(shortId, candidates.Select(c => c.Key).ToArray());
-        if (key is null)
+        // Two resolution paths. A card action (F5) resolves its short id among the cards delivered within the
+        // window the Telegram layer owns. A weekly rating (F4 T20) carries its own signed job id, so it resolves
+        // from the payload alone — no candidate query and no window, because the Owner may rate a card up to a
+        // week old and a stale tap must still land its Rated signal. Either way an unresolvable payload gets the
+        // same plain message (AC-09).
+        Guid jobId;
+        string? applyUrl;
+        if (action == CardAction.Rate)
         {
-            await AcknowledgeClosedAsync(callback.Id, cancellationToken).ConfigureAwait(false);
-            return;
-        }
+            var ratedJobId = _codec.ResolveRating(payload);
+            if (ratedJobId is null)
+            {
+                await AcknowledgeClosedAsync(callback.Id, cancellationToken).ConfigureAwait(false);
+                return;
+            }
 
-        var card = candidates.First(c => c.Key == key);
+            jobId = ratedJobId.Value;
+            applyUrl = null;
+        }
+        else
+        {
+            var candidates = await _cards
+                .CandidatesSinceAsync(_clock.UtcNow - _window, cancellationToken)
+                .ConfigureAwait(false);
+            var key = _codec.Resolve(payload, candidates.Select(c => c.Key).ToArray());
+            if (key is null)
+            {
+                await AcknowledgeClosedAsync(callback.Id, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            var card = candidates.First(c => c.Key == key);
+            jobId = card.JobId;
+            applyUrl = card.ApplyUrl;
+        }
 
         // Apply the action and capture the signal in one Application step (AC-08); the outcome tells us whether
         // the job was still live without this layer re-deriving the action's meaning.
         var outcome = await _action
-            .Handle(new RecordCardActionCommand(card.JobId, action, _clock.UtcNow), cancellationToken)
+            .Handle(new RecordCardActionCommand(jobId, action, _clock.UtcNow), cancellationToken)
             .ConfigureAwait(false);
 
         if (outcome == CardActionOutcome.JobUnavailable)
         {
             await AcknowledgeClosedAsync(callback.Id, cancellationToken).ConfigureAwait(false);
-            _logger.LogDebug("Callback for a closed job {JobId}; acknowledged as closed.", card.JobId);
+            _logger.LogDebug("Callback for a closed job {JobId}; acknowledged as closed.", jobId);
             return;
         }
 
@@ -97,7 +119,7 @@ internal sealed class CallbackHandler
         // the Owner gets the same feedback whether or not this was the call that recorded the signal.
         await _responder.AnswerCallbackAsync(callback.Id, AckTextFor(action), cancellationToken).ConfigureAwait(false);
 
-        var keyboard = KeyboardFor(action, shortId, card.ApplyUrl);
+        var keyboard = KeyboardFor(action, payload, applyUrl);
         if (keyboard is not null)
         {
             await _responder
@@ -105,7 +127,7 @@ internal sealed class CallbackHandler
                 .ConfigureAwait(false);
         }
 
-        _logger.LogDebug("Recorded {Action} on job {JobId} ({Outcome}).", action, card.JobId, outcome);
+        _logger.LogDebug("Recorded {Action} on job {JobId} ({Outcome}).", action, jobId, outcome);
     }
 
     private Task AcknowledgeClosedAsync(string callbackQueryId, CancellationToken cancellationToken) =>
@@ -145,37 +167,42 @@ internal sealed class CallbackHandler
         CardAction.Ignore => "Won't show similar",
         CardAction.Save => "Saved",
         CardAction.Applied => "Marked as applied",
+        CardAction.Rate => "Thanks — noted",
         _ => null,
     };
 
     // The keyboard each action leaves behind (contract §Callback payloads). Open changes nothing, so it edits
-    // no keyboard; the others rewrite the card to reflect the state the tap put it in.
-    private static IReadOnlyList<IReadOnlyList<InlineButton>>? KeyboardFor(CardAction action, string shortId, string applyUrl) =>
+    // no keyboard; the others rewrite the card to reflect the state the tap put it in. A rating payload carries
+    // its own signed job id, so its rewritten button re-signs from the same payload the tap arrived with.
+    private static IReadOnlyList<IReadOnlyList<InlineButton>>? KeyboardFor(CardAction action, string payload, string? applyUrl) =>
         action switch
         {
             CardAction.Ignore =>
-                [[new InlineButton("Ignored", $"{ActionToken.Ignore}:{shortId}")]],
+                [[new InlineButton("Ignored", $"{ActionToken.Ignore}:{payload}")]],
             CardAction.Save =>
                 [[
-                    InlineButton.ForUrl("Open", applyUrl),
-                    new InlineButton("Saved ✓", $"{ActionToken.Save}:{shortId}"),
-                    new InlineButton("Applied", $"{ActionToken.Applied}:{shortId}"),
+                    InlineButton.ForUrl("Open", applyUrl!),
+                    new InlineButton("Saved ✓", $"{ActionToken.Save}:{payload}"),
+                    new InlineButton("Applied", $"{ActionToken.Applied}:{payload}"),
                 ]],
             CardAction.Applied =>
                 [[
-                    InlineButton.ForUrl("Open", applyUrl),
-                    new InlineButton("Applied ✓", $"{ActionToken.Applied}:{shortId}"),
+                    InlineButton.ForUrl("Open", applyUrl!),
+                    new InlineButton("Applied ✓", $"{ActionToken.Applied}:{payload}"),
                 ]],
+            CardAction.Rate =>
+                [[new InlineButton("Rated 👍", $"{ActionToken.Rate}:{payload}")]],
             _ => null,
         };
 
-    // The 3-character action tokens fixed by the contract (open|ign|sav|app).
+    // The 3-character action tokens fixed by the contract (open|ign|sav|app), plus the weekly rating token.
     private static class ActionToken
     {
         public const string Open = "open";
         public const string Ignore = "ign";
         public const string Save = "sav";
         public const string Applied = "app";
+        public const string Rate = "rat";
     }
 
     private static readonly Dictionary<string, CardAction> TokenToAction = new(StringComparer.Ordinal)
@@ -184,5 +211,6 @@ internal sealed class CallbackHandler
         [ActionToken.Ignore] = CardAction.Ignore,
         [ActionToken.Save] = CardAction.Save,
         [ActionToken.Applied] = CardAction.Applied,
+        [ActionToken.Rate] = CardAction.Rate,
     };
 }

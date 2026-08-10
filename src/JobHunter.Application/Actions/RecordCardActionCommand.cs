@@ -22,6 +22,13 @@ public enum CardAction
 
     /// <summary>Mark the job applied — an F6 outcome, recorded through <c>OwnerActionRecorded</c>, not as an F5 signal.</summary>
     Applied,
+
+    /// <summary>
+    /// Rate the card "worth opening" — captured as a <c>Rated</c> signal (F4 T20, the weekly precision@10 loop).
+    /// Only the affirmative choice is a <see cref="Rate"/>; "not worth opening" carries a no-op token and records
+    /// nothing, so the presence of a <c>Rated</c> signal <em>is</em> the positive judgement precision@10 counts.
+    /// </summary>
+    Rate,
 }
 
 /// <summary>

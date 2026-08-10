@@ -15,6 +15,11 @@ namespace JobHunter.Domain.Abstractions;
 /// </summary>
 public interface IWeeklyRatingRenderer
 {
-    /// <summary>The single rating prompt for <paramref name="card"/> — its subject and its worth-opening buttons.</summary>
-    RenderedMessage Render(WeeklyTopCard card);
+    /// <summary>
+    /// The single rating prompt for <paramref name="card"/> — its subject and its worth-opening button — or
+    /// <c>null</c> when the card's job has gone (deleted between delivery and the rating round), which the
+    /// caller skips rather than sending a prompt for a role the Owner can no longer see. The card still counts
+    /// in the delivered top-ten denominator; a vanished job simply contributes no numerator.
+    /// </summary>
+    Task<RenderedMessage?> RenderAsync(WeeklyTopCard card, CancellationToken cancellationToken = default);
 }
