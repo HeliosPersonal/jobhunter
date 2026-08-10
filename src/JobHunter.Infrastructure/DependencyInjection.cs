@@ -307,6 +307,7 @@ public static class DependencyInjection
         services.AddScoped<IndexReconcileTrigger>();
         services.AddScoped<ReminderSweepTrigger>();
         services.AddScoped<PreferenceRefitTrigger>();
+        services.AddScoped<WeeklyRatingTrigger>();
 
         // F5 daily digest schedule (T09): the three Europe/Kyiv ticks that bracket the day — 02:00 opens the
         // Run, 06:45 assembles whatever it produced, 07:00 delivers. Only the Worker's Hangfire server resolves
@@ -437,6 +438,19 @@ public static class DependencyInjection
                 cron,
                 new RecurringJobOptions { TimeZone = timeZone })));
 
+        // The weekly rating prompt at 09:00 Monday Kyiv (F4 T20, D5): its own message, well clear of the 07:00
+        // digest and 08:00 reminder, asking the Owner to rate the previous week's top-ten delivered cards. It
+        // publishes one WeeklyRatingDue; the handler opens the week's round once (done-when 5) and prompts each
+        // card, so a redelivered tick double-counts nothing.
+        services.AddSingleton(new RecurringJobBinding(
+            WeeklyRatingJobId,
+            WeeklyRatingCron,
+            (cron, timeZone) => RecurringJob.AddOrUpdate<WeeklyRatingTrigger>(
+                WeeklyRatingJobId,
+                trigger => trigger.PublishAsync(),
+                cron,
+                new RecurringJobOptions { TimeZone = timeZone })));
+
         services.AddHostedService<RecurringJobApplier>();
     }
 
@@ -479,6 +493,10 @@ public static class DependencyInjection
     /// <summary>The weekly preference refit at 03:00 Monday Kyiv (F7 SAD §6.1, T05): weekly, so one bad day cannot move the model.</summary>
     private const string PreferenceRefitJobId = "preference-refit";
     private const string PreferenceRefitCron = "0 3 * * 1";
+
+    /// <summary>The weekly rating prompt at 09:00 Monday Kyiv (F4 T20, D5): its own message, clear of the 07:00 digest and 08:00 reminder.</summary>
+    private const string WeeklyRatingJobId = "weekly-rating";
+    private const string WeeklyRatingCron = "0 9 * * 1";
 
     /// <summary>
     /// Wires the shared outbound HTTP pipeline (SAD §8, QG-2): the politeness options, the SSRF guard,
