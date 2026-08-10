@@ -1,0 +1,4 @@
+*/digest*
+Re\-read today's digest
+
+No arguments\.

@@ -1,0 +1,5 @@
+*/forget \[dimension\]*
+Switch off a learned preference by dimension
+
+• dimension \(optional\) — The dimension to forget; omitted to pick from a list\.
+Example: /forget salary

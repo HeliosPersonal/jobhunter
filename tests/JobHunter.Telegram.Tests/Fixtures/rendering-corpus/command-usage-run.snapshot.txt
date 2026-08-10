@@ -1,0 +1,4 @@
+*/run*
+Trigger the daily pipeline off\-schedule — refused when a run is live
+
+No arguments\.

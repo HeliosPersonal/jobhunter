@@ -1,0 +1,6 @@
+*/floor <amount\> \[currency\]*
+Set your explicit salary floor \(previewed before it's applied\)
+
+• amount \(required\) — The salary floor amount\.
+• currency \(optional\) — ISO currency; defaults to EUR\.
+Example: /floor 90000 GBP

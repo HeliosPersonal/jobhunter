@@ -1,0 +1,4 @@
+*/pipeline*
+Applications by status
+
+No arguments\.

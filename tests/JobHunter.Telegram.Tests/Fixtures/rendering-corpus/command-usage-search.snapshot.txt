@@ -1,0 +1,5 @@
+*/search <query\>*
+Search live roles
+
+• query \(required\) — Free text with optional key:value filters\.
+Example: /search tech:kafka staff engineer

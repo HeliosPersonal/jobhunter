@@ -1,0 +1,5 @@
+*/company <name\-or\-domain\>*
+Look up a company by name or domain
+
+• name\-or\-domain \(required\) — A company name or its canonical domain\.
+Example: /company monzo\.com

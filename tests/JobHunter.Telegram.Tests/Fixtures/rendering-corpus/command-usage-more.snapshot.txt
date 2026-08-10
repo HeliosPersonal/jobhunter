@@ -1,0 +1,5 @@
+*/more \[count\]*
+The next cards below today's cut
+
+• count \(optional\) — How many cards to show \(1–20, default 5\)\.
+Example: /more 10

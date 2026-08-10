@@ -1,0 +1,5 @@
+*/research <name\-or\-domain\>*
+Request or refresh a company dossier
+
+• name\-or\-domain \(required\) — A company name or its canonical domain\.
+Example: /research monzo\.com

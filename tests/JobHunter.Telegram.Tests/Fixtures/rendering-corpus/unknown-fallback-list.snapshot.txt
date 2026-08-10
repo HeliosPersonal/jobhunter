@@ -1,0 +1,36 @@
+_Unknown command\._
+
+*Digest and discovery*
+/digest — Re\-read today's digest
+/more — The next cards below today's cut
+/search — Search live roles
+/hidden — What today's ranking suppressed, by reason
+
+*Pipeline*
+/saved — List the roles you saved
+/pipeline — Applications by status
+/due — Applications past their stage threshold
+/note — Attach a note to your latest application
+/stats — This week's engagement
+
+*Company*
+/company — Look up a company by name or domain
+/research — Request or refresh a company dossier
+
+*Profile and preferences*
+/cv — Your active CV: version, activation date and match count
+/prefs — The preferences I've learned, each as one sentence
+/forget — Switch off a learned preference by dimension
+/floor — Set your explicit salary floor \(previewed before it's applied\)
+
+*Operations*
+/status — Last run's outcome, cost against ceiling, counts and degraded sources
+/cost — This month's spend by stage and tier, flagging estimate\-vs\-actual drift
+/sources — Per\-provider fetch health and quarantined sources
+/run — Trigger the daily pipeline off\-schedule — refused when a run is live
+/redeliver — Re\-send today's digest — states how many cards would actually be sent
+
+*Meta*
+/start — Confirm this chat is authorised
+/help — Show this command list
+/cancel — Abandon any pending command or confirmation

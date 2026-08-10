@@ -1,0 +1,4 @@
+*/start*
+Confirm this chat is authorised
+
+No arguments\.

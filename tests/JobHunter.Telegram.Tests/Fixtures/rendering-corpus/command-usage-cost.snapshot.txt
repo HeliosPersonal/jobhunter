@@ -1,0 +1,5 @@
+*/cost \[month\]*
+This month's spend by stage and tier, flagging estimate\-vs\-actual drift
+
+• month \(optional\) — A YYYY\-MM month; defaults to the current one\.
+Example: /cost 2026\-07

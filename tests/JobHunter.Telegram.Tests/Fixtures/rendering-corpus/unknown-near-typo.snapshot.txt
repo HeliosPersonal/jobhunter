@@ -1,0 +1,4 @@
+Unknown command `/pipline`\.
+
+Did you mean /pipeline?
+Or /help for everything\.

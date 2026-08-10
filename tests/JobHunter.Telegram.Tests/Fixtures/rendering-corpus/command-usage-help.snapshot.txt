@@ -1,0 +1,5 @@
+*/help \[command\]*
+Show this command list
+
+• command \(optional\) — A command name for its detailed usage\.
+Example: /help search

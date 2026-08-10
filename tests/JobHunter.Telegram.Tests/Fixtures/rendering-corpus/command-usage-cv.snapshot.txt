@@ -1,0 +1,4 @@
+*/cv*
+Your active CV: version, activation date and match count
+
+No arguments\.

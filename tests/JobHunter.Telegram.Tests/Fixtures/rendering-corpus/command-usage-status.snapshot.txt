@@ -1,0 +1,4 @@
+*/status*
+Last run's outcome, cost against ceiling, counts and degraded sources
+
+No arguments\.

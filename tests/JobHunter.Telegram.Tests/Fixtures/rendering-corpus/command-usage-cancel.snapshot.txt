@@ -1,0 +1,4 @@
+*/cancel*
+Abandon any pending command or confirmation
+
+No arguments\.

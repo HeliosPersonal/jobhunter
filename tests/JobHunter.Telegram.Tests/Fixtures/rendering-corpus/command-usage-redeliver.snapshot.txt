@@ -1,0 +1,4 @@
+*/redeliver*
+Re\-send today's digest — states how many cards would actually be sent
+
+No arguments\.

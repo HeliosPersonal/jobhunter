@@ -1,0 +1,4 @@
+*/prefs*
+The preferences I've learned, each as one sentence
+
+No arguments\.
