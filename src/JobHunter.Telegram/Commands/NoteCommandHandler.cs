@@ -33,7 +33,7 @@ internal sealed class NoteCommandHandler(
     AddNoteHandler addNote,
     IConversationStateStore state,
     IClock clock,
-    ILogger<NoteCommandHandler> logger) : ICommandHandler
+    ILogger<NoteCommandHandler> logger) : IResumableCommandHandler
 {
     /// <summary>The registry name a pending state carries, so the resume step (T10) knows which command to resume.</summary>
     private const string CommandName = "note";
@@ -95,6 +95,53 @@ internal sealed class NoteCommandHandler(
             .ConfigureAwait(false);
 
         return [RenderedMessage.PlainText(ConfirmationFor(outcome, target))];
+    }
+
+    public async Task<IReadOnlyList<RenderedMessage>> ResumeAsync(
+        CommandResumeRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        // The pending state carried the target job id; the reply is the note body. Always clear the pending
+        // state first — the step is terminal either way, so a malformed context never wedges the chat.
+        await _state.ClearAsync(request.ChatId, cancellationToken).ConfigureAwait(false);
+
+        if (!request.Context.TryGetValue(TargetJobKey, out var rawJobId)
+            || !Guid.TryParse(rawJobId, out var jobId))
+        {
+            _logger.LogWarning("/note resumed with no resolvable target application; the note was not written.");
+            return [RenderedMessage.PlainText(
+                "_" + MarkdownV2Escaper.Escape("That note could not be attached — start again with /note.") + "_")];
+        }
+
+        // Resolve the target for the confirmation wording — the write itself keys off the job id, and the
+        // confirmation names the application rather than echoing the body (invariant 12).
+        var view = await _pipeline.PipelineAsync(_clock.UtcNow, cancellationToken).ConfigureAwait(false);
+        var target = view.Groups
+            .SelectMany(group => group.Applications)
+            .FirstOrDefault(entry => entry.JobId == jobId);
+
+        var outcome = await _addNote
+            .Handle(new AddNoteCommand(jobId, request.Input, _clock.UtcNow), cancellationToken)
+            .ConfigureAwait(false);
+
+        return [RenderedMessage.PlainText(ResumeConfirmationFor(outcome, target))];
+    }
+
+    // The reply for a resumed write. When the target is still in the pipeline the confirmation names it; if it
+    // has since vanished the outcome speaks for itself. The body is never echoed (invariant 12).
+    private static string ResumeConfirmationFor(AddNoteOutcome outcome, PipelineEntry? target)
+    {
+        var where = target is null ? "your latest application" : $"{target.Company} · {target.Title}";
+        return outcome switch
+        {
+            AddNoteOutcome.Recorded => MarkdownV2Escaper.Escape($"Noted on {where}."),
+            AddNoteOutcome.TooLong =>
+                "_" + MarkdownV2Escaper.Escape($"That note is too long (max {ApplicationNote.MaxLength} characters).") + "_",
+            AddNoteOutcome.ApplicationNotFound =>
+                "_" + MarkdownV2Escaper.Escape($"No application tracks {where} anymore.") + "_",
+            _ => "_" + MarkdownV2Escaper.Escape("There was nothing to note.") + "_",
+        };
     }
 
     // The reply for each write outcome, named against the application so the Owner sees where the note went

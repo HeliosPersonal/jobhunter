@@ -19,9 +19,12 @@ public sealed class ConventionRulesTests
     public void Rule4_DapperQueries_neverWrite()
     {
         // NetArchTest 1.3.2 has no call-graph assertion, so this rule is enforced at the source level:
-        // no type in the Queries namespace may name a Dapper write method.
+        // no type in the Queries namespace may name a Dapper write method. The write methods are exactly the
+        // two the coding standard names (§2 rule 4): Execute and ExecuteAsync run a non-query command. The
+        // \b boundaries deliberately keep ExecuteScalar/ExecuteScalarAsync out of scope — those run a SELECT
+        // and return its first cell, so they are reads a Queries type may legitimately call.
         var writes = SourceScan
-            .ForPattern(@"\.(ExecuteAsync|Execute|ExecuteScalar|ExecuteScalarAsync)\b")
+            .ForPattern(@"\.(ExecuteAsync|Execute)\b")
             .ExcludingFiles() // scan the whole tree; only Queries files would legitimately trip it
             .Matches
             .Where(m => m.Contains("Query", StringComparison.OrdinalIgnoreCase))

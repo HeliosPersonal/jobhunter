@@ -55,6 +55,33 @@ internal sealed class CommandRouter
         return [RenderedMessage.PlainText(reply)];
     }
 
+    /// <summary>
+    /// Resumes the pending command named by <paramref name="pending"/> with the Owner's <paramref name="input"/>
+    /// (SAD §6.2). The command must be registered under <c>/{name}</c> and be an
+    /// <see cref="IResumableCommandHandler"/>; the handler completes its own step and clears its own state. If
+    /// nothing routable resumes it — a state left by a command since retired, say — the Owner is told the reply
+    /// wasn't understood rather than left waiting, and the caller clears the orphaned state.
+    /// </summary>
+    public async Task<IReadOnlyList<RenderedMessage>> ResumeAsync(
+        long chatId, ConversationState pending, string input, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(pending);
+        ArgumentNullException.ThrowIfNull(input);
+
+        if (_handlers.TryGetValue("/" + pending.Command, out var handler)
+            && handler is IResumableCommandHandler resumable)
+        {
+            var request = new CommandResumeRequest(chatId, pending.Awaiting, pending.Context, input);
+            return await resumable.ResumeAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+
+        // The pending command is not resumable (or no longer registered): don't wedge the chat on it.
+        _logger.LogWarning(
+            "A pending conversation named a command that cannot be resumed; discarding it.");
+        return [RenderedMessage.PlainText(
+            UnknownCommandFormatter.Reply(_catalogue, "/" + pending.Command))];
+    }
+
     private static (string? Token, string? Arguments) Split(string messageText)
     {
         var trimmed = messageText.Trim();

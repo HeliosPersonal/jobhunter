@@ -79,6 +79,12 @@ public static class TelegramHostExtensions
         // singleton-routes / scope-acts split as the callback path. The /search command reuses the F9 handler;
         // /pipeline is a placeholder until F6 ships. The /help list is derived from the registered set.
         services.AddScoped<Commands.CommandRouter>(BuildCommandRouter);
+
+        // T10 S5: the conversation-aware head of dispatch. The scope-opening ScopedCommandDispatcher resolves it
+        // per message and it runs the pending-state resolver before routing, so a free-text reply resumes a
+        // pending /note (etc.) rather than being answered as an unknown command. Scoped like the router it wraps;
+        // the pending state itself lives in the singleton IConversationStateStore, so it survives across scopes.
+        services.AddScoped<Commands.ConversationCoordinator>();
         services.AddSingleton<Commands.ICommandDispatcher, Commands.ScopedCommandDispatcher>();
 
         services.AddHostedService<TelegramLongPollService>();
@@ -160,6 +166,7 @@ public static class TelegramHostExtensions
             new("/floor", "Set your explicit salary floor (previewed before it's applied)", new Commands.FloorCommandHandler(
                 provider.GetRequiredService<ISalaryFloorPreviewQuery>(),
                 provider.GetRequiredService<IConversationStateStore>(),
+                provider.GetRequiredService<IProfileRepository>(),
                 provider.GetRequiredService<IClock>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.FloorCommandHandler>>())),
             new("/status", "Last run's outcome, cost against ceiling, counts and degraded sources", new Commands.StatusCommandHandler(

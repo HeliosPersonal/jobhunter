@@ -100,6 +100,49 @@ public sealed class NoteCommandHandlerTests
     }
 
     [Fact]
+    public async Task A_resumed_reply_writes_the_note_to_the_stored_job_and_clears_the_state()
+    {
+        // The pending state carried the target job id; the Owner's free-text reply is the note body. Resuming
+        // writes it through the one shared write path, names where it landed, and clears the pending state so
+        // the next message is a fresh command again (AC-08).
+        var recent = Entry("Staff Backend Engineer", "Stripe", daysAgo: 1);
+        PipelineReturns(recent);
+        _applications.FindByJobAsync(recent.JobId, Arg.Any<CancellationToken>())
+            .Returns(TrackedApplication(recent.JobId));
+        var resume = new CommandResumeRequest(
+            OwnerChat, "text",
+            new Dictionary<string, string> { ["jobId"] = recent.JobId.ToString() },
+            "ping them again next week");
+
+        var messages = await NewHandler().ResumeAsync(resume);
+
+        await _applications.Received(1).FindByJobAsync(recent.JobId, Arg.Any<CancellationToken>());
+        await _applications.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await _state.Received(1).ClearAsync(OwnerChat, Arg.Any<CancellationToken>());
+        messages.ShouldHaveSingleItem().Text.ShouldContain("Stripe");
+    }
+
+    [Fact]
+    public async Task A_resumed_reply_with_no_stored_job_clears_the_state_without_writing()
+    {
+        // A malformed or empty context (a state that outlived its target) must not write and must not wedge the
+        // chat: clear it and say the note could not be attached.
+        var resume = new CommandResumeRequest(OwnerChat, "text", new Dictionary<string, string>(), "some note");
+
+        var messages = await NewHandler().ResumeAsync(resume);
+
+        await _applications.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        await _state.Received(1).ClearAsync(OwnerChat, Arg.Any<CancellationToken>());
+        messages.ShouldHaveSingleItem().Text.ShouldContain("note", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task A_null_resume_request_is_rejected()
+    {
+        await Should.ThrowAsync<ArgumentNullException>(() => NewHandler().ResumeAsync(null!));
+    }
+
+    [Fact]
     public async Task A_null_request_is_rejected()
     {
         await Should.ThrowAsync<ArgumentNullException>(() => NewHandler().HandleAsync(null!));

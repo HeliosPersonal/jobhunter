@@ -21,16 +21,19 @@ namespace JobHunter.Telegram.Commands;
 /// <see cref="JobHunter.Domain.Profiles.Profile.SetSalaryFloor"/> and <see cref="IProfileRepository"/>. No LLM,
 /// no CV: the CV crosses exactly one boundary, and it is not this one.</para>
 ///
-/// <para><strong>Deferred to T10.</strong> The <em>resume</em> half of the flow — the stored confirm state being
-/// resumed by the Owner's confirmation and the write applied — is wired with the dispatch rewire against the full
-/// command registry (T10), the same convention <c>/note</c>'s reply resume follows. This task previews and asks;
-/// the dispatcher hands the confirmation back next.</para>
+/// <para>The <em>resume</em> half of the flow completes the command: the <see cref="ConversationCoordinator"/>
+/// resolves the Owner's <c>confirm</c> reply to a resume and hands it to <see cref="ResumeAsync"/>, which loads the
+/// one active Profile, applies the parsed floor through <see cref="JobHunter.Domain.Profiles.Profile.SetSalaryFloor"/>
+/// and commits it — the single write path for an explicit floor. Anything other than a confirmation neither writes
+/// nor clears the pending state, so the Owner can still confirm or <c>/cancel</c>; a confirmation is always terminal
+/// and clears the state, even when there is no active Profile or the stored context cannot be read back.</para>
 /// </summary>
 internal sealed class FloorCommandHandler(
     ISalaryFloorPreviewQuery preview,
     IConversationStateStore state,
+    IProfileRepository profiles,
     IClock clock,
-    ILogger<FloorCommandHandler> logger) : ICommandHandler
+    ILogger<FloorCommandHandler> logger) : IResumableCommandHandler
 {
     /// <summary>The registry name a pending state carries, so the resume step (T10) knows which command to resume.</summary>
     private const string CommandName = "floor";
@@ -45,8 +48,12 @@ internal sealed class FloorCommandHandler(
     /// <summary>The currency used when the Owner names an amount but no currency (catalogue §Profile).</summary>
     private const string DefaultCurrency = "EUR";
 
+    /// <summary>The reply that applies the previewed floor; anything else leaves the state pending (SAD §6.2).</summary>
+    private const string ConfirmWord = "confirm";
+
     private readonly ISalaryFloorPreviewQuery _preview = preview ?? throw new ArgumentNullException(nameof(preview));
     private readonly IConversationStateStore _state = state ?? throw new ArgumentNullException(nameof(state));
+    private readonly IProfileRepository _profiles = profiles ?? throw new ArgumentNullException(nameof(profiles));
     private readonly IClock _clock = clock ?? throw new ArgumentNullException(nameof(clock));
     private readonly ILogger<FloorCommandHandler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
@@ -106,6 +113,53 @@ internal sealed class FloorCommandHandler(
         return [RenderedMessage.PlainText(MarkdownV2Escaper.Escape(
             $"A floor of {amountText} {currency} would have affected {affectedPhrase}. "
             + "Reply confirm to apply it, or /cancel to stop."))];
+    }
+
+    public async Task<IReadOnlyList<RenderedMessage>> ResumeAsync(
+        CommandResumeRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        // Anything but a confirmation is not terminal: neither write nor clear, so the Owner can still confirm or
+        // /cancel. Re-prompt with the same wording rather than treating the reply as its own command (AC-08).
+        if (!string.Equals(request.Input.Trim(), ConfirmWord, StringComparison.OrdinalIgnoreCase))
+        {
+            return [RenderedMessage.PlainText(MarkdownV2Escaper.Escape(
+                "Reply confirm to apply the floor, or /cancel to stop."))];
+        }
+
+        // A confirmation is terminal either way — clear the pending state first so a malformed context or a
+        // missing Profile never wedges the chat on a floor that can never be applied.
+        await _state.ClearAsync(request.ChatId, cancellationToken).ConfigureAwait(false);
+
+        if (!request.Context.TryGetValue(AmountKey, out var rawAmount)
+            || !decimal.TryParse(rawAmount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount)
+            || !request.Context.TryGetValue(CurrencyKey, out var currency)
+            || !IsIsoCurrency(currency))
+        {
+            _logger.LogWarning("/floor resumed with an unreadable pending context; no floor was applied.");
+            return [RenderedMessage.PlainText(
+                "_" + MarkdownV2Escaper.Escape("That floor could not be applied — start again with /floor.") + "_")];
+        }
+
+        var profile = await _profiles.FindActiveAsync(cancellationToken).ConfigureAwait(false);
+        if (profile is null)
+        {
+            _logger.LogWarning("/floor resumed with no active profile; no floor was applied.");
+            return [RenderedMessage.PlainText(
+                "_" + MarkdownV2Escaper.Escape("There is no active profile to set a floor on.") + "_")];
+        }
+
+        // The one write path for an explicit floor: apply the previewed value and commit. Explicit beats learned
+        // (F4 AC-05). The amount and currency came from the parsed preview, never free-text the Owner typed.
+        profile.SetSalaryFloor(amount, currency, _clock.UtcNow);
+        await _profiles.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        _logger.LogInformation("/floor applied a {Currency} salary floor.", currency);
+
+        var amountText = amount.ToString(CultureInfo.InvariantCulture);
+        return [RenderedMessage.PlainText(MarkdownV2Escaper.Escape(
+            $"Your salary floor is now {amountText} {currency}."))];
     }
 
     // The forgiving usage line, shown whenever the amount or currency cannot be read. Italicised, escaped once.

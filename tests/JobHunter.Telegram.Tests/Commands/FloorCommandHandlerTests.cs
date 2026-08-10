@@ -1,5 +1,8 @@
 using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Commands;
+using JobHunter.Domain.Intelligence;
+using JobHunter.Domain.Jobs;
+using JobHunter.Domain.Profiles;
 using JobHunter.Telegram.Commands;
 using JobHunter.TestKit;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -27,14 +30,32 @@ public sealed class FloorCommandHandlerTests
 
     private readonly ISalaryFloorPreviewQuery _preview = Substitute.For<ISalaryFloorPreviewQuery>();
     private readonly IConversationStateStore _state = Substitute.For<IConversationStateStore>();
+    private readonly IProfileRepository _profiles = Substitute.For<IProfileRepository>();
     private readonly FakeClock _clock = new(Now);
 
     private FloorCommandHandler NewHandler() => new(
-        _preview, _state, _clock, NullLogger<FloorCommandHandler>.Instance);
+        _preview, _state, _profiles, _clock, NullLogger<FloorCommandHandler>.Instance);
 
     private void PreviewReturns(int affected) =>
         _preview.CountAffectedAsync(Arg.Any<decimal>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(affected);
+
+    private static Profile NewProfile() => new(
+        Guid.Parse("11111111-1111-1111-1111-111111111111"),
+        isActive: true,
+        displayName: "Owner",
+        salaryFloor: null,
+        salaryFloorCurrency: null,
+        timezoneBand: TimezoneBand.EMEA,
+        preferredCountries: ["Ukraine", "Poland"],
+        employmentTypes: [EmploymentType.FullTime, EmploymentType.Contract],
+        updatedAt: Now);
+
+    private static CommandResumeRequest ConfirmResume(string amount, string currency) => new(
+        OwnerChat,
+        "confirm",
+        new Dictionary<string, string> { ["amount"] = amount, ["currency"] = currency },
+        "confirm");
 
     [Fact]
     public async Task No_amount_lists_the_usage_rather_than_erroring()
@@ -120,5 +141,88 @@ public sealed class FloorCommandHandlerTests
         var text = messages.ShouldHaveSingleItem().Text;
         text.ShouldContain("no");
         await _state.Received(1).SetAsync(OwnerChat, Arg.Any<ConversationState>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_confirm_reply_writes_the_previewed_floor_to_the_active_profile()
+    {
+        var profile = NewProfile();
+        _profiles.FindActiveAsync(Arg.Any<CancellationToken>()).Returns(profile);
+
+        var messages = await NewHandler().ResumeAsync(ConfirmResume("150000", "USD"));
+
+        // The parsed amount and currency the preview step stored are written to the active Profile at the
+        // clock's time, then committed — the one write path for an explicit floor (F4 AC-05).
+        profile.SalaryFloor.ShouldBe(150_000m);
+        profile.SalaryFloorCurrency.ShouldBe("USD");
+        profile.UpdatedAt.ShouldBe(Now);
+        await _profiles.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+
+        // The confirmation names the applied floor so the Owner sees exactly what took effect.
+        var text = messages.ShouldHaveSingleItem().Text;
+        text.ShouldContain("150000");
+        text.ShouldContain("USD");
+    }
+
+    [Fact]
+    public async Task A_confirm_reply_clears_the_pending_state()
+    {
+        _profiles.FindActiveAsync(Arg.Any<CancellationToken>()).Returns(NewProfile());
+
+        await NewHandler().ResumeAsync(ConfirmResume("120000", "EUR"));
+
+        // The confirm step is terminal: the pending state is cleared so a later reply is not mistaken for it.
+        await _state.Received(1).ClearAsync(OwnerChat, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_confirm_reply_with_no_active_profile_writes_nothing_and_clears_the_state()
+    {
+        _profiles.FindActiveAsync(Arg.Any<CancellationToken>()).Returns((Profile?)null);
+
+        var messages = await NewHandler().ResumeAsync(ConfirmResume("120000", "EUR"));
+
+        // No Profile is active — say so plainly rather than throwing, commit nothing, and still clear the state.
+        await _profiles.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        await _state.Received(1).ClearAsync(OwnerChat, Arg.Any<CancellationToken>());
+        messages.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task A_non_confirm_reply_does_not_write_and_leaves_the_state_for_another_reply()
+    {
+        var messages = await NewHandler().ResumeAsync(new CommandResumeRequest(
+            OwnerChat,
+            "confirm",
+            new Dictionary<string, string> { ["amount"] = "120000", ["currency"] = "EUR" },
+            "no thanks"));
+
+        // Anything but a confirmation neither writes nor clears — the Owner can still confirm or /cancel.
+        await _profiles.DidNotReceive().FindActiveAsync(Arg.Any<CancellationToken>());
+        await _profiles.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        await _state.DidNotReceive().ClearAsync(Arg.Any<long>(), Arg.Any<CancellationToken>());
+        messages.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task A_confirm_reply_with_a_malformed_context_writes_nothing_and_clears_the_state()
+    {
+        var messages = await NewHandler().ResumeAsync(new CommandResumeRequest(
+            OwnerChat,
+            "confirm",
+            new Dictionary<string, string> { ["currency"] = "EUR" }, // no amount
+            "confirm"));
+
+        // A context that cannot be read back is a terminal dead-end: never a write, never a wedged chat.
+        await _profiles.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        await _state.Received(1).ClearAsync(OwnerChat, Arg.Any<CancellationToken>());
+        messages.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task A_null_resume_request_is_rejected()
+    {
+        await Should.ThrowAsync<ArgumentNullException>(
+            () => NewHandler().ResumeAsync(null!));
     }
 }

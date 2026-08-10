@@ -115,13 +115,18 @@ public sealed class OwnerGatedUpdateProcessorTests
     }
 
     [Fact]
-    public async Task An_owners_non_command_message_is_not_dispatched()
+    public async Task An_owners_non_command_message_is_dispatched_so_a_pending_command_can_resume()
     {
+        // T10 S5: a free-text reply must reach the dispatcher so the conversation coordinator can resume a
+        // pending command (e.g. a /note awaiting its body). The dispatcher decides whether it resumes anything
+        // or is answered as an unknown command — the processor forwards all of the Owner's text verbatim.
         var processor = Build(out _, out _, out var commands);
 
-        await processor.ProcessAsync(MessageFrom(OwnerChat, text: "hello there"));
+        await processor.ProcessAsync(MessageFrom(OwnerChat, text: "ping them next week"));
 
-        commands.Dispatched.ShouldBeEmpty();
+        var dispatched = commands.Dispatched.ShouldHaveSingleItem();
+        dispatched.ChatId.ShouldBe(OwnerChat);
+        dispatched.Text.ShouldBe("ping them next week");
     }
 
     [Fact]

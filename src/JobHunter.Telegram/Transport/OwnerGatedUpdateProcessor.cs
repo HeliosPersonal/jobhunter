@@ -42,13 +42,17 @@ internal sealed class OwnerGatedUpdateProcessor(
             return;
         }
 
-        // A message beginning with '/' is a command — dispatch it through the scoped command path (T11).
-        if (update.Message?.Text is { } text && text.TrimStart().StartsWith('/'))
+        // Any message the Owner sends that carries text is dispatched through the scoped command path. A
+        // leading '/' is a command; anything else may be a free-text reply resuming a pending multi-step command
+        // (a /note awaiting its body). The dispatcher's conversation coordinator decides which — either it
+        // resumes a pending command or the router answers it as an unknown command; there is no conversational
+        // fallback here (T10 S5, ADR-F10-0002).
+        if (update.Message?.Text is { } text)
         {
             await _commandDispatcher.DispatchAsync(chatId, text, cancellationToken).ConfigureAwait(false);
             return;
         }
 
-        _logger.LogDebug("Accepted a non-command update {UpdateId} from the Owner's chat.", update.UpdateId);
+        _logger.LogDebug("Accepted a non-text update {UpdateId} from the Owner's chat.", update.UpdateId);
     }
 }

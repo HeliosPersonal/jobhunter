@@ -3,6 +3,7 @@ using Hangfire;
 using JobHunter.Application.Preferences;
 using JobHunter.Contracts.Pipeline;
 using JobHunter.Domain.Abstractions;
+using JobHunter.Infrastructure.Commands;
 using JobHunter.Infrastructure.Configuration;
 using JobHunter.Infrastructure.Http;
 using JobHunter.Infrastructure.Messaging;
@@ -119,6 +120,23 @@ public static class DependencyInjection
         // command, outcome, duration and argument count only, never argument content (data-model, SAD §8). One
         // plain INSERT per dispatch; the table F10 owns and the usage metric ([[PRD]] §7) reads elsewhere.
         services.AddScoped<ICommandInvocationLog, CommandInvocationLog>();
+        // F10 T10 (SAD §6.2): the per-chat store of a pending multi-step conversation the dispatch coordinator
+        // reads before routing, so a free-text reply resumes /note (etc.) rather than being treated as a fresh
+        // command. Redis-backed when a cache is configured — its native TTL is the expiry — and a single-process
+        // fallback otherwise, the same Redis-optional split the rate limiter follows (ConnectionStringOptions.Cache).
+        // A singleton either way: each dispatch opens its own scope, so a scoped store would forget the pending
+        // state between the ask and the reply. IConnectionMultiplexer is registered by AddPoliteHttp under the
+        // same Cache branch.
+        var cache = configuration.GetConnectionString("Cache")
+            ?? configuration[$"{ConnectionStringOptions.SectionName}:Cache"];
+        if (!string.IsNullOrWhiteSpace(cache))
+        {
+            services.AddSingleton<IConversationStateStore, RedisConversationStateStore>();
+        }
+        else
+        {
+            services.AddSingleton<IConversationStateStore, InMemoryConversationStateStore>();
+        }
         // F7 T08 C4 (AC-07): the persisted, runtime-flippable master learning switch both PreferenceModelQuery
         // and the digest assembler consult. The single learning_state row is the live source of truth; its
         // absence falls back to the LearningOptions seed default (registered in Application DI). Scoped because
