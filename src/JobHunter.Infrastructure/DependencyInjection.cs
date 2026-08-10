@@ -187,6 +187,10 @@ public static class DependencyInjection
         // denominator the Owner is asked to rate and precision@10 is measured over. Joins delivery_log to
         // digest_cards over a half-open window. Read-only Dapper.
         services.AddScoped<IWeeklyTopCardsQuery, WeeklyTopCardsQuery>();
+        // F4 T20 (done-when 3, D5): the weekly ratings-based precision@10 — the latest opened rating round's
+        // week, its top-ten delivered cards, and how many carry a Rated signal ("worth opening"). A never-rated
+        // system reads null, not a misleading zero. Distinct from the F7 engagement-based series. Read-only Dapper.
+        services.AddScoped<IWeeklyPrecisionQuery, WeeklyPrecisionQuery>();
         // F10 /cv (T08): the active CV's metadata only — version, activation date and the count of current
         // matches computed against it — and never its content: the SQL selects version, activated_at and a
         // count, never extracted_text, so the CV crosses exactly one boundary (F4) and it is not this one.

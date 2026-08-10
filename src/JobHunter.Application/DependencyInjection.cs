@@ -299,6 +299,11 @@ public static class DependencyInjection
         // ISuppressionRegretQuery, the read port it composes, is registered by Infrastructure.
         services.AddScoped<Preferences.SuppressionRegretReporter>();
 
+        // F4 T20 (done-when 3, D5): the weekly precision@10 reporter that records the latest rated week's
+        // "worth opening" share to the jobhunter.precision_at_10 gauge — the empirical counterpart to the golden
+        // ranking set. IWeeklyPrecisionQuery, the read port it composes, is registered by Infrastructure.
+        services.AddScoped<Ratings.WeeklyPrecisionReporter>();
+
         return services;
     }
 }

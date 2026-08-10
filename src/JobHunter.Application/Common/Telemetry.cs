@@ -80,4 +80,11 @@ public static class Telemetry
     // over-suppressing (invariant 11), the counterweight to precision@10.
     public static readonly Gauge<long> SuppressionRegret =
         Meter.CreateGauge<long>("jobhunter.preferences.suppression_regret", "jobs", "Latest-Run suppressed jobs the Owner acted on");
+
+    // F4 T20 (done-when 3, D5): weekly ratings-based precision@10 — the share of the previous week's top-ten
+    // delivered cards the Owner rated "worth opening". A gauge, not a counter: the last measured week is what a
+    // dashboard charts against the ≥0.6 target, and it is the empirical counterpart to the golden ranking set
+    // (which proves the ranking stable, not good). Distinct from the F7 engagement-based precision series.
+    public static readonly Gauge<double> PrecisionAtTen =
+        Meter.CreateGauge<double>("jobhunter.precision_at_10", "ratio", "Latest week's top-ten cards rated worth opening");
 }
