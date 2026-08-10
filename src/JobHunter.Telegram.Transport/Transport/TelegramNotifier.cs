@@ -1,9 +1,11 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JobHunter.Domain.Abstractions;
 using JobHunter.Domain.Notifications;
 using JobHunter.Telegram.Callbacks;
+using Microsoft.Extensions.Logging;
 
 namespace JobHunter.Telegram.Transport;
 
