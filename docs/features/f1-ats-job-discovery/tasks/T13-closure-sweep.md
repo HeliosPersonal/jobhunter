@@ -17,7 +17,7 @@ with `ClosureSweepHandler` as publisher.
 - A posting that reappears before the sweep does **not** emit `JobClosed`.
 - The sweep keys on `last_seen_at`, which the T11 upsert bumps on every unchanged re-fetch — so a
   `DO NOTHING` insert would have broken it.
-- `JobClosed` is consumed downstream by `SearchIndexer` and `ApplicationHandler` (event catalog);
+- `JobClosed` is consumed downstream by `SearchIndexer` and `JobClosureHandler` (event catalog);
   F1 only produces it.
 - An idempotency test runs the sweep twice and asserts a single `JobClosed` per closed posting.
 

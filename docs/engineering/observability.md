@@ -73,10 +73,13 @@ Pod-log tailing stays **off** for these services — Alloy would duplicate the O
 
 ## 2. Domain instrumentation
 
-There are **eight** domain instruments, declared once, in
-`JobHunter.Application/Common/Telemetry.cs`: `RunDuration`, `RunCost`, `JobsDiscovered`,
-`JobsDeduplicated`, `BatchLatency`, `DigestCards`, `SourceFailures`, `ParseFailures`. Every other
-site (F0 T11) references this count and states **8**.
+There are **seventeen** domain instruments, declared once, in
+`JobHunter.Application/Common/Telemetry.cs`: the core eight — `RunDuration`, `RunCost`,
+`JobsDiscovered`, `JobsDeduplicated`, `BatchLatency`, `DigestCards`, `SourceFailures`,
+`ParseFailures` — plus nine feature-specific instruments added as later features landed:
+`RawPostingsUnchangedRatio`, `IndexDrift`, `MatchScoreDistribution`, `RankingSuppressed`,
+`MatchingPrefiltered`, `MatchingRegret`, `RankingOverrideApplied`, `PreferencesSuppressionRegret`
+and `PrecisionAt10`.
 
 ```csharp
 public static class Telemetry
@@ -103,6 +106,26 @@ public static class Telemetry
         Meter.CreateCounter<long>("jobhunter.source.failures", "failures", "Fetch failures by ats_kind and reason");
     public static readonly Counter<long> ParseFailures =
         Meter.CreateCounter<long>("jobhunter.llm.parse_failures", "items", "LLM items that failed schema validation");
+
+    // Feature-specific instruments (added as F2/F4/F7/F9 landed).
+    public static readonly Histogram<double> RawPostingsUnchangedRatio =
+        Meter.CreateHistogram<double>("jobhunter.raw_postings.unchanged_ratio", "ratio", "Share of postings unchanged since last fetch");
+    public static readonly Histogram<double> IndexDrift =
+        Meter.CreateHistogram<double>("jobhunter.index.drift", "docs", "Divergence between the search index and the store");
+    public static readonly Histogram<double> MatchScoreDistribution =
+        Meter.CreateHistogram<double>("jobhunter.match.score_distribution", "score", "Distribution of Match scores");
+    public static readonly Counter<long> RankingSuppressed =
+        Meter.CreateCounter<long>("jobhunter.ranking.suppressed", "jobs", "Jobs suppressed from the ranking");
+    public static readonly Counter<long> MatchingPrefiltered =
+        Meter.CreateCounter<long>("jobhunter.matching.prefiltered", "jobs", "Jobs removed by pre-filter before matching");
+    public static readonly Histogram<double> MatchingRegret =
+        Meter.CreateHistogram<double>("jobhunter.matching.regret", "score", "Estimated regret from prefiltering decisions");
+    public static readonly Counter<long> RankingOverrideApplied =
+        Meter.CreateCounter<long>("jobhunter.ranking.override_applied", "jobs", "Owner overrides applied to the ranking");
+    public static readonly Histogram<double> PreferencesSuppressionRegret =
+        Meter.CreateHistogram<double>("jobhunter.preferences.suppression_regret", "score", "Regret from learned preference suppressions");
+    public static readonly Histogram<double> PrecisionAt10 =
+        Meter.CreateHistogram<double>("jobhunter.precision_at_10", "ratio", "Weekly precision@10 over delivered cards");
 }
 ```
 

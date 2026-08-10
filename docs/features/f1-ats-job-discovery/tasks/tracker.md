@@ -37,7 +37,8 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T14 | [[T14-ai-devtools-company-universe\|Grow the company registry with pure-play AI / dev-tools / infra employers]] | app | T03 | L | done |
 | T15 | [[T15-comp-band-remote-tagging\|Tag companies by comp band and remote-from-EMEA posture]] | app | T03 | M | done |
 
-**13 tasks · 1×S + 9×M + 3×L ≈ 7.5 person-days** (T13 is the small closure sweep).
+**15 tasks total: 13 core (T01–T13) + 2 tuning (T14–T15) ≈ 9 person-days.** The 13 core tasks are
+1×S + 9×M + 3×L ≈ 7.5 person-days (T13 is the small closure sweep).
 
 **Career-alignment tuning tasks (T14–T15): 1×L + 1×M ≈ 1.5 person-days.** Added from the
 [[../../../reviews/career-alignment-tuning-backlog|career-alignment tuning backlog]] (TUNE-09, TUNE-10);

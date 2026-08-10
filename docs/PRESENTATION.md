@@ -96,18 +96,20 @@ flowchart TD
     CLA["Claude"]
     SCR["Scrapers"]
     SRCH["Search"]
+    TGT["Telegram.Transport<br/>shared send-path adapter"]
   end
   APP["Application<br/>use cases + handlers"]
   DOM["Domain<br/>entities · value objects · ports"]
-  CON["Contracts<br/>referenced by all · references nothing"]
+  CON["Contracts<br/>referenced by Application &amp; Scrapers · references nothing"]
 
   API --> INF & CLA & SCR & SRCH
-  WRK --> INF & CLA & SCR & SRCH
-  TG --> INF & CLA & SCR & SRCH
+  WRK --> INF & CLA & SCR & SRCH & TGT
+  TG --> INF & CLA & SCR & SRCH & TGT
   INF --> APP
   CLA --> APP
   SCR --> APP
   SRCH --> APP
+  TGT --> APP
   APP --> DOM
 ```
 

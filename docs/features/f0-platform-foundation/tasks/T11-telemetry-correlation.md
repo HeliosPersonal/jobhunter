@@ -5,7 +5,8 @@
 ## What
 
 `Application/Common/Telemetry.cs` with the single `ActivitySource` and `Meter` and the
-eight domain instruments from [[../../../engineering/observability|observability]] §2. A Wolverine
+core eight domain instruments from [[../../../engineering/observability|observability]] §2 (later
+features add nine feature-specific instruments to the same file, for seventeen in total). A Wolverine
 middleware that opens a span and a logging scope carrying the correlation id for every message, so
 no handler has to remember to do it. A log-scrubbing processor as the second line of defence for
 secrets.

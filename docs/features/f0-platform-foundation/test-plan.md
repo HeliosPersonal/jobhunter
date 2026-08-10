@@ -95,7 +95,7 @@ assertion nobody has verified.
 - Cold start < 90 s → timed manually at F0 completion, recorded in [[../../engineering/local-development]].
 - PR pipeline < 8 min → GitHub Actions duration, reviewed weekly.
 - Test suite < 5 min → `dotnet test` wall clock in CI; a regression is a task, not a shrug.
-- Coverage > 90% → Coverlet threshold fails the build.
+- Coverage > 90% → the CI *Enforce coverage gate* step merges the cobertura reports and fails the build below threshold (the Coverlet `<Threshold>` in `tests/Directory.Build.props` is a local-only convenience).
 - Migration < 5 s → asserted in `Migrations_ApplyCleanly_OnEmptyDatabase`.
 
 ## CI

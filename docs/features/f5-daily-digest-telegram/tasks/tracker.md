@@ -78,7 +78,7 @@ See [[../../../IMPLEMENTATION-READINESS]] §4 for the full per-task checklist.
 - **T11** — the seven-command set ships behind the same singleton-routes / scope-acts split as the callback
   path (`ICommandDispatcher`/`ScopedCommandDispatcher` singleton opens a DI scope per command; `CommandRouter`
   and its handlers are scoped because a command reads the store). F5 implements `/start`, `/help`, `/digest`,
-  `/saved` and `/stats`; `/pipeline` is a `PlaceholderCommandHandler` until F6 ships and `/search` reuses the
+  `/saved` and `/stats`; `/pipeline` is now live via the real `PipelineCommandHandler` (F6 has shipped) and `/search` reuses the
   F9 handler through `SearchCommandAdapter`. Every command renders through the digest's `CardFormatter`/`CardView`
   (AC-12) — no second layout — and the path is deterministic: no LLM (ADR-F10-0002) and no CV. `/saved`
   (`ISavedRolesQuery`) and `/stats` (`IWeeklyStatsQuery`) are Dapper read ports (architecture rule 4 — Dapper

@@ -12,9 +12,15 @@ The canonical vocabulary is [docs/CONTEXT.md](docs/CONTEXT.md) — use those wor
 
 ## Hard rules
 
-- **Test coverage MUST be > 90%** (line and branch), CI-enforced via a Coverlet threshold. Excluded:
-  the three host `Program.cs` composition roots, the Aspire AppHost, `ServiceDefaults`, and
-  `Contracts`. Every feature is built test-first.
+- **Test coverage MUST be > 90%** (line and branch), CI-enforced by a dedicated *Enforce coverage
+  gate* step in `.github/workflows/ci-cd.yml`: it merges the per-assembly XPlat cobertura reports with
+  ReportGenerator and fails the build if line or branch coverage falls below 90%. (The Coverlet
+  MSBuild `<Threshold>` in `tests/Directory.Build.props` is a local-only convenience — CI collects
+  coverage via `--collect:"XPlat Code Coverage" --settings coverage.runsettings`, so that threshold
+  never runs in CI.) The exclusion set is authoritative in `coverage.runsettings`: the Aspire
+  `AppHost`, `ServiceDefaults`, `Contracts` and `TestKit` assemblies, all `Migrations/*.cs`, and any
+  type marked `[ExcludeFromCodeCoverage]` (which is how the three host `Program.cs` composition roots
+  are excluded). Every feature is built test-first.
 - **The system never applies to a job.** It never submits a form, never emails a recruiter, never
   impersonates the Owner. `Applied` is a status the Owner sets ([[docs/CONTEXT|invariant 7]]).
 - **Every Score, Enrichment and Match carries at least one reason.** An unexplained number never
@@ -79,10 +85,15 @@ Run locally: `dotnet run --project src/Aspire/JobHunter.AppHost`.
 Dependency direction, enforced by `JobHunter.ArchitectureTests` and therefore by the build:
 
 ```
-Api | Worker | Telegram  →  Infrastructure | Claude | Scrapers | Search  →  Application  →  Domain
+Api | Worker | Telegram  →  Telegram.Transport  →  Infrastructure | Claude | Scrapers | Search  →  Application  →  Domain
 ```
 
-`Contracts` is referenced by everything and references nothing. `Domain` references nothing but
+`JobHunter.Telegram.Transport` is the shared send-path adapter (referenced by both the Worker and the
+Telegram host, referencing Application and Domain) that lets Worker-side scheduled handlers resolve
+the notifier and renderers.
+
+`Contracts` is referenced across the solution (directly by Application and Scrapers; hosts get it
+transitively) and references nothing. `Domain` references nothing but
 `Microsoft.Extensions.*.Abstractions`.
 
 Every external dependency sits behind a port in `Domain/Abstractions` — `IJobSource`,
@@ -115,7 +126,7 @@ Branch naming: `feature/{FEATURE}-{TASK}-{kebab-description}`, e.g.
 
 ## Testing conventions
 
-- **xUnit + NSubstitute.** No Moq.
+- **xUnit + NSubstitute + Shouldly**, with Coverlet for coverage. No Moq.
 - **Fixture-driven for everything external.** Five ATS adapters, four LLM output types and every
   Telegram layout are tested against recorded payloads with **zero network**. A payload shape that ever
   caused a production failure is added as a fixture before the fix is merged.

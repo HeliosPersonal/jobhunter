@@ -39,9 +39,10 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T16 | [[T16-aiusage-subsignals\|Refine AiUsage resolution with sub-signals]] | claude | T08 | M | done |
 | T17 | [[T17-ai-company-crud-guard\|Sharpen the "AI company, CRUD work" guard into an acted-on signal]] | claude | T15 | S | done |
 
-**14 tasks ≈ 7.75 person-days.** The 13 core tasks are 3×S + 6×M + 4×L ≈ 7.75; **T14** is a thin
-fallback adapter that reuses T07's request-building and parsing machinery, so it adds negligible
-marginal effort and the roll-up is unchanged.
+**17 tasks total: 14 core (T01–T14) + 3 tuning (T15–T17) ≈ 9 person-days.** Of the 14 core tasks,
+13 are 3×S + 6×M + 4×L ≈ 7.75 person-days; **T14** is a thin fallback adapter that reuses T07's
+request-building and parsing machinery, so it adds negligible marginal effort and the core roll-up is
+unchanged.
 
 **Career-alignment tuning tasks (T15–T17): 2×M + 1×S ≈ 1.25 person-days.** Added from the
 [[../../../reviews/career-alignment-tuning-backlog|career-alignment tuning backlog]] (TUNE-03, TUNE-04,

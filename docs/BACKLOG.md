@@ -90,6 +90,7 @@ Not scheduled. Ordered by current appetite.
 
 - [ ] **Split `jobhunter-worker` per stage** when any stage saturates a single consumer. No code change expected — see [[ARCHITECTURE-OPEN-DECISIONS\|O7]]. #tech
 - [x] **Nightly `pg_dump` to Azure Blob** — now a real task (**F0 T15**), the source R9 restores from. What remains on the backlog is the *rehearsal* of the restore (§5), not the job itself. #tech
+- [ ] **Wire the `Applied` tap to `OwnerActionRecorded`** — the digest `Applied` button acknowledges and rewrites the keyboard, but the Telegram host publishes nothing (it runs no Wolverine bus by design), so `OwnerActionHandler` — built and tested under F6 T03 — never fires and no Application is created in production. Route it through an `IOperationScheduler`-style port to the Worker, mirroring `/run` and `/redeliver`, with a per-`(job, owner)` idempotency guard. #tech
 - [ ] **Golden-set regression harness** — 50 hand-labelled jobs, run against recorded fixtures in CI, gating prompt changes. Required before the first prompt edit after M4. #tech
 - [ ] **Live model drift job** — nightly, compare live output to fixtures on 10 items, alert on divergence (SAD §11 D3). #tech
 - [ ] **Dead-letter dashboard** — one Grafana panel per stage queue; today a poisoned message is only visible in RabbitMQ. #tech

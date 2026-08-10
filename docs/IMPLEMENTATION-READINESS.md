@@ -60,7 +60,7 @@ A task may not be marked `done` until every applicable gate passes.
 | # | Gate | Enforced by |
 |---|---|---|
 | G1 | Solution builds with `TreatWarningsAsErrors=true` on `net10.0` | CI `dotnet build` |
-| G2 | Line **and** branch coverage > 90%, excluding composition roots | Coverlet threshold in `tests/Directory.Build.props` |
+| G2 | Line **and** branch coverage > 90%, excluding composition roots | CI *Enforce coverage gate* step (merges the cobertura reports and fails below 90%); the Coverlet `<Threshold>` in `tests/Directory.Build.props` is a local-only convenience |
 | G3 | EF migrations apply cleanly on an empty database | Integration test + CI init-container dry run |
 | G4 | Every message handler is proven idempotent by a "run it twice" test | Test plan per feature |
 | G5 | Architecture rules hold: `Domain` has no external references; `Dapper` never writes; no `DateTime.Now`; no reference to the Aspire AppHost outside `Aspire/` | `JobHunter.ArchitectureTests` (F0 T12) |

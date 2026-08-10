@@ -181,8 +181,10 @@ Internet → Cloudflare (WAF, TLS, DDoS) → cloudflared tunnel → NGINX ingres
 ## 7. Dependency and supply chain
 
 - Central Package Management with transitive pinning — one place to patch a CVE.
-- Dependabot on NuGet, GitHub Actions and Docker base images, weekly.
-- `dotnet list package --vulnerable --include-transitive` in CI, failing on `High` or above.
+- Dependabot on NuGet, GitHub Actions and Docker base images, weekly — **planned, not yet
+  implemented** (there is no `.github/dependabot.yml` today).
+- A `dotnet list package --vulnerable --include-transitive` CI gate, failing on `High` or above —
+  **planned, not yet implemented** (no such step exists in the workflow yet).
 - Base images pinned to a major tag (`mcr.microsoft.com/dotnet/aspnet:10.0`) and rebuilt weekly to
   pick up patches.
 - All actions pinned by major version from verified publishers.

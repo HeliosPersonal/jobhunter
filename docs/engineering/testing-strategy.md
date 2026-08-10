@@ -183,7 +183,7 @@ Recorded so it is not mistaken for an oversight:
 |---|---|
 | Pull request | Unit, Fixture, Integration, Messaging, Golden set + architecture tests + coverage gate |
 | Push to `develop` | The above, then build and deploy to staging |
-| Push to `main` | The above, then build, deploy to production, smoke test |
+| Push to `main` | The above, then build, deploy to production, smoke test — **planned, not yet implemented (F5-gated)**; only the `develop` → staging path exists today |
 | Weekly | Contract tests against live ATS endpoints, and the F4 T21 live cost/cache measurement (alert-only) |
 | Nightly | Live model drift (alert-only) |
 

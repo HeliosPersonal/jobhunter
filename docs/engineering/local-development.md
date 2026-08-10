@@ -110,8 +110,10 @@ builder.Build().Run();
 # build + full hermetic test suite (needs Docker)
 dotnet build && dotnet test
 
-# coverage report, same gate as CI
-./coverage.sh
+# collect coverage locally, the same collector CI uses
+dotnet test --collect:"XPlat Code Coverage" --settings coverage.runsettings
+# the > 90% line+branch gate itself is enforced by the "Enforce coverage gate" step in CI,
+# which merges the per-assembly cobertura reports and fails the build below threshold
 
 # add a migration — always name it <Feature>_<What>
 dotnet ef migrations add F2_AddJobsAndAliases \

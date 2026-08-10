@@ -27,7 +27,7 @@ Expanded rationale: [[00-overview/idea-brief|Idea brief]].
 | **Profile** | The Owner's structured career facts: seniority, stacks, salary floor, timezone band, contract preferences, countries. Derived from the CV plus explicit overrides. | Not the CV document itself. |
 | **CV** | One uploaded document (PDF/Markdown) plus its extracted plain text. Versioned; exactly one version is `active` at a time. | Not the Profile. A CV *feeds* a Profile. |
 | **Company** | A hiring organisation, uniquely keyed by canonical domain (`stripe.com`). Carries an ATS binding once detected. | Not a job board. Not a recruiting agency listing. |
-| **ATS** | Applicant Tracking System hosting a Company's public job feed — Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Recruitee. | Not an aggregator (Indeed, LinkedIn). Aggregators are explicitly out of scope. |
+| **ATS** | Applicant Tracking System hosting a Company's public job feed. Five adapters are implemented — Greenhouse, Lever, Ashby, Workable and the generic CareersPage (SmartRecruiters and Recruitee are backlog, not yet built). | Not an aggregator (Indeed, LinkedIn). Aggregators are explicitly out of scope. |
 | **ATS Binding** | The `(Company, AtsKind, BoardToken)` triple that makes a Company's feed fetchable, plus the confidence and evidence for that detection. | Not a URL alone. |
 | **Source** | A concrete fetchable endpoint: an ATS board, an RSS feed, a company careers page. Implements one port, `IJobSource`. | Not a Company. One Company may expose several Sources. |
 | **RawPosting** | The verbatim payload fetched from a Source, stored immutably with its fetch metadata and content hash. Never edited, only superseded. | Not a Job. |

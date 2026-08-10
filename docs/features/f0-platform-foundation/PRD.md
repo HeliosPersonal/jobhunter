@@ -154,7 +154,7 @@ two instances attempt it concurrently.
 | Cold start (cluster) | < 45 s from pod scheduled to `ready` | `kubectl get pods -w` |
 | PR pipeline duration | < 8 min from push to green | GitHub Actions duration |
 | Test suite duration | < 5 min for the full hermetic suite | `dotnet test` wall clock |
-| Coverage | > 90% line and branch, gate green | Coverlet threshold |
+| Coverage | > 90% line and branch, gate green | CI *Enforce coverage gate* step (Coverlet `<Threshold>` is local-only) |
 | Migration application | < 5 s on an empty database | Integration harness timing |
 | Memory at idle | < 200 MB per host | Container metrics |
 

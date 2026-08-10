@@ -179,7 +179,8 @@ src/
 ```
 
 **Dependency rule:** `Api | Worker | Telegram → Infrastructure | Claude | Scrapers | Search → Application → Domain`.
-`Contracts` is referenced by everything and references nothing. `Domain` references nothing.
+`Contracts` is referenced across the solution (directly by Application and Scrapers; hosts get it
+transitively) and references nothing. `Domain` references nothing.
 Enforced by an architecture test (F0 T12).
 
 ```mermaid

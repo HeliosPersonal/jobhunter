@@ -24,6 +24,11 @@ tags: [engineering, ci-cd, jobhunter]
 | `main` | production | `apps-production` | `jobhunter.devoverflow.org` | GitHub Environment `production` |
 | pull request | none | — | — | build + test only |
 
+> **Status:** only the `develop` → staging path is implemented today. `.github/workflows/ci-cd.yml`
+> carries a single `deploy-staging` job gated on `refs/heads/develop`, and its header states that
+> production deployment is out of scope for F0. The `main` → production row and the smoke test below
+> are **planned, not yet implemented (F5-gated)**.
+
 ---
 
 ## 2. Pipeline
@@ -55,24 +60,30 @@ Hosted `ubuntu-latest` runner — Docker is available for Testcontainers.
 - run: kubectl kustomize k8s/overlays/staging > /dev/null    # manifests must at least render
 ```
 
-The coverage threshold lives in `tests/Directory.Build.props`, so the gate fails the `dotnet test`
-step itself rather than a separate reporting step that can be skipped.
+The `dotnet test` step only *collects* coverage (`--collect:"XPlat Code Coverage"`); it does not run
+the Coverlet MSBuild `<Threshold>` in `tests/Directory.Build.props`, which is a local-only
+convenience. The > 90% line+branch gate is a dedicated **Enforce coverage gate** step: it installs
+`dotnet-reportgenerator-globaltool`, merges the per-assembly cobertura reports, and runs a short
+Python snippet that fails the build if line or branch coverage is below 90%.
 
 ### `build-images`
 
-Matrix over `[api, worker, telegram]`.
+Matrix over `[Api, Worker, Telegram]`. The service name is lowercased for the image tag, because
+`src/JobHunter.<Service>/Dockerfile` is PascalCase but GHCR image names must be lowercase.
 
 ```yaml
 - uses: docker/login-action@v3
   with: { registry: ghcr.io, username: ${{ github.actor }}, password: ${{ secrets.GITHUB_TOKEN }} }
+- name: Lowercase the service name
+  run: echo "SERVICE_LC=$(echo '${{ matrix.service }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
 - uses: docker/build-push-action@v7
   with:
     context: .
     file: src/JobHunter.${{ matrix.service }}/Dockerfile
     push: true
     tags: |
-      ghcr.io/${{ env.OWNER_LC }}/jobhunter-${{ matrix.service }}:${{ github.sha }}
-      ${{ github.ref == 'refs/heads/main' && format('ghcr.io/{0}/jobhunter-{1}:latest', env.OWNER_LC, matrix.service) || '' }}
+      ghcr.io/${{ env.OWNER_LC }}/jobhunter-${{ env.SERVICE_LC }}:${{ github.sha }}
+      ${{ github.ref == 'refs/heads/main' && format('ghcr.io/{0}/jobhunter-{1}:latest', env.OWNER_LC, env.SERVICE_LC) || '' }}
     cache-from: type=gha
     cache-to: type=gha,mode=max
 ```
@@ -143,8 +154,8 @@ steps:
       done
 ```
 
-Production adds a smoke-test step: an ephemeral `curl` pod hits `jobhunter-api:8080/health` and the
-job fails if it does not return 200.
+Production is **planned, not yet implemented (F5-gated)**: it will add a smoke-test step in which an
+ephemeral `curl` pod hits `jobhunter-api:8080/health` and the job fails if it does not return 200.
 
 ---
 

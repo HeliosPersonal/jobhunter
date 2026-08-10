@@ -11,7 +11,7 @@ tags: [sdlc/stage-06, feature/f10-telegram-commands, mvp, jobhunter]
 
 # Command catalogue
 
-> **All 22 commands.** This document and `CommandRegistry` are asserted to be a bijection: a
+> **All 23 commands.** This document and `CommandRegistry` are asserted to be a bijection: a
 > command here without a descriptor, or a descriptor without a heading here, fails the build
 > ([[../sad|SAD]] §10 QG-1). Every heading below is a `ContractAnchor`.
 
