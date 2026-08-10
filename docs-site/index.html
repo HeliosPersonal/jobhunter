@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark light" />
+<title>JobHunter — runbook & onboarding manual</title>
+<script>
+  /* Pin theme/lang before first paint so there is no flash. Only pin data-theme
+     when the viewer chose one; leaving it unset lets the OS preference drive
+     (default = dark; prefers-color-scheme:light = light). */
+  (function () {
+    try {
+      var t = localStorage.getItem('jh-theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      var l = localStorage.getItem('jh-lang');
+      document.documentElement.setAttribute('lang', l === 'uk' ? 'uk' : 'en');
+    } catch (e) {}
+  })();
+</script>
+<link rel="stylesheet" href="assets/site.css" />
+</head>
+<body data-page="index">
+<div class="app">
+  <aside>
+    <a class="brand" href="index.html">
+      <div class="spark">JH</div>
+      <div>
+        <h1>JobHunter</h1>
+        <p class="sub" data-en="Runbook & onboarding" data-uk="Довідник і онбординг">Runbook &amp; onboarding</p>
+      </div>
+    </a>
+    <nav class="toc" id="toc"><!-- filled by JS --></nav>
+  </aside>
+
+  <main>
+    <div class="bar">
+      <span class="seg" role="group" aria-label="Theme">
+        <button id="th-light" type="button">Light</button>
+        <button id="th-dark" type="button">Dark</button>
+      </span>
+      <span class="seg" role="group" aria-label="Language">
+        <button id="lang-en" type="button">ENG</button>
+        <button id="lang-uk" type="button">UA</button>
+      </span>
+    </div>
+
+    <!-- ============================ ENGLISH ============================ -->
+    <article class="page" data-lang="en">
+      <p class="kicker">The 07:00 digest</p>
+      <h2 class="title">One good morning message, engineered end to end</h2>
+      <p class="lede">JobHunter discovers engineering jobs from ATS boards, ranks them with Claude against one CV, and delivers a single Telegram digest at <strong>07:00 Europe/Kyiv</strong>. It serves exactly one person — and it is, deliberately, a portfolio artifact: the architecture, the tests and these docs are part of the deliverable.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">What you are looking at</p>
+        <h3 class="sec-title num">A manual and an operations runbook in one</h3>
+        <p>This site walks the JobHunter repository the way a new operator should read it: from the one-sentence idea, through the vocabulary and the architecture, to setting it up, watching a day run end to end, operating it in production, and knowing what it costs. Every claim here is grounded in the repository's own design documents under <code>docs/</code> — nothing is invented for the demo.</p>
+        <div class="grid3">
+          <div class="metric"><span class="lbl">Deployables</span><span class="val">3</span><span class="sub">Api · Worker · Telegram, over RabbitMQ</span></div>
+          <div class="metric"><span class="lbl">Pipeline stages</span><span class="val">9</span><span class="sub">Discovery → Delivery</span></div>
+          <div class="metric"><span class="lbl">Invariants</span><span class="val">12</span><span class="sub">enforced by constraint or test</span></div>
+          <div class="metric"><span class="lbl">Baseline cost</span><span class="val">~$32</span><span class="sub">per month, mostly Anthropic</span></div>
+        </div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">The shape of a day</p>
+        <h3 class="sec-title num">Discovery runs all day; the digest is assembled at dawn</h3>
+        <p>Discovery polls each company's ATS board every six hours and stores raw postings immutably. Overnight, one <strong>Run</strong> enriches the day's new jobs, matches them against the CV, ranks them, researches the top companies, assembles a digest and delivers it at 07:00. The Owner taps Open, Ignore, Save or Applied — and those taps become the preference weights that reorder tomorrow.</p>
+        <div class="diagram-frame">
+          <span class="cap">The nine stages, grouped by feature</span>
+          <pre class="mermaid">
+flowchart LR
+  subgraph D["Continuous · every 6h"]
+    S1["1 · Discovery"] --> S2["2 · Normalization"] --> S3["3 · Deduplication"]
+  end
+  subgraph N["Nightly Run"]
+    S4["4 · Enrichment"] --> S5["5 · Matching"] --> S6["6 · Ranking"]
+    S6 --> S7["7 · Research"] --> S8["8 · Reporting"]
+  end
+  S3 --> S4
+  S8 --> S9["9 · Delivery · 07:00"]
+  S9 --> O(["Owner taps · Open/Ignore/Save/Applied"])
+  O -. "preference weights" .-> S6
+          </pre>
+        </div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Where to go next</p>
+        <h3 class="sec-title num">Read it in order, or jump to what you need</h3>
+        <ul class="clean">
+          <li><a class="inline" href="concepts.html">Concepts &amp; vocabulary</a> — the canonical words (Job, Run, Batch, Enrichment, Match, Score, Digest, Card) and the twelve invariants.</li>
+          <li><a class="inline" href="architecture.html">Architecture</a> — three deployables, nine stages, the module map and dependency rule, the event catalog, ports &amp; adapters.</li>
+          <li><a class="inline" href="decisions.html">Decisions</a> — the fifteen accepted ADRs that fixed the stack.</li>
+          <li><a class="inline" href="setup.html">Setup &amp; configuration</a> — run the whole thing locally with one command.</li>
+          <li><a class="inline" href="operation.html">End-to-end operation</a> — a day in the life of a Run, resumability, idempotent delivery.</li>
+          <li><a class="inline" href="runbook.html">Deploy &amp; operate</a> — CI/CD, the ten runbooks, observability, the Telegram command surface.</li>
+          <li><a class="inline" href="cost.html">Cost</a> — the per-Run breakdown and the monthly envelope.</li>
+        </ul>
+        <p class="muted">Use the sidebar to move between chapters. The theme (dark by default) and the language (English / Українська) both persist in your browser.</p>
+      </section>
+
+      <nav class="foot">
+        <a class="disabled" href="#"><span class="dir">Previous</span>—</a>
+        <a class="next" href="concepts.html"><span class="dir">Next</span>Concepts &amp; vocabulary →</a>
+      </nav>
+    </article>
+
+    <!-- ============================ УКРАЇНСЬКА ============================ -->
+    <article class="page i18n-hide" data-lang="uk">
+      <p class="kicker">Дайджест о 07:00</p>
+      <h2 class="title">Одне якісне ранкове повідомлення, зроблене від початку до кінця</h2>
+      <p class="lede">JobHunter знаходить інженерні вакансії на ATS-дошках, ранжує їх за допомогою Claude відносно одного резюме та доставляє єдиний Telegram-дайджест о <strong>07:00 за Києвом</strong>. Він обслуговує рівно одну людину — і водночас це свідомо портфоліо-артефакт: архітектура, тести й ця документація є частиною результату.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Що перед вами</p>
+        <h3 class="sec-title num">Підручник і операційний довідник в одному</h3>
+        <p>Цей сайт проводить репозиторій JobHunter так, як його мав би читати новий оператор: від ідеї в одне речення через словник і архітектуру до встановлення, спостереження за повним циклом дня, експлуатації у продакшені та розуміння вартості. Кожне твердження тут спирається на власні проєктні документи репозиторію в <code>docs/</code> — нічого не вигадано заради демо.</p>
+        <div class="grid3">
+          <div class="metric"><span class="lbl">Розгортання</span><span class="val">3</span><span class="sub">Api · Worker · Telegram, через RabbitMQ</span></div>
+          <div class="metric"><span class="lbl">Стадії конвеєра</span><span class="val">9</span><span class="sub">Discovery → Delivery</span></div>
+          <div class="metric"><span class="lbl">Інваріанти</span><span class="val">12</span><span class="sub">гарантовані обмеженням або тестом</span></div>
+          <div class="metric"><span class="lbl">Базова вартість</span><span class="val">~$32</span><span class="sub">на місяць, переважно Anthropic</span></div>
+        </div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Як виглядає день</p>
+        <h3 class="sec-title num">Discovery працює цілий день; дайджест збирається на світанку</h3>
+        <p>Discovery опитує ATS-дошку кожної компанії кожні шість годин і незмінно зберігає сирі оголошення. Уночі один <strong>Run</strong> збагачує нові вакансії дня, зіставляє їх із резюме, ранжує, досліджує топ-компанії, збирає дайджест і доставляє його о 07:00. Власник тисне Open, Ignore, Save або Applied — і ці дотики стають ваговими коефіцієнтами вподобань, що переставляють завтрашній список.</p>
+        <div class="diagram-frame">
+          <span class="cap">Дев'ять стадій, згруповані за функціями</span>
+          <pre class="mermaid">
+flowchart LR
+  subgraph D["Постійно · кожні 6 год"]
+    S1["1 · Discovery"] --> S2["2 · Normalization"] --> S3["3 · Deduplication"]
+  end
+  subgraph N["Нічний Run"]
+    S4["4 · Enrichment"] --> S5["5 · Matching"] --> S6["6 · Ranking"]
+    S6 --> S7["7 · Research"] --> S8["8 · Reporting"]
+  end
+  S3 --> S4
+  S8 --> S9["9 · Delivery · 07:00"]
+  S9 --> O(["Дотики власника · Open/Ignore/Save/Applied"])
+  O -. "ваги вподобань" .-> S6
+          </pre>
+        </div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Куди далі</p>
+        <h3 class="sec-title num">Читайте по порядку або переходьте до потрібного</h3>
+        <ul class="clean">
+          <li><a class="inline" href="concepts.html">Поняття й словник</a> — канонічні слова (Job, Run, Batch, Enrichment, Match, Score, Digest, Card) та дванадцять інваріантів.</li>
+          <li><a class="inline" href="architecture.html">Архітектура</a> — три розгортання, дев'ять стадій, карта модулів і правило залежностей, каталог подій, порти й адаптери.</li>
+          <li><a class="inline" href="decisions.html">Рішення</a> — п'ятнадцять прийнятих ADR, що зафіксували стек.</li>
+          <li><a class="inline" href="setup.html">Встановлення й конфіг</a> — запустіть усе локально однією командою.</li>
+          <li><a class="inline" href="operation.html">Робота від А до Я</a> — день із життя Run, відновлюваність, ідемпотентна доставка.</li>
+          <li><a class="inline" href="runbook.html">Деплой та експлуатація</a> — CI/CD, десять runbook-ів, спостережуваність, набір Telegram-команд.</li>
+          <li><a class="inline" href="cost.html">Вартість</a> — розклад на один Run і місячний бюджет.</li>
+        </ul>
+        <p class="muted">Користуйтеся бічною панеллю для переходу між розділами. Тема (темна за замовчуванням) і мова (English / Українська) зберігаються у вашому браузері.</p>
+      </section>
+
+      <nav class="foot">
+        <a class="disabled" href="#"><span class="dir">Назад</span>—</a>
+        <a class="next" href="concepts.html"><span class="dir">Далі</span>Поняття й словник →</a>
+      </nav>
+    </article>
+  </main>
+</div>
+
+<script src="mermaid.min.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

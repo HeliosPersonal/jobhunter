@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark light" />
+<title>Setup & configuration — JobHunter</title>
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('jh-theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      var l = localStorage.getItem('jh-lang');
+      document.documentElement.setAttribute('lang', l === 'uk' ? 'uk' : 'en');
+    } catch (e) {}
+  })();
+</script>
+<link rel="stylesheet" href="assets/site.css" />
+</head>
+<body data-page="setup">
+<div class="app">
+  <aside>
+    <a class="brand" href="index.html">
+      <div class="spark">JH</div>
+      <div>
+        <h1>JobHunter</h1>
+        <p class="sub" data-en="Runbook & onboarding" data-uk="Довідник і онбординг">Runbook &amp; onboarding</p>
+      </div>
+    </a>
+    <nav class="toc" id="toc"></nav>
+  </aside>
+
+  <main>
+    <div class="bar">
+      <span class="seg" role="group" aria-label="Theme">
+        <button id="th-light" type="button">Light</button>
+        <button id="th-dark" type="button">Dark</button>
+      </span>
+      <span class="seg" role="group" aria-label="Language">
+        <button id="lang-en" type="button">ENG</button>
+        <button id="lang-uk" type="button">UA</button>
+      </span>
+    </div>
+
+    <!-- ============================ ENGLISH ============================ -->
+    <article class="page" data-lang="en">
+      <p class="kicker">Run it</p>
+      <h2 class="title">Setup &amp; configuration</h2>
+      <p class="lede">One command brings up the whole system locally — Postgres, RabbitMQ, Redis and Typesense are provisioned as containers by .NET Aspire. You install nothing but the SDK and Docker.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Before you start</p>
+        <h3 class="sec-title num">Prerequisites</h3>
+        <ul class="clean">
+          <li><strong>.NET SDK 10.0.302+</strong> (target <code>net10.0</code>).</li>
+          <li><strong>The Aspire workload:</strong> <code>dotnet workload install aspire</code>.</li>
+          <li><strong>Docker Desktop or Colima</strong> — any current version. Testcontainers uses it for the test suite too.</li>
+          <li><strong>dotnet-ef 10.x</strong> for migrations.</li>
+        </ul>
+        <p class="muted">No local Postgres, RabbitMQ, Redis or Typesense install is needed — Aspire runs them as containers.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">First run</p>
+        <h3 class="sec-title num">Set three secrets, then one command</h3>
+        <p>Only three secrets cannot be faked; they are kept out of the repository as .NET user-secrets on the AppHost. Without an Anthropic key the LLM tier falls back to the Aspire-provisioned Ollama container.</p>
+        <div class="card do">
+          <h4><span class="pill">Do</span> clone, set secrets, run</h4>
+          <pre class="code"><span class="c"># from the repo root</span>
+dotnet user-secrets --project src/Aspire/JobHunter.AppHost set <span class="k">"Anthropic:ApiKey"</span>     "sk-ant-..."
+dotnet user-secrets --project src/Aspire/JobHunter.AppHost set <span class="k">"Telegram:BotToken"</span>    "1234:ABC..."
+dotnet user-secrets --project src/Aspire/JobHunter.AppHost set <span class="k">"Telegram:OwnerChatId"</span> "123456789"
+
+<span class="c"># the one command that starts everything</span>
+dotnet run --project src/Aspire/JobHunter.AppHost</pre>
+        </div>
+        <div class="card check">
+          <h4><span class="pill">Check</span> what comes up</h4>
+          <table class="map">
+            <tbody>
+              <tr><td class="p">Aspire dashboard</td><td><code>https://localhost:17090</code> — live logs, traces, metrics</td></tr>
+              <tr><td class="p">API + Scalar/OpenAPI</td><td><code>https://localhost:7001/scalar</code></td></tr>
+              <tr><td class="p">Typesense</td><td><code>http://localhost:8108</code> (dev api-key <code>dev-typesense-key</code>)</td></tr>
+              <tr><td class="p">pgweb · RabbitMQ · RedisInsight</td><td>opened from the Aspire dashboard (RabbitMQ mgmt: <code>guest</code>/<code>guest</code>)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="muted">Migrations apply automatically on first start in Development.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Everyday commands</p>
+        <h3 class="sec-title num">Build, test, migrate, drive a stage</h3>
+        <pre class="code">dotnet build &amp;&amp; dotnet test           <span class="c"># full hermetic suite, needs Docker</span>
+./coverage.sh                          <span class="c"># coverage report, same gate as CI (&gt;90%)</span>
+
+dotnet ef migrations add F2_AddJobsAndAliases \
+  --project src/JobHunter.Infrastructure \
+  --startup-project src/JobHunter.Worker \
+  --output-dir Persistence/Migrations
+
+dotnet run --project src/JobHunter.Worker -- run-stage discovery --company stripe.com
+dotnet run --project src/JobHunter.Worker -- run-once --dry-run   <span class="c"># full Run, no LLM, no delivery</span>
+dotnet run --project src/JobHunter.Worker -- seed --companies tools/seed/companies.yaml</pre>
+        <p class="muted">Prefer no Aspire? <code>compose.yaml</code> brings up the backing services and you set <code>ConnectionStrings__JobHunter</code> and <code>ConnectionStrings__Messaging</code> by hand.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Configuration that matters</p>
+        <h3 class="sec-title num">The knobs an operator actually turns</h3>
+        <table class="map">
+          <thead><tr><th>Setting</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td class="p">Run:CeilingUsd</td><td>The hard per-Run cost ceiling, snapshotted onto the Run at creation. Example live value: <code>$2.00</code>. Raising it is an Infisical change plus a worker restart.</td></tr>
+            <tr><td class="p">ModelTier → model</td><td>Cheap = <code>claude-haiku-4-5</code>; Deep = <code>claude-sonnet-5</code> (upgrade path <code>claude-opus-5</code>). The tier→model map is config, not code.</td></tr>
+            <tr><td class="p">Digest schedule</td><td>07:00 ±3 min Europe/Kyiv, every day. Cron declared in Kyiv time, not UTC; a DST test asserts 07:00 stays 07:00. Assembly deadline 06:45.</td></tr>
+            <tr><td class="p">Discovery:RequestsPerSecondPerHost</td><td>Per-host rate budget, default ≤ 1 req/s, enforced by a Redis token bucket keyed <code>{env}:jobhunter:ratelimit:{host}</code>.</td></tr>
+            <tr><td class="p">Allowlists</td><td>Bot: <code>OwnerAuthorizer</code> drops any chat id not on the list. API: Keycloak realm <code>jobhunter</code>, scopes <code>jobhunter:read</code> / <code>jobhunter:admin</code>, default-deny.</td></tr>
+          </tbody>
+        </table>
+        <div class="note">Where config lives: local dev uses user-secrets + appsettings; deployed non-secret config is a Terraform-managed ConfigMap <code>jobhunter-infra-config</code>; secrets come from Infisical at pod startup (paths <code>/app/connections</code>, <code>/app/auth</code>, <code>/app/services</code>). Options validate at <em>startup</em> via <code>.Validate().ValidateOnStart()</code>, never at first use.</div>
+      </section>
+
+      <nav class="foot">
+        <a href="decisions.html"><span class="dir">Previous</span>← Decisions</a>
+        <a class="next" href="operation.html"><span class="dir">Next</span>End-to-end operation →</a>
+      </nav>
+    </article>
+
+    <!-- ============================ УКРАЇНСЬКА ============================ -->
+    <article class="page i18n-hide" data-lang="uk">
+      <p class="kicker">Запуск</p>
+      <h2 class="title">Встановлення й конфігурація</h2>
+      <p class="lede">Одна команда піднімає всю систему локально — Postgres, RabbitMQ, Redis і Typesense надаються як контейнери через .NET Aspire. Ви встановлюєте лише SDK і Docker.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Перед початком</p>
+        <h3 class="sec-title num">Передумови</h3>
+        <ul class="clean">
+          <li><strong>.NET SDK 10.0.302+</strong> (ціль <code>net10.0</code>).</li>
+          <li><strong>Робоче навантаження Aspire:</strong> <code>dotnet workload install aspire</code>.</li>
+          <li><strong>Docker Desktop або Colima</strong> — будь-яка актуальна версія. Testcontainers також використовує його для тестів.</li>
+          <li><strong>dotnet-ef 10.x</strong> для міграцій.</li>
+        </ul>
+        <p class="muted">Локально встановлювати Postgres, RabbitMQ, Redis чи Typesense не треба — Aspire запускає їх як контейнери.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Перший запуск</p>
+        <h3 class="sec-title num">Задайте три секрети, потім одна команда</h3>
+        <p>Лише три секрети не можна підробити; вони тримаються поза репозиторієм як .NET user-secrets на AppHost. Без ключа Anthropic рівень LLM переходить на контейнер Ollama, наданий Aspire.</p>
+        <div class="card do">
+          <h4><span class="pill">Do</span> клон, секрети, запуск</h4>
+          <pre class="code"><span class="c"># з кореня репозиторію</span>
+dotnet user-secrets --project src/Aspire/JobHunter.AppHost set <span class="k">"Anthropic:ApiKey"</span>     "sk-ant-..."
+dotnet user-secrets --project src/Aspire/JobHunter.AppHost set <span class="k">"Telegram:BotToken"</span>    "1234:ABC..."
+dotnet user-secrets --project src/Aspire/JobHunter.AppHost set <span class="k">"Telegram:OwnerChatId"</span> "123456789"
+
+<span class="c"># одна команда, що запускає все</span>
+dotnet run --project src/Aspire/JobHunter.AppHost</pre>
+        </div>
+        <div class="card check">
+          <h4><span class="pill">Check</span> що піднімається</h4>
+          <table class="map">
+            <tbody>
+              <tr><td class="p">Панель Aspire</td><td><code>https://localhost:17090</code> — живі логи, трейси, метрики</td></tr>
+              <tr><td class="p">API + Scalar/OpenAPI</td><td><code>https://localhost:7001/scalar</code></td></tr>
+              <tr><td class="p">Typesense</td><td><code>http://localhost:8108</code> (dev api-key <code>dev-typesense-key</code>)</td></tr>
+              <tr><td class="p">pgweb · RabbitMQ · RedisInsight</td><td>відкриваються з панелі Aspire (RabbitMQ mgmt: <code>guest</code>/<code>guest</code>)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="muted">Міграції застосовуються автоматично при першому старті в Development.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Щоденні команди</p>
+        <h3 class="sec-title num">Білд, тести, міграції, запуск стадії</h3>
+        <pre class="code">dotnet build &amp;&amp; dotnet test           <span class="c"># повний герметичний набір, потрібен Docker</span>
+./coverage.sh                          <span class="c"># звіт покриття, той самий поріг, що в CI (&gt;90%)</span>
+
+dotnet ef migrations add F2_AddJobsAndAliases \
+  --project src/JobHunter.Infrastructure \
+  --startup-project src/JobHunter.Worker \
+  --output-dir Persistence/Migrations
+
+dotnet run --project src/JobHunter.Worker -- run-stage discovery --company stripe.com
+dotnet run --project src/JobHunter.Worker -- run-once --dry-run   <span class="c"># повний Run, без LLM, без доставки</span>
+dotnet run --project src/JobHunter.Worker -- seed --companies tools/seed/companies.yaml</pre>
+        <p class="muted">Без Aspire? <code>compose.yaml</code> піднімає сервіси, а ви вручну задаєте <code>ConnectionStrings__JobHunter</code> і <code>ConnectionStrings__Messaging</code>.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Конфігурація, що має значення</p>
+        <h3 class="sec-title num">Ручки, які оператор справді крутить</h3>
+        <table class="map">
+          <thead><tr><th>Налаштування</th><th>Значення</th></tr></thead>
+          <tbody>
+            <tr><td class="p">Run:CeilingUsd</td><td>Жорстка стеля вартості на один Run, знімок на Run при створенні. Приклад живого значення: <code>$2.00</code>. Підняття — зміна в Infisical плюс перезапуск worker.</td></tr>
+            <tr><td class="p">ModelTier → модель</td><td>Cheap = <code>claude-haiku-4-5</code>; Deep = <code>claude-sonnet-5</code> (шлях апгрейду <code>claude-opus-5</code>). Мапа tier→model — це конфіг, не код.</td></tr>
+            <tr><td class="p">Розклад дайджесту</td><td>07:00 ±3 хв за Києвом, щодня. Cron заданий у київському часі, не UTC; DST-тест стверджує, що 07:00 лишається 07:00. Дедлайн збірки 06:45.</td></tr>
+            <tr><td class="p">Discovery:RequestsPerSecondPerHost</td><td>Бюджет швидкості на хост, за замовчуванням ≤ 1 req/s, гарантований Redis token bucket із ключем <code>{env}:jobhunter:ratelimit:{host}</code>.</td></tr>
+            <tr><td class="p">Allowlist-и</td><td>Бот: <code>OwnerAuthorizer</code> відкидає будь-який chat id не зі списку. API: Keycloak realm <code>jobhunter</code>, скоупи <code>jobhunter:read</code> / <code>jobhunter:admin</code>, default-deny.</td></tr>
+          </tbody>
+        </table>
+        <div class="note">Де живе конфіг: локальна розробка — user-secrets + appsettings; несекретний конфіг у продакшені — ConfigMap <code>jobhunter-infra-config</code> під Terraform; секрети надходять з Infisical при старті пода (шляхи <code>/app/connections</code>, <code>/app/auth</code>, <code>/app/services</code>). Опції валідуються при <em>старті</em> через <code>.Validate().ValidateOnStart()</code>, ніколи при першому використанні.</div>
+      </section>
+
+      <nav class="foot">
+        <a href="decisions.html"><span class="dir">Назад</span>← Рішення</a>
+        <a class="next" href="operation.html"><span class="dir">Далі</span>Робота від А до Я →</a>
+      </nav>
+    </article>
+  </main>
+</div>
+
+<script src="mermaid.min.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark light" />
+<title>End-to-end operation — JobHunter</title>
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('jh-theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      var l = localStorage.getItem('jh-lang');
+      document.documentElement.setAttribute('lang', l === 'uk' ? 'uk' : 'en');
+    } catch (e) {}
+  })();
+</script>
+<link rel="stylesheet" href="assets/site.css" />
+</head>
+<body data-page="operation">
+<div class="app">
+  <aside>
+    <a class="brand" href="index.html">
+      <div class="spark">JH</div>
+      <div>
+        <h1>JobHunter</h1>
+        <p class="sub" data-en="Runbook & onboarding" data-uk="Довідник і онбординг">Runbook &amp; onboarding</p>
+      </div>
+    </a>
+    <nav class="toc" id="toc"></nav>
+  </aside>
+
+  <main>
+    <div class="bar">
+      <span class="seg" role="group" aria-label="Theme">
+        <button id="th-light" type="button">Light</button>
+        <button id="th-dark" type="button">Dark</button>
+      </span>
+      <span class="seg" role="group" aria-label="Language">
+        <button id="lang-en" type="button">ENG</button>
+        <button id="lang-uk" type="button">UA</button>
+      </span>
+    </div>
+
+    <!-- ============================ ENGLISH ============================ -->
+    <article class="page" data-lang="en">
+      <p class="kicker">Run it</p>
+      <h2 class="title">A day, end to end</h2>
+      <p class="lede">Discovery runs around the clock; one nightly Run turns the day's new jobs into a ranked digest; the Owner's morning taps become tomorrow's ranking. Here is the whole loop, in the order it happens.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">All day</p>
+        <h3 class="sec-title num">Discovery → Normalization → Deduplication</h3>
+        <p>Every six hours Hangfire asks each Source to fetch. The verbatim payload is stored as an immutable RawPosting; normalization parses it into a candidate Job; deduplication collapses the same vacancy seen on two boards into one canonical Job by its Fingerprint.</p>
+        <div class="diagram-frame">
+          <span class="cap">From a board fetch to a canonical Job</span>
+          <pre class="mermaid">
+sequenceDiagram
+  participant H as Hangfire (6h)
+  participant D as DiscoveryHandler
+  participant S as ATS board
+  participant N as NormalizationHandler
+  participant X as DeduplicationHandler
+  participant I as SearchIndexer
+  H->>D: SourceFetchRequested
+  D->>S: GET board (robots + rate budget honoured)
+  S-->>D: raw JSON
+  D->>D: store immutable RawPosting
+  D->>N: RawPostingIngested
+  N->>N: parse title, location, salary, remote policy
+  N->>X: JobNormalized
+  X->>X: compute Fingerprint, merge into earliest Job
+  X->>I: JobDiscovered (index the canonical Job)
+          </pre>
+        </div>
+        <p class="muted">A Source that returns 403/429 twice in a row is quarantined, not retried harder — and the Owner is paged.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Overnight</p>
+        <h3 class="sec-title num">One Run assembles the morning</h3>
+        <p>The Run walks its state machine: enrich the day's jobs, match them against the CV, rank with the current preference weights, research the top companies, assemble the digest. Each LLM stage submits a Batch and waits for the poller — never a synchronous call.</p>
+        <div class="diagram-frame">
+          <span class="cap">The nightly Run</span>
+          <pre class="mermaid">
+sequenceDiagram
+  participant H as Hangfire (daily)
+  participant R as RunOrchestrator
+  participant E as EnrichmentHandler
+  participant P as BatchPoller
+  participant M as MatchingHandler
+  participant K as RankingHandler
+  participant C as ResearchHandler
+  participant Rep as ReportingHandler
+  H->>R: RunStarted
+  R->>E: enrich today's Jobs
+  E->>P: EnrichmentBatchSubmitted
+  P-->>M: EnrichmentCompleted
+  M->>P: MatchingBatchSubmitted (CV crosses here, once)
+  P-->>K: MatchingCompleted
+  K->>Rep: RankingCompleted (Scores)
+  K->>C: ResearchRequested (top-N companies)
+  C-->>Rep: ResearchCompleted (cited dossiers)
+  Rep->>Rep: DigestReady (assembled marker)
+          </pre>
+        </div>
+        <div class="note">The cost ceiling is checked <strong>before</strong> each Batch submission. If the estimate would breach it, the client is not called, the Run becomes <code>CostAborted</code>, and a reduced digest still ships.</div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Why a crash is survivable</p>
+        <h3 class="sec-title num">Resumability, concretely</h3>
+        <p>Suppose the Worker dies mid-matching. On restart, the Run resumes from its last durable state. Enrichments already written are not recomputed — re-running a stage supersedes by <code>(job_id, run_id, stage)</code>. Batches already submitted are polled, not re-submitted. The crash matrix tests eight kill points and asserts exactly one batch submission at each.</p>
+        <div class="diagram-frame">
+          <span class="cap">Crash and resume during matching</span>
+          <pre class="mermaid">
+sequenceDiagram
+  participant M as MatchingHandler
+  participant DB as Postgres
+  participant A as Anthropic Batches
+  participant P as BatchPoller
+  M->>A: submit matching Batch
+  M->>DB: persist Batch id + Estimated cost
+  Note over M,DB: Worker crashes here
+  P->>DB: on restart, find outstanding Batch
+  P->>A: poll batch status (no re-submit)
+  A-->>P: ended → results
+  P->>DB: persist Matches (supersede by job/run/stage)
+          </pre>
+        </div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">07:00, and after</p>
+        <h3 class="sec-title num">Delivery, then the feedback loop</h3>
+        <p>At 07:00 Europe/Kyiv a separate Hangfire trigger fires <code>DigestDeliveryDue</code>; the DeliveryHandler renders the digest into Telegram messages, idempotently — a <code>(run_id, chat_id, card_key)</code> triple is delivered at most once. When the Owner taps Open, Ignore, Save or Applied, the bot records a Signal; a weekly fitting job turns Signals into new weights that the next Ranking uses.</p>
+        <div class="diagram-frame">
+          <span class="cap">Delivery and the weekly preference loop</span>
+          <pre class="mermaid">
+sequenceDiagram
+  participant H as Hangfire (07:00 Kyiv)
+  participant Del as DeliveryHandler
+  participant TG as Telegram
+  participant O as Owner
+  participant Sig as SignalHandler
+  participant Fit as PreferenceLearner (weekly)
+  participant Rank as RankingHandler
+  H->>Del: DigestDeliveryDue
+  Del->>TG: render Cards (idempotent by card_key)
+  TG->>O: the 07:00 digest
+  O->>TG: tap Open / Ignore / Save / Applied
+  TG->>Sig: OwnerActionRecorded
+  Sig->>Sig: store Signal with job facts
+  Fit->>Rank: PreferenceModelUpdated (explainable weights)
+          </pre>
+        </div>
+        <p class="muted">Preference learning never hard-filters silently: a suppressed Job carries a recorded reason, and the digest reports how many were suppressed and why.</p>
+      </section>
+
+      <nav class="foot">
+        <a href="setup.html"><span class="dir">Previous</span>← Setup</a>
+        <a class="next" href="runbook.html"><span class="dir">Next</span>Deploy &amp; operate →</a>
+      </nav>
+    </article>
+
+    <!-- ============================ УКРАЇНСЬКА ============================ -->
+    <article class="page i18n-hide" data-lang="uk">
+      <p class="kicker">Запуск</p>
+      <h2 class="title">День, від А до Я</h2>
+      <p class="lede">Discovery працює цілодобово; один нічний Run перетворює нові вакансії дня на ранжований дайджест; ранкові дотики власника стають завтрашнім ранжуванням. Ось увесь цикл, у порядку, як він відбувається.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Цілий день</p>
+        <h3 class="sec-title num">Discovery → Normalization → Deduplication</h3>
+        <p>Кожні шість годин Hangfire просить кожен Source отримати дані. Дослівний payload зберігається як незмінний RawPosting; нормалізація парсить його в кандидатну Job; дедуплікація зливає ту саму вакансію з двох дошок в одну канонічну Job за її Fingerprint.</p>
+        <div class="diagram-frame">
+          <span class="cap">Від отримання дошки до канонічної Job</span>
+          <pre class="mermaid">
+sequenceDiagram
+  participant H as Hangfire (6 год)
+  participant D as DiscoveryHandler
+  participant S as ATS-дошка
+  participant N as NormalizationHandler
+  participant X as DeduplicationHandler
+  participant I as SearchIndexer
+  H->>D: SourceFetchRequested
+  D->>S: GET дошки (robots + бюджет швидкості дотримані)
+  S-->>D: сирий JSON
+  D->>D: зберегти незмінний RawPosting
+  D->>N: RawPostingIngested
+  N->>N: парсинг назви, локації, зарплати, remote
+  N->>X: JobNormalized
+  X->>X: обчислити Fingerprint, злити в найранішу Job
+  X->>I: JobDiscovered (індексувати канонічну Job)
+          </pre>
+        </div>
+        <p class="muted">Source, що двічі поспіль повертає 403/429, потрапляє в карантин, а не переопитується агресивніше — і власника сповіщають.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Уночі</p>
+        <h3 class="sec-title num">Один Run збирає ранок</h3>
+        <p>Run проходить свій автомат: збагатити вакансії дня, зіставити з CV, ранжувати за поточними вагами вподобань, дослідити топ-компанії, зібрати дайджест. Кожна LLM-стадія відправляє Batch і чекає на poller — ніколи синхронний виклик.</p>
+        <div class="diagram-frame">
+          <span class="cap">Нічний Run</span>
+          <pre class="mermaid">
+sequenceDiagram
+  participant H as Hangfire (щодня)
+  participant R as RunOrchestrator
+  participant E as EnrichmentHandler
+  participant P as BatchPoller
+  participant M as MatchingHandler
+  participant K as RankingHandler
+  participant C as ResearchHandler
+  participant Rep as ReportingHandler
+  H->>R: RunStarted
+  R->>E: збагатити сьогоднішні Jobs
+  E->>P: EnrichmentBatchSubmitted
+  P-->>M: EnrichmentCompleted
+  M->>P: MatchingBatchSubmitted (CV перетинає тут, один раз)
+  P-->>K: MatchingCompleted
+  K->>Rep: RankingCompleted (Scores)
+  K->>C: ResearchRequested (топ-N компаній)
+  C-->>Rep: ResearchCompleted (цитовані досьє)
+  Rep->>Rep: DigestReady (зібраний маркер)
+          </pre>
+        </div>
+        <div class="note">Стеля вартості перевіряється <strong>перед</strong> кожною відправкою Batch. Якщо оцінка її перевищить, клієнт не викликається, Run стає <code>CostAborted</code>, а скорочений дайджест усе одно виходить.</div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Чому збій переживається</p>
+        <h3 class="sec-title num">Відновлюваність конкретно</h3>
+        <p>Припустімо, Worker падає посеред matching. При перезапуску Run відновлюється з останнього довговічного стану. Уже записані Enrichment не переобчислюються — повторний запуск стадії заміщує за <code>(job_id, run_id, stage)</code>. Уже відправлені Batch опитуються, а не відправляються знову. Crash-матриця тестує вісім точок збою і стверджує рівно одну відправку batch у кожній.</p>
+        <div class="diagram-frame">
+          <span class="cap">Збій і відновлення під час matching</span>
+          <pre class="mermaid">
+sequenceDiagram
+  participant M as MatchingHandler
+  participant DB as Postgres
+  participant A as Anthropic Batches
+  participant P as BatchPoller
+  M->>A: відправити matching Batch
+  M->>DB: зберегти id Batch + Estimated вартість
+  Note over M,DB: Worker падає тут
+  P->>DB: при перезапуску знайти невиконаний Batch
+  P->>A: опитати статус batch (без повторної відправки)
+  A-->>P: ended → результати
+  P->>DB: зберегти Matches (заміщення за job/run/stage)
+          </pre>
+        </div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">07:00 і після</p>
+        <h3 class="sec-title num">Доставка, потім цикл зворотного зв'язку</h3>
+        <p>О 07:00 за Києвом окремий тригер Hangfire запускає <code>DigestDeliveryDue</code>; DeliveryHandler рендерить дайджест у Telegram-повідомлення, ідемпотентно — трійка <code>(run_id, chat_id, card_key)</code> доставляється щонайбільше раз. Коли власник тисне Open, Ignore, Save чи Applied, бот фіксує Signal; щотижневе завдання перетворює Signals на нові ваги, які використовує наступне Ranking.</p>
+        <div class="diagram-frame">
+          <span class="cap">Доставка і щотижневий цикл вподобань</span>
+          <pre class="mermaid">
+sequenceDiagram
+  participant H as Hangfire (07:00 Київ)
+  participant Del as DeliveryHandler
+  participant TG as Telegram
+  participant O as Owner
+  participant Sig as SignalHandler
+  participant Fit as PreferenceLearner (щотижня)
+  participant Rank as RankingHandler
+  H->>Del: DigestDeliveryDue
+  Del->>TG: рендер Cards (ідемпотентно за card_key)
+  TG->>O: дайджест о 07:00
+  O->>TG: дотик Open / Ignore / Save / Applied
+  TG->>Sig: OwnerActionRecorded
+  Sig->>Sig: зберегти Signal з фактами вакансії
+  Fit->>Rank: PreferenceModelUpdated (пояснювані ваги)
+          </pre>
+        </div>
+        <p class="muted">Навчання вподобань ніколи не фільтрує тихо: придушена Job несе зафіксовану причину, а дайджест повідомляє, скільки придушено і чому.</p>
+      </section>
+
+      <nav class="foot">
+        <a href="setup.html"><span class="dir">Назад</span>← Встановлення</a>
+        <a class="next" href="runbook.html"><span class="dir">Далі</span>Деплой та експлуатація →</a>
+      </nav>
+    </article>
+  </main>
+</div>
+
+<script src="mermaid.min.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

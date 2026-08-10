@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark light" />
+<title>Architecture — JobHunter</title>
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('jh-theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      var l = localStorage.getItem('jh-lang');
+      document.documentElement.setAttribute('lang', l === 'uk' ? 'uk' : 'en');
+    } catch (e) {}
+  })();
+</script>
+<link rel="stylesheet" href="assets/site.css" />
+</head>
+<body data-page="architecture">
+<div class="app">
+  <aside>
+    <a class="brand" href="index.html">
+      <div class="spark">JH</div>
+      <div>
+        <h1>JobHunter</h1>
+        <p class="sub" data-en="Runbook & onboarding" data-uk="Довідник і онбординг">Runbook &amp; onboarding</p>
+      </div>
+    </a>
+    <nav class="toc" id="toc"></nav>
+  </aside>
+
+  <main>
+    <div class="bar">
+      <span class="seg" role="group" aria-label="Theme">
+        <button id="th-light" type="button">Light</button>
+        <button id="th-dark" type="button">Dark</button>
+      </span>
+      <span class="seg" role="group" aria-label="Language">
+        <button id="lang-en" type="button">ENG</button>
+        <button id="lang-uk" type="button">UA</button>
+      </span>
+    </div>
+
+    <!-- ============================ ENGLISH ============================ -->
+    <article class="page" data-lang="en">
+      <p class="kicker">How it is built</p>
+      <h2 class="title">Architecture</h2>
+      <p class="lede">One repository, three deployables, nine logical stages communicating over durable message boundaries. Every external dependency sits behind a port; adding an ATS provider is a new class, not a change to the pipeline.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">The system in its environment</p>
+        <h3 class="sec-title num">C4 context — one Owner, a handful of externals</h3>
+        <div class="diagram-frame">
+          <span class="cap">System context</span>
+          <pre class="mermaid">
+flowchart TB
+  owner(["Owner<br/>reads the 07:00 digest"])
+  jh["JobHunter"]
+  ats["ATS boards<br/>Greenhouse · Lever · Ashby · Workable · careers pages"]
+  claude["Anthropic<br/>Message Batches API"]
+  tg["Telegram Bot API"]
+  helios["helios shared infra<br/>PostgreSQL · RabbitMQ · Redis · Typesense · Keycloak"]
+  grafana["Grafana Cloud<br/>metrics · logs · traces via Alloy"]
+  owner <--> tg
+  tg <--> jh
+  jh --> ats
+  jh --> claude
+  jh --> helios
+  jh --> grafana
+          </pre>
+        </div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Inside the boundary</p>
+        <h3 class="sec-title num">C4 container — three deployables, one store</h3>
+        <p>The <strong>Worker</strong> is the engine: Hangfire schedules and all nine stage consumers run in it, as a single replica by design (Recreate strategy). The <strong>Api</strong> is a stateless Keycloak-protected read/admin surface. The <strong>Telegram</strong> host is inbound-only — it long-polls, handles commands and callbacks, and publishes what the Owner did.</p>
+        <div class="diagram-frame">
+          <span class="cap">Container view</span>
+          <pre class="mermaid">
+flowchart TB
+  owner(["Owner"])
+  subgraph JH["JobHunter"]
+    api["api · JobHunter.Api<br/>.NET 10 Minimal API"]
+    worker["worker · JobHunter.Worker<br/>Hangfire + all nine stage consumers"]
+    bot["bot · JobHunter.Telegram<br/>inbound-only long-poll"]
+  end
+  pg[("PostgreSQL<br/>system of record + hangfire schema")]
+  mq[["RabbitMQ<br/>one queue per stage"]]
+  redis[("Redis<br/>rate buckets · dedup · cache")]
+  ts[("Typesense<br/>job search index")]
+  kc["Keycloak OIDC"]
+  claude["Anthropic Batches API"]
+  atsb["ATS boards"]
+  tgapi["Telegram Bot API"]
+  owner <--> tgapi <--> bot
+  api --> pg
+  api --> ts
+  api --> kc
+  worker --> pg
+  worker --> mq
+  worker --> redis
+  worker --> ts
+  worker --> claude
+  worker --> atsb
+  worker --> tgapi
+  bot --> mq
+  bot --> pg
+          </pre>
+        </div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">The module map</p>
+        <h3 class="sec-title num">Dependency direction never inverts</h3>
+        <p>The build enforces one arrow. Hosts depend on adapters; adapters depend on the application; the application depends on the domain; the domain depends on nothing but the .NET abstractions.</p>
+        <div class="diagram-frame">
+          <span class="cap">Layering — enforced by an architecture test (F0 T12)</span>
+          <pre class="mermaid">
+flowchart LR
+  subgraph Hosts
+    api2["Api"]
+    wrk2["Worker"]
+    tel2["Telegram"]
+  end
+  subgraph Adapters
+    infra["Infrastructure"]
+    cl["Claude"]
+    scr["Scrapers"]
+    srch["Search"]
+  end
+  app["Application"]
+  dom["Domain"]
+  contracts["Contracts<br/>(referenced by all, references nothing)"]
+  api2 --> infra
+  wrk2 --> infra
+  tel2 --> infra
+  api2 --> srch
+  wrk2 --> cl
+  wrk2 --> scr
+  infra --> app
+  cl --> app
+  scr --> app
+  srch --> app
+  app --> dom
+          </pre>
+        </div>
+        <table class="map">
+          <thead><tr><th>Project</th><th>Role</th></tr></thead>
+          <tbody>
+            <tr><td class="p">JobHunter.Domain</td><td>Entities, value objects, domain events, ports. Zero external deps.</td></tr>
+            <tr><td class="p">JobHunter.Application</td><td>Use cases and message handlers. Depends only on Domain.</td></tr>
+            <tr><td class="p">JobHunter.Contracts</td><td>Versioned integration events + DTOs, no behaviour. Referenced by everything.</td></tr>
+            <tr><td class="p">JobHunter.Infrastructure</td><td>Adapters, EF Core persistence, outbox/inbox. Depends on Application + Domain.</td></tr>
+            <tr><td class="p">JobHunter.Scrapers</td><td>One adapter per ATS — Greenhouse, Lever, Ashby, Workable, careers page — plus research fetchers.</td></tr>
+            <tr><td class="p">JobHunter.Claude</td><td>AnthropicBatchClient, prompt builders, schema-bound parsers, CostAccountant. Ollama fallback client.</td></tr>
+            <tr><td class="p">JobHunter.Search</td><td>Typesense indexer + query service.</td></tr>
+            <tr><td class="p">JobHunter.Telegram.Transport</td><td>Shared send-path adapter (notifier, renderers, pacer, callback codec) composed by both hosts.</td></tr>
+            <tr><td class="p">JobHunter.Api / .Worker / .Telegram</td><td>The three deployables. Api = read/admin; Worker = scheduler + stages; Telegram = inbound bot.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">The wire contracts</p>
+        <h3 class="sec-title num">Event catalog — the pipeline as messages</h3>
+        <p>Stages never call each other directly; they publish past-tense events on RabbitMQ, one queue per consuming deployable, one dead-letter queue per stage. Wolverine's EF Core outbox makes state-change and publication atomic — no duplicate spend, no duplicate delivery.</p>
+        <div class="diagram-frame">
+          <span class="cap">The main event chain (producer → consumer)</span>
+          <pre class="mermaid">
+flowchart TB
+  hang["Hangfire 6h"] -->|SourceFetchRequested| disc["DiscoveryHandler"]
+  disc -->|RawPostingIngested| norm["NormalizationHandler"]
+  norm -->|JobNormalized| dedup["DeduplicationHandler"]
+  dedup -->|JobDiscovered| orch["RunOrchestrator + SearchIndexer"]
+  hang2["Hangfire daily"] -->|RunStarted| enr["EnrichmentHandler"]
+  enr -->|EnrichmentBatchSubmitted| poll["BatchPoller"]
+  poll -->|EnrichmentCompleted| match["MatchingHandler"]
+  match -->|MatchingBatchSubmitted| poll
+  poll -->|MatchingCompleted| rank["RankingHandler"]
+  rank -->|RankingCompleted| report["ReportingHandler"]
+  rank -->|ResearchRequested| research["ResearchHandler"]
+  research -->|ResearchCompleted| report
+  report -->|DigestReady| marker["(assembled marker)"]
+  hang3["Hangfire 07:00 Kyiv"] -->|DigestDeliveryDue| deliver["DeliveryHandler"]
+  deliver -->|DigestDelivered| metrics["MetricsHandler"]
+          </pre>
+        </div>
+        <p class="muted">Owner-side and exception events close the loop: <code>OwnerActionRecorded</code> (from the bot) feeds the ApplicationHandler and SignalHandler; <code>PreferenceModelUpdated</code> (weekly fitting job) feeds Ranking; <code>RunFailed</code>, <code>RunCostAborted</code> and <code>SourceQuarantined</code> page the Owner via Telegram.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Ports &amp; adapters</p>
+        <h3 class="sec-title num">Every external dependency behind an interface</h3>
+        <p>Ports live in <code>JobHunter.Domain/Abstractions</code>; adapters live in the adapter projects. Swapping an implementation — or testing without a network — is a matter of substituting one class.</p>
+        <table class="map">
+          <thead><tr><th>Port</th><th>Adapter(s)</th></tr></thead>
+          <tbody>
+            <tr><td class="p">IJobSource</td><td>Greenhouse / Lever / Ashby / Workable (via <code>JsonBoardJobSource</code>) + <code>CareersPageJobSource</code></td></tr>
+            <tr><td class="p">ILlmBatchClient</td><td><code>AnthropicBatchClient</code>, with <code>OllamaBatchClient</code> as the fallback tier</td></tr>
+            <tr><td class="p">INotifier</td><td><code>TelegramNotifier</code> (also the callback responder)</td></tr>
+            <tr><td class="p">ISearchIndex</td><td><code>TypesenseIndexer</code></td></tr>
+            <tr><td class="p">IResearchFetcher</td><td><code>GitHubOrgFetcher</code>, <code>CompanyPageFetcher</code>, news/layoffs/funding/reviews fetchers</td></tr>
+            <tr><td class="p">IClock / IIdGenerator</td><td><code>SystemClock</code> / <code>UuidV7Generator</code> (banned from tests via <code>FakeClock</code> + <code>SequentialIdGenerator</code>)</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <nav class="foot">
+        <a href="concepts.html"><span class="dir">Previous</span>← Concepts</a>
+        <a class="next" href="decisions.html"><span class="dir">Next</span>Decisions →</a>
+      </nav>
+    </article>
+
+    <!-- ============================ УКРАЇНСЬКА ============================ -->
+    <article class="page i18n-hide" data-lang="uk">
+      <p class="kicker">Як це побудовано</p>
+      <h2 class="title">Архітектура</h2>
+      <p class="lede">Один репозиторій, три розгортання, дев'ять логічних стадій, що спілкуються через довговічні межі повідомлень. Кожна зовнішня залежність — за портом; додати ATS-провайдера означає новий клас, а не зміну конвеєра.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Система в її середовищі</p>
+        <h3 class="sec-title num">C4 контекст — один власник, кілька зовнішніх систем</h3>
+        <div class="diagram-frame">
+          <span class="cap">Системний контекст</span>
+          <pre class="mermaid">
+flowchart TB
+  owner(["Owner<br/>читає дайджест о 07:00"])
+  jh["JobHunter"]
+  ats["ATS-дошки<br/>Greenhouse · Lever · Ashby · Workable · сторінки кар'єри"]
+  claude["Anthropic<br/>Message Batches API"]
+  tg["Telegram Bot API"]
+  helios["спільна інфра helios<br/>PostgreSQL · RabbitMQ · Redis · Typesense · Keycloak"]
+  grafana["Grafana Cloud<br/>метрики · логи · трейси через Alloy"]
+  owner <--> tg
+  tg <--> jh
+  jh --> ats
+  jh --> claude
+  jh --> helios
+  jh --> grafana
+          </pre>
+        </div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Усередині межі</p>
+        <h3 class="sec-title num">C4 контейнери — три розгортання, одне сховище</h3>
+        <p><strong>Worker</strong> — це двигун: Hangfire-розклади та всі дев'ять споживачів стадій працюють у ньому, як єдина репліка за задумом (стратегія Recreate). <strong>Api</strong> — це stateless-поверхня читання/адміну під захистом Keycloak. Хост <strong>Telegram</strong> лише вхідний — він робить long-poll, обробляє команди й callback-и та публікує дії власника.</p>
+        <div class="diagram-frame">
+          <span class="cap">Вид контейнерів</span>
+          <pre class="mermaid">
+flowchart TB
+  owner(["Owner"])
+  subgraph JH["JobHunter"]
+    api["api · JobHunter.Api<br/>.NET 10 Minimal API"]
+    worker["worker · JobHunter.Worker<br/>Hangfire + усі дев'ять стадій"]
+    bot["bot · JobHunter.Telegram<br/>лише вхідний long-poll"]
+  end
+  pg[("PostgreSQL<br/>система запису + схема hangfire")]
+  mq[["RabbitMQ<br/>одна черга на стадію"]]
+  redis[("Redis<br/>ліміти · дедуп · кеш")]
+  ts[("Typesense<br/>індекс пошуку вакансій")]
+  kc["Keycloak OIDC"]
+  claude["Anthropic Batches API"]
+  atsb["ATS-дошки"]
+  tgapi["Telegram Bot API"]
+  owner <--> tgapi <--> bot
+  api --> pg
+  api --> ts
+  api --> kc
+  worker --> pg
+  worker --> mq
+  worker --> redis
+  worker --> ts
+  worker --> claude
+  worker --> atsb
+  worker --> tgapi
+  bot --> mq
+  bot --> pg
+          </pre>
+        </div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Карта модулів</p>
+        <h3 class="sec-title num">Напрям залежностей ніколи не інвертується</h3>
+        <p>Збірка гарантує одну стрілку. Хости залежать від адаптерів; адаптери — від застосунку; застосунок — від домену; домен не залежить ні від чого, крім абстракцій .NET.</p>
+        <div class="diagram-frame">
+          <span class="cap">Шари — гарантовано архітектурним тестом (F0 T12)</span>
+          <pre class="mermaid">
+flowchart LR
+  subgraph Hosts
+    api2["Api"]
+    wrk2["Worker"]
+    tel2["Telegram"]
+  end
+  subgraph Adapters
+    infra["Infrastructure"]
+    cl["Claude"]
+    scr["Scrapers"]
+    srch["Search"]
+  end
+  app["Application"]
+  dom["Domain"]
+  api2 --> infra
+  wrk2 --> infra
+  tel2 --> infra
+  api2 --> srch
+  wrk2 --> cl
+  wrk2 --> scr
+  infra --> app
+  cl --> app
+  scr --> app
+  srch --> app
+  app --> dom
+          </pre>
+        </div>
+        <table class="map">
+          <thead><tr><th>Проєкт</th><th>Роль</th></tr></thead>
+          <tbody>
+            <tr><td class="p">JobHunter.Domain</td><td>Сутності, об'єкти-значення, доменні події, порти. Нуль зовнішніх залежностей.</td></tr>
+            <tr><td class="p">JobHunter.Application</td><td>Сценарії використання та обробники повідомлень. Залежить лише від Domain.</td></tr>
+            <tr><td class="p">JobHunter.Contracts</td><td>Версіоновані інтеграційні події + DTO, без поведінки. На нього посилаються всі.</td></tr>
+            <tr><td class="p">JobHunter.Infrastructure</td><td>Адаптери, EF Core persistence, outbox/inbox. Залежить від Application + Domain.</td></tr>
+            <tr><td class="p">JobHunter.Scrapers</td><td>По одному адаптеру на ATS — Greenhouse, Lever, Ashby, Workable, сторінка кар'єри — плюс дослідницькі fetcher-и.</td></tr>
+            <tr><td class="p">JobHunter.Claude</td><td>AnthropicBatchClient, білдери промптів, парсери за схемою, CostAccountant. Резервний клієнт Ollama.</td></tr>
+            <tr><td class="p">JobHunter.Search</td><td>Typesense-індексатор + сервіс запитів.</td></tr>
+            <tr><td class="p">JobHunter.Telegram.Transport</td><td>Спільний адаптер відправлення (notifier, рендерери, pacer, callback-кодек), скомпонований обома хостами.</td></tr>
+            <tr><td class="p">JobHunter.Api / .Worker / .Telegram</td><td>Три розгортання. Api = читання/адмін; Worker = планувальник + стадії; Telegram = вхідний бот.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Контракти на дроті</p>
+        <h3 class="sec-title num">Каталог подій — конвеєр як повідомлення</h3>
+        <p>Стадії ніколи не викликають одна одну напряму; вони публікують події у минулому часі в RabbitMQ, одна черга на споживача, одна dead-letter черга на стадію. EF Core outbox від Wolverine робить зміну стану й публікацію атомарними — без подвійних витрат чи подвійної доставки.</p>
+        <div class="diagram-frame">
+          <span class="cap">Основний ланцюг подій (виробник → споживач)</span>
+          <pre class="mermaid">
+flowchart TB
+  hang["Hangfire 6 год"] -->|SourceFetchRequested| disc["DiscoveryHandler"]
+  disc -->|RawPostingIngested| norm["NormalizationHandler"]
+  norm -->|JobNormalized| dedup["DeduplicationHandler"]
+  dedup -->|JobDiscovered| orch["RunOrchestrator + SearchIndexer"]
+  hang2["Hangfire щодня"] -->|RunStarted| enr["EnrichmentHandler"]
+  enr -->|EnrichmentBatchSubmitted| poll["BatchPoller"]
+  poll -->|EnrichmentCompleted| match["MatchingHandler"]
+  match -->|MatchingBatchSubmitted| poll
+  poll -->|MatchingCompleted| rank["RankingHandler"]
+  rank -->|RankingCompleted| report["ReportingHandler"]
+  rank -->|ResearchRequested| research["ResearchHandler"]
+  research -->|ResearchCompleted| report
+  report -->|DigestReady| marker["(зібраний маркер)"]
+  hang3["Hangfire 07:00 Київ"] -->|DigestDeliveryDue| deliver["DeliveryHandler"]
+  deliver -->|DigestDelivered| metrics["MetricsHandler"]
+          </pre>
+        </div>
+        <p class="muted">Події з боку власника та винятки замикають цикл: <code>OwnerActionRecorded</code> (від бота) живить ApplicationHandler і SignalHandler; <code>PreferenceModelUpdated</code> (щотижневе завдання) живить Ranking; <code>RunFailed</code>, <code>RunCostAborted</code> і <code>SourceQuarantined</code> сповіщають власника через Telegram.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Порти й адаптери</p>
+        <h3 class="sec-title num">Кожна зовнішня залежність за інтерфейсом</h3>
+        <p>Порти живуть у <code>JobHunter.Domain/Abstractions</code>; адаптери — у проєктах-адаптерах. Заміна реалізації — чи тестування без мережі — це підстановка одного класу.</p>
+        <table class="map">
+          <thead><tr><th>Порт</th><th>Адаптер(и)</th></tr></thead>
+          <tbody>
+            <tr><td class="p">IJobSource</td><td>Greenhouse / Lever / Ashby / Workable (через <code>JsonBoardJobSource</code>) + <code>CareersPageJobSource</code></td></tr>
+            <tr><td class="p">ILlmBatchClient</td><td><code>AnthropicBatchClient</code>, з <code>OllamaBatchClient</code> як резервний рівень</td></tr>
+            <tr><td class="p">INotifier</td><td><code>TelegramNotifier</code> (також відповідач callback-ів)</td></tr>
+            <tr><td class="p">ISearchIndex</td><td><code>TypesenseIndexer</code></td></tr>
+            <tr><td class="p">IResearchFetcher</td><td><code>GitHubOrgFetcher</code>, <code>CompanyPageFetcher</code>, fetcher-и новин/звільнень/фінансування/відгуків</td></tr>
+            <tr><td class="p">IClock / IIdGenerator</td><td><code>SystemClock</code> / <code>UuidV7Generator</code> (у тестах заборонені через <code>FakeClock</code> + <code>SequentialIdGenerator</code>)</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <nav class="foot">
+        <a href="concepts.html"><span class="dir">Назад</span>← Поняття</a>
+        <a class="next" href="decisions.html"><span class="dir">Далі</span>Рішення →</a>
+      </nav>
+    </article>
+  </main>
+</div>
+
+<script src="mermaid.min.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

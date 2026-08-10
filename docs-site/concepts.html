@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark light" />
+<title>Concepts & vocabulary — JobHunter</title>
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('jh-theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      var l = localStorage.getItem('jh-lang');
+      document.documentElement.setAttribute('lang', l === 'uk' ? 'uk' : 'en');
+    } catch (e) {}
+  })();
+</script>
+<link rel="stylesheet" href="assets/site.css" />
+</head>
+<body data-page="concepts">
+<div class="app">
+  <aside>
+    <a class="brand" href="index.html">
+      <div class="spark">JH</div>
+      <div>
+        <h1>JobHunter</h1>
+        <p class="sub" data-en="Runbook & onboarding" data-uk="Довідник і онбординг">Runbook &amp; onboarding</p>
+      </div>
+    </a>
+    <nav class="toc" id="toc"></nav>
+  </aside>
+
+  <main>
+    <div class="bar">
+      <span class="seg" role="group" aria-label="Theme">
+        <button id="th-light" type="button">Light</button>
+        <button id="th-dark" type="button">Dark</button>
+      </span>
+      <span class="seg" role="group" aria-label="Language">
+        <button id="lang-en" type="button">ENG</button>
+        <button id="lang-uk" type="button">UA</button>
+      </span>
+    </div>
+
+    <!-- ============================ ENGLISH ============================ -->
+    <article class="page" data-lang="en">
+      <p class="kicker">The canonical vocabulary</p>
+      <h2 class="title">Concepts &amp; vocabulary</h2>
+      <p class="lede">Every document, class name, table and event uses these words and only these words. If a word is not here, it does not exist in the domain. This is the shortest path to reading the rest of the repository.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">The nouns that carry the domain</p>
+        <h3 class="sec-title num">The objects a Run moves through</h3>
+        <table class="map">
+          <thead><tr><th>Term</th><th>What it is</th></tr></thead>
+          <tbody>
+            <tr><td class="p">Owner</td><td>The single human the platform serves — one Telegram chat id, one Keycloak subject. Not a "user": no sign-up, no roles, no tenancy.</td></tr>
+            <tr><td class="p">Profile</td><td>The Owner's structured career facts (seniority, stacks, salary floor, timezone, countries), derived from the CV plus explicit overrides.</td></tr>
+            <tr><td class="p">CV</td><td>One uploaded document plus its extracted text. Versioned; exactly one version is <code>active</code>. It feeds a Profile — it is not the Profile.</td></tr>
+            <tr><td class="p">Company</td><td>A hiring organisation, keyed by canonical domain (<code>stripe.com</code>), carrying an ATS binding once detected.</td></tr>
+            <tr><td class="p">RawPosting</td><td>The verbatim payload fetched from a Source, stored immutably with fetch metadata and a content hash. Never edited, only superseded.</td></tr>
+            <tr><td class="p">Job</td><td>The normalised, deduplicated canonical vacancy: title, company, locations, remote policy, type, description, apply URL, timestamps.</td></tr>
+            <tr><td class="p">Fingerprint</td><td>The deterministic dedup key: <code>sha256(domain ‖ title ‖ locationSet)</code>. Two Jobs with one Fingerprint are one Job.</td></tr>
+            <tr><td class="p">Enrichment</td><td>Stage-4 Claude output about the <em>job</em>: salary estimate, remote/contractor flags, timezone, AI-usage, technologies, company stage, reasons.</td></tr>
+            <tr><td class="p">Match</td><td>Stage-5 Claude output for a <em>(Job, Profile)</em> pair: score 0–100, missing skills, interview probability, salary expectation, reasons.</td></tr>
+            <tr><td class="p">Score</td><td>The final ranking number the Owner sees: <code>f(Match.score, preference weights, freshness)</code>. Computed by us, not by Claude.</td></tr>
+            <tr><td class="p">Digest</td><td>The single morning report for one Run: counts, market note, and the ordered list of Cards.</td></tr>
+            <tr><td class="p">Card</td><td>One Job inside a Digest, rendered with its Score, reasons and four actions: Open, Ignore, Save, Applied.</td></tr>
+            <tr><td class="p">Signal</td><td>One recorded Owner action carrying preference information (Opened, Ignored, Saved, Applied, Interview, Offer, Rejected, Rated).</td></tr>
+            <tr><td class="p">PreferenceModel</td><td>The learned, versioned, explainable weights derived from Signals. Every weight must cite the Signals that produced it.</td></tr>
+            <tr><td class="p">CompanyResearch</td><td>The agent-generated dossier for a Company — each claim citing a Source URL.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">The execution vocabulary</p>
+        <h3 class="sec-title num">Run, Batch, ModelTier, CostLedger</h3>
+        <p>A <strong>Run</strong> is one end-to-end execution of the daily pipeline, with an id, a cost ledger, and — crucially — a resumable state machine. A <strong>Batch</strong> is one Anthropic Message Batches submission belonging to exactly one Run and one Stage. <strong>ModelTier</strong> is <code>Cheap</code> (triage/extraction) or <code>Deep</code> (matching/synthesis); the tier→model mapping lives in configuration. The <strong>CostLedger</strong> accumulates token usage and USD per Stage and Tier, checked against a hard ceiling before each submission.</p>
+        <div class="diagram-frame">
+          <span class="cap">Run state machine — nine states, resumable, no "Discovering"</span>
+          <pre class="mermaid">
+stateDiagram-v2
+  [*] --> Created
+  Created --> Enriching
+  Enriching --> Matching
+  Matching --> Ranking
+  Ranking --> Researching
+  Researching --> Reporting
+  Reporting --> Delivered
+  Enriching --> CostAborted
+  Matching --> CostAborted
+  Researching --> CostAborted
+  Enriching --> Failed
+  Matching --> Failed
+  Reporting --> Failed
+  CostAborted --> Reporting: reduced digest still ships
+  Delivered --> [*]
+  Failed --> [*]
+          </pre>
+        </div>
+        <p class="muted">Re-running a stage supersedes by <code>(job_id, run_id, stage)</code> — it never duplicates cost or delivery. That is what "resumable" means here.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">The rules that always hold</p>
+        <h3 class="sec-title num">The twelve invariants</h3>
+        <p>These are not aspirations. Most are enforced by a database constraint or an automated test.</p>
+        <table class="map">
+          <tbody>
+            <tr><td class="n">1</td><td>A RawPosting is immutable. Re-fetching produces a new row; it never updates an old one.</td></tr>
+            <tr><td class="n">2</td><td>One Fingerprint, one Job. Deduplication merges into the earliest-seen Job and records the alias.</td></tr>
+            <tr><td class="n">3</td><td>Every Enrichment and Match belongs to exactly one Job and one Run. Re-running supersedes, never duplicates.</td></tr>
+            <tr><td class="n">4</td><td>Every Score is explainable. A Card without at least one reason is invalid and must not be delivered.</td></tr>
+            <tr><td class="n">5</td><td>Every CompanyResearch claim cites a URL. An uncited claim is dropped, not shown.</td></tr>
+            <tr><td class="n">6</td><td>A Run never exceeds its cost ceiling. The ledger is checked <em>before</em> each Batch submission; exceeding it aborts the stage and marks the Run <code>CostAborted</code>.</td></tr>
+            <tr><td class="n">7</td><td>The platform never applies to a job. <code>Applied</code> is a status the Owner sets, not an action the system performs.</td></tr>
+            <tr><td class="n">8</td><td>Delivery is idempotent. A <code>(run_id, chat_id, card_key)</code> triple is delivered at most once.</td></tr>
+            <tr><td class="n">9</td><td>Single Owner. No registration, no tenant column, no role model.</td></tr>
+            <tr><td class="n">10</td><td>Robots and rate limits are respected. A Source failing twice is quarantined, not retried harder.</td></tr>
+            <tr><td class="n">11</td><td>Preference learning never hard-filters silently. Every suppression carries a recorded reason, reported in the Digest.</td></tr>
+            <tr><td class="n">12</td><td>Secrets never enter the repository, the image layers, or the logs.</td></tr>
+          </tbody>
+        </table>
+        <div class="note">The load-bearing one that would be genuinely damaging if broken: <strong>the CV crosses exactly one boundary</strong> — the Stage-5 match prompt. It appears in no log, no span, no index, no notification, and a sentinel-scan suite verifies it.</div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Explicitly out of scope</p>
+        <h3 class="sec-title num">What JobHunter deliberately does not do</h3>
+        <ul class="clean">
+          <li><strong>LinkedIn scraping</strong> and <strong>aggregator boards</strong> (Indeed, Glassdoor, Google Jobs) — brittle, hostile to automation, duplicated and stale.</li>
+          <li><strong>Auto-apply / auto-outreach</strong> — invariant 7.</li>
+          <li><strong>Multi-user SaaS</strong> — no tenancy, no billing, no onboarding funnel.</li>
+          <li><strong>Mobile app</strong> — Telegram is the client. <strong>Résumé rewriting</strong> is a post-MVP candidate.</li>
+        </ul>
+      </section>
+
+      <nav class="foot">
+        <a href="index.html"><span class="dir">Previous</span>← Overview</a>
+        <a class="next" href="architecture.html"><span class="dir">Next</span>Architecture →</a>
+      </nav>
+    </article>
+
+    <!-- ============================ УКРАЇНСЬКА ============================ -->
+    <article class="page i18n-hide" data-lang="uk">
+      <p class="kicker">Канонічний словник</p>
+      <h2 class="title">Поняття й словник</h2>
+      <p class="lede">Кожен документ, ім'я класу, таблиця та подія використовують ці слова і лише ці слова. Якщо слова тут немає, у домені його не існує. Це найкоротший шлях до читання решти репозиторію.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Іменники, що несуть домен</p>
+        <h3 class="sec-title num">Об'єкти, крізь які проходить Run</h3>
+        <table class="map">
+          <thead><tr><th>Термін</th><th>Що це</th></tr></thead>
+          <tbody>
+            <tr><td class="p">Owner</td><td>Єдина людина, яку обслуговує платформа — один Telegram chat id, один Keycloak subject. Не «користувач»: без реєстрації, ролей чи мультитенантності.</td></tr>
+            <tr><td class="p">Profile</td><td>Структуровані кар'єрні факти власника (рівень, стеки, зарплатний поріг, часовий пояс, країни), похідні від CV плюс явні перевизначення.</td></tr>
+            <tr><td class="p">CV</td><td>Один завантажений документ плюс витягнутий текст. Версіонований; рівно одна версія <code>active</code>. Він живить Profile — він не є Profile.</td></tr>
+            <tr><td class="p">Company</td><td>Наймаюча організація за канонічним доменом (<code>stripe.com</code>), що несе ATS-прив'язку після виявлення.</td></tr>
+            <tr><td class="p">RawPosting</td><td>Дослівний payload, отриманий із Source, збережений незмінно з метаданими та хешем вмісту. Ніколи не редагується, лише заміщується.</td></tr>
+            <tr><td class="p">Job</td><td>Нормалізована, дедуплікована канонічна вакансія: назва, компанія, локації, політика віддаленості, тип, опис, URL, часові мітки.</td></tr>
+            <tr><td class="p">Fingerprint</td><td>Детермінований ключ дедуплікації: <code>sha256(домен ‖ назва ‖ набір локацій)</code>. Дві Job з одним Fingerprint — це одна Job.</td></tr>
+            <tr><td class="p">Enrichment</td><td>Вивід Claude стадії 4 про <em>вакансію</em>: оцінка зарплати, прапорці remote/contractor, часовий пояс, рівень AI, технології, стадія компанії, причини.</td></tr>
+            <tr><td class="p">Match</td><td>Вивід Claude стадії 5 для пари <em>(Job, Profile)</em>: оцінка 0–100, відсутні навички, імовірність співбесіди, зарплатне очікування, причини.</td></tr>
+            <tr><td class="p">Score</td><td>Фінальне число ранжування, яке бачить власник: <code>f(Match.score, ваги вподобань, свіжість)</code>. Обчислюється нами, не Claude.</td></tr>
+            <tr><td class="p">Digest</td><td>Єдиний ранковий звіт для одного Run: підрахунки, ринкова нотатка та впорядкований список Cards.</td></tr>
+            <tr><td class="p">Card</td><td>Одна Job усередині Digest, з її Score, причинами та чотирма діями: Open, Ignore, Save, Applied.</td></tr>
+            <tr><td class="p">Signal</td><td>Одна зафіксована дія власника з інформацією про вподобання (Opened, Ignored, Saved, Applied, Interview, Offer, Rejected, Rated).</td></tr>
+            <tr><td class="p">PreferenceModel</td><td>Вивчені, версіоновані, пояснювані ваги, похідні від Signals. Кожна вага мусить цитувати Signals, що її породили.</td></tr>
+            <tr><td class="p">CompanyResearch</td><td>Згенероване агентом досьє компанії — кожне твердження цитує URL джерела.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Словник виконання</p>
+        <h3 class="sec-title num">Run, Batch, ModelTier, CostLedger</h3>
+        <p><strong>Run</strong> — це одне наскрізне виконання щоденного конвеєра, з id, реєстром вартості та, головне, відновлюваним скінченним автоматом. <strong>Batch</strong> — одна відправка в Anthropic Message Batches, що належить рівно одному Run і одній Stage. <strong>ModelTier</strong> — це <code>Cheap</code> (тріаж/екстракція) або <code>Deep</code> (зіставлення/синтез); відповідність tier→model живе в конфігурації. <strong>CostLedger</strong> накопичує використання токенів і USD за Stage і Tier, перевіряючись проти жорсткої стелі перед кожною відправкою.</p>
+        <div class="diagram-frame">
+          <span class="cap">Скінченний автомат Run — дев'ять станів, відновлюваний, без «Discovering»</span>
+          <pre class="mermaid">
+stateDiagram-v2
+  [*] --> Created
+  Created --> Enriching
+  Enriching --> Matching
+  Matching --> Ranking
+  Ranking --> Researching
+  Researching --> Reporting
+  Reporting --> Delivered
+  Enriching --> CostAborted
+  Matching --> CostAborted
+  Researching --> CostAborted
+  Enriching --> Failed
+  Matching --> Failed
+  Reporting --> Failed
+  CostAborted --> Reporting: скорочений дайджест усе одно виходить
+  Delivered --> [*]
+  Failed --> [*]
+          </pre>
+        </div>
+        <p class="muted">Повторний запуск стадії заміщує за <code>(job_id, run_id, stage)</code> — він ніколи не дублює вартість чи доставку. Саме це тут означає «відновлюваний».</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Правила, що завжди діють</p>
+        <h3 class="sec-title num">Дванадцять інваріантів</h3>
+        <p>Це не прагнення. Більшість гарантовані обмеженням бази даних або автоматичним тестом.</p>
+        <table class="map">
+          <tbody>
+            <tr><td class="n">1</td><td>RawPosting незмінний. Повторне отримання створює новий рядок; воно ніколи не оновлює старий.</td></tr>
+            <tr><td class="n">2</td><td>Один Fingerprint — одна Job. Дедуплікація зливає в найранішу Job і фіксує аліас.</td></tr>
+            <tr><td class="n">3</td><td>Кожен Enrichment і Match належить рівно одній Job та одному Run. Повторний запуск заміщує, не дублює.</td></tr>
+            <tr><td class="n">4</td><td>Кожен Score пояснюваний. Card без хоча б однієї причини недійсний і не має доставлятися.</td></tr>
+            <tr><td class="n">5</td><td>Кожне твердження CompanyResearch цитує URL. Нецитоване твердження відкидається, а не показується.</td></tr>
+            <tr><td class="n">6</td><td>Run ніколи не перевищує стелю вартості. Реєстр перевіряється <em>перед</em> кожною відправкою Batch; перевищення перериває стадію і позначає Run як <code>CostAborted</code>.</td></tr>
+            <tr><td class="n">7</td><td>Платформа ніколи не подається на вакансію. <code>Applied</code> — статус, який ставить власник, а не дія системи.</td></tr>
+            <tr><td class="n">8</td><td>Доставка ідемпотентна. Трійка <code>(run_id, chat_id, card_key)</code> доставляється щонайбільше раз.</td></tr>
+            <tr><td class="n">9</td><td>Єдиний власник. Без реєстрації, стовпця тенанта чи моделі ролей.</td></tr>
+            <tr><td class="n">10</td><td>Robots і ліміти швидкості дотримані. Source, що впав двічі, потрапляє в карантин, а не переопитується агресивніше.</td></tr>
+            <tr><td class="n">11</td><td>Навчання вподобань ніколи не фільтрує тихо. Кожне придушення несе зафіксовану причину, повідомлену в Digest.</td></tr>
+            <tr><td class="n">12</td><td>Секрети ніколи не потрапляють у репозиторій, шари образу чи логи.</td></tr>
+          </tbody>
+        </table>
+        <div class="note">Найважливіший, чиє порушення було б справді шкідливим: <strong>CV перетинає рівно одну межу</strong> — prompt зіставлення стадії 5. Він не з'являється в жодному лозі, span, індексі чи сповіщенні, і це перевіряє sentinel-scan набір.</div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Явно поза межами</p>
+        <h3 class="sec-title num">Що JobHunter свідомо не робить</h3>
+        <ul class="clean">
+          <li><strong>Скрапінг LinkedIn</strong> та <strong>дошки-агрегатори</strong> (Indeed, Glassdoor, Google Jobs) — крихкі, ворожі до автоматизації, дубльовані й застарілі.</li>
+          <li><strong>Автоподача / автозвернення</strong> — інваріант 7.</li>
+          <li><strong>Мультикористувацький SaaS</strong> — без тенантності, білінгу чи онбординг-воронки.</li>
+          <li><strong>Мобільний застосунок</strong> — клієнтом є Telegram. <strong>Переписування резюме</strong> — кандидат на пост-MVP.</li>
+        </ul>
+      </section>
+
+      <nav class="foot">
+        <a href="index.html"><span class="dir">Назад</span>← Огляд</a>
+        <a class="next" href="architecture.html"><span class="dir">Далі</span>Архітектура →</a>
+      </nav>
+    </article>
+  </main>
+</div>
+
+<script src="mermaid.min.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

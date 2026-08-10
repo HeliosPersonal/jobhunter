@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark light" />
+<title>Deploy & operate — JobHunter</title>
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('jh-theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      var l = localStorage.getItem('jh-lang');
+      document.documentElement.setAttribute('lang', l === 'uk' ? 'uk' : 'en');
+    } catch (e) {}
+  })();
+</script>
+<link rel="stylesheet" href="assets/site.css" />
+</head>
+<body data-page="runbook">
+<div class="app">
+  <aside>
+    <a class="brand" href="index.html">
+      <div class="spark">JH</div>
+      <div>
+        <h1>JobHunter</h1>
+        <p class="sub" data-en="Runbook & onboarding" data-uk="Довідник і онбординг">Runbook &amp; onboarding</p>
+      </div>
+    </a>
+    <nav class="toc" id="toc"></nav>
+  </aside>
+
+  <main>
+    <div class="bar">
+      <span class="seg" role="group" aria-label="Theme">
+        <button id="th-light" type="button">Light</button>
+        <button id="th-dark" type="button">Dark</button>
+      </span>
+      <span class="seg" role="group" aria-label="Language">
+        <button id="lang-en" type="button">ENG</button>
+        <button id="lang-uk" type="button">UA</button>
+      </span>
+    </div>
+
+    <!-- ============================ ENGLISH ============================ -->
+    <article class="page" data-lang="en">
+      <p class="kicker">Operate it</p>
+      <h2 class="title">Deploy &amp; operate</h2>
+      <p class="lede">Ship on push to <code>main</code> through a self-hosted runner into k3s; watch it through Grafana Cloud; drive and diagnose it from Telegram; recover from the ten runbooks. Every alert maps to exactly one runbook.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">From push to pods</p>
+        <h3 class="sec-title num">The CI/CD pipeline</h3>
+        <p>GitHub Actions builds and tests on a hosted runner, then a self-hosted <code>helios</code> runner applies Terraform and Kustomize (the k3s API is not publicly reachable). Images go to GHCR tagged by commit SHA; overlays reference the SHA, never <code>:latest</code>.</p>
+        <div class="diagram-frame">
+          <span class="cap">develop → staging, main → production</span>
+          <pre class="mermaid">
+flowchart LR
+  push["push / PR"] --> bt["build-and-test<br/>restore · build (warnings=errors) · test + coverage &gt;90% · kustomize render"]
+  bt --> img["build-images<br/>matrix Api/Worker/Telegram → GHCR @SHA"]
+  bt --> tf["terraform<br/>self-hosted helios · plan/apply"]
+  img --> dep["deploy-staging<br/>apply -k overlay · rollout status"]
+  tf --> dep
+  dep --> smoke["production smoke<br/>GET api:8080/health"]
+          </pre>
+        </div>
+        <div class="note">Migrations run as a pre-deploy Kubernetes <code>Job</code> (<code>args: ["migrate"]</code>), never at app startup. The Worker is <code>replicas: 1</code> with a <code>Recreate</code> strategy — the Hangfire scheduler and Run orchestration are a singleton by design. Only the API is exposed via ingress at <code>jobhunter.devoverflow.org</code>; traffic arrives Internet → Cloudflare → cloudflared tunnel → NGINX.</div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">When something is wrong</p>
+        <h3 class="sec-title num">The ten runbooks</h3>
+        <p>One runbook per alert; "page" means a Telegram message to the Owner.</p>
+        <table class="map">
+          <thead><tr><th>ID</th><th>Situation</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">R1</td><td>Digest not delivered by 07:15 — the product did not happen today.</td></tr>
+            <tr><td class="mono">R2</td><td>Run stuck (non-terminal for &gt; 6 h) — today's digest at risk.</td></tr>
+            <tr><td class="mono">R3</td><td>Cost ceiling approached or breached — warn at 70%, page on abort.</td></tr>
+            <tr><td class="mono">R4</td><td>Discovery starved or source failures — includes un-quarantining a source.</td></tr>
+            <tr><td class="mono">R5</td><td>LLM parse failures above 5% — degraded quality; the Run still completes.</td></tr>
+            <tr><td class="mono">R6</td><td>Outbox backlog or dead-letter growth — the pipeline stalls silently between stages.</td></tr>
+            <tr><td class="mono">R7</td><td>Pod restart loop.</td></tr>
+            <tr><td class="mono">R8</td><td>Typesense index drift — search stale; the digest is unaffected.</td></tr>
+            <tr><td class="mono">R9</td><td>Restore PostgreSQL from backup — RTO ~30 min.</td></tr>
+            <tr><td class="mono">R10</td><td>Rotate a credential — Anthropic / Telegram / DB / Keycloak / Infisical.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">What you can see</p>
+        <h3 class="sec-title num">Observability</h3>
+        <p>Every host calls <code>AddServiceDefaults()</code>; traces, logs and metrics go OTLP → Grafana Alloy → Grafana Cloud, correlated by <code>run_id</code> / <code>job_id</code>. Eight domain instruments live in <code>Telemetry.cs</code>:</p>
+        <div class="grid2">
+          <div class="card">
+            <h4>Metrics</h4>
+            <ul class="clean">
+              <li><code>jobhunter.run.duration</code> · <code>jobhunter.run.cost_usd</code></li>
+              <li><code>jobhunter.jobs.discovered</code> · <code>jobhunter.jobs.deduplicated</code></li>
+              <li><code>jobhunter.batch.latency</code> · <code>jobhunter.digest.cards</code></li>
+              <li><code>jobhunter.source.failures</code> · <code>jobhunter.llm.parse_failures</code></li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Health &amp; labels</h4>
+            <ul class="clean">
+              <li><code>/alive</code> liveness · <code>/ready</code> (PG+MQ+Redis) · <code>/health</code> (+Typesense, Anthropic, last-Run age)</li>
+              <li>Allowed labels: <code>stage</code>, <code>ats_kind</code>, <code>tier</code>, <code>environment</code>, <code>outcome</code></li>
+              <li>Forbidden as labels (span-only): <code>job_id</code>, <code>company_id</code>, <code>run_id</code></li>
+            </ul>
+          </div>
+        </div>
+        <p class="muted">Dashboards: Pipeline health, Cost, Quality (<code>precision@10</code>, ignore/save rate, suppression), Infrastructure. <code>/ready</code> must not check Anthropic or Typesense — they are not liveness dependencies.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Driving it by hand</p>
+        <h3 class="sec-title num">The Telegram command surface</h3>
+        <p>22 commands, asserted a bijection with the <code>CommandRegistry</code>. Sensitive commands need a confirmation tap; ✎ marks a command that changes state. Unknown input is matched by Damerau–Levenshtein (distance ≤ 2 suggests) — never by an LLM.</p>
+        <div class="grid2">
+          <div class="card">
+            <h4>Digest &amp; search</h4>
+            <ul class="clean">
+              <li><code>/digest</code> — re-render today's digest (does not re-deliver)</li>
+              <li><code>/more [n]</code> — next cards below the cut</li>
+              <li><code>/search &lt;q&gt;</code> — full-text search with <code>tech: stage: country: min: since:</code> filters</li>
+              <li><code>/hidden</code> — what ranking suppressed, and why</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Pipeline</h4>
+            <ul class="clean">
+              <li><code>/saved</code> · <code>/pipeline</code> · <code>/due</code> — the hiring pipeline</li>
+              <li><code>/note [text]</code> ✎ — annotate the last-touched application</li>
+              <li><code>/stats</code> — this week's outcomes and precision@10 trend</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Company &amp; profile</h4>
+            <ul class="clean">
+              <li><code>/company &lt;name&gt;</code> — the dossier; <code>/research &lt;name&gt;</code> ✎ — refresh it</li>
+              <li><code>/cv</code> — read-only CV metadata (never content, never upload)</li>
+              <li><code>/prefs</code> — learned weights as sentences; <code>/forget &lt;dim&gt;</code> ✎; <code>/floor &lt;amt&gt;</code> ✎</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Operations (sensitive)</h4>
+            <ul class="clean">
+              <li><code>/status</code> — last Run: outcome, cost vs ceiling, counts</li>
+              <li><code>/cost [YYYY-MM]</code> — spend by stage/tier vs projection</li>
+              <li><code>/sources</code> — per-provider health; release a quarantine</li>
+              <li><code>/run</code> ✎ — start a Run now; <code>/redeliver</code> ✎ — re-send today's digest</li>
+            </ul>
+          </div>
+        </div>
+        <p class="muted">Meta: <code>/start</code>, <code>/help [cmd]</code>, <code>/cancel</code>. An unauthorised chat receives nothing at all.</p>
+      </section>
+
+      <nav class="foot">
+        <a href="operation.html"><span class="dir">Previous</span>← End-to-end operation</a>
+        <a class="next" href="cost.html"><span class="dir">Next</span>Cost →</a>
+      </nav>
+    </article>
+
+    <!-- ============================ УКРАЇНСЬКА ============================ -->
+    <article class="page i18n-hide" data-lang="uk">
+      <p class="kicker">Експлуатація</p>
+      <h2 class="title">Деплой та експлуатація</h2>
+      <p class="lede">Випуск при push у <code>main</code> через self-hosted runner у k3s; спостереження через Grafana Cloud; керування й діагностика з Telegram; відновлення за десятьма runbook-ами. Кожен алерт відповідає рівно одному runbook.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Від push до подів</p>
+        <h3 class="sec-title num">Конвеєр CI/CD</h3>
+        <p>GitHub Actions збирає й тестує на hosted runner, потім self-hosted <code>helios</code> runner застосовує Terraform і Kustomize (API k3s недоступний публічно). Образи йдуть у GHCR з тегом за SHA коміту; overlays посилаються на SHA, ніколи на <code>:latest</code>.</p>
+        <div class="diagram-frame">
+          <span class="cap">develop → staging, main → production</span>
+          <pre class="mermaid">
+flowchart LR
+  push["push / PR"] --> bt["build-and-test<br/>restore · build (warnings=errors) · test + покриття &gt;90% · kustomize render"]
+  bt --> img["build-images<br/>матриця Api/Worker/Telegram → GHCR @SHA"]
+  bt --> tf["terraform<br/>self-hosted helios · plan/apply"]
+  img --> dep["deploy-staging<br/>apply -k overlay · статус rollout"]
+  tf --> dep
+  dep --> smoke["production smoke<br/>GET api:8080/health"]
+          </pre>
+        </div>
+        <div class="note">Міграції виконуються як pre-deploy Kubernetes <code>Job</code> (<code>args: ["migrate"]</code>), ніколи при старті застосунку. Worker — це <code>replicas: 1</code> зі стратегією <code>Recreate</code> — планувальник Hangfire і оркестрація Run є singleton за задумом. Лише API виставлений через ingress на <code>jobhunter.devoverflow.org</code>; трафік іде Internet → Cloudflare → cloudflared tunnel → NGINX.</div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Коли щось не так</p>
+        <h3 class="sec-title num">Десять runbook-ів</h3>
+        <p>Один runbook на алерт; «сповістити» означає Telegram-повідомлення власнику.</p>
+        <table class="map">
+          <thead><tr><th>ID</th><th>Ситуація</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">R1</td><td>Дайджест не доставлено до 07:15 — продукт сьогодні не відбувся.</td></tr>
+            <tr><td class="mono">R2</td><td>Run застряг (нетермінальний &gt; 6 год) — сьогоднішній дайджест під загрозою.</td></tr>
+            <tr><td class="mono">R3</td><td>Стелю вартості наближено чи перевищено — попередження на 70%, сповіщення при abort.</td></tr>
+            <tr><td class="mono">R4</td><td>Discovery виснажено чи збої джерел — включно з виведенням джерела з карантину.</td></tr>
+            <tr><td class="mono">R5</td><td>Збої парсингу LLM понад 5% — знижена якість; Run усе одно завершується.</td></tr>
+            <tr><td class="mono">R6</td><td>Затор outbox чи ріст dead-letter — конвеєр тихо застряє між стадіями.</td></tr>
+            <tr><td class="mono">R7</td><td>Цикл перезапуску пода.</td></tr>
+            <tr><td class="mono">R8</td><td>Дрейф індексу Typesense — пошук застарілий; дайджест не зачеплено.</td></tr>
+            <tr><td class="mono">R9</td><td>Відновлення PostgreSQL з бекапу — RTO ~30 хв.</td></tr>
+            <tr><td class="mono">R10</td><td>Ротація облікового запису — Anthropic / Telegram / DB / Keycloak / Infisical.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Що видно</p>
+        <h3 class="sec-title num">Спостережуваність</h3>
+        <p>Кожен хост викликає <code>AddServiceDefaults()</code>; трейси, логи й метрики йдуть OTLP → Grafana Alloy → Grafana Cloud, корельовані за <code>run_id</code> / <code>job_id</code>. Вісім доменних інструментів живуть у <code>Telemetry.cs</code>:</p>
+        <div class="grid2">
+          <div class="card">
+            <h4>Метрики</h4>
+            <ul class="clean">
+              <li><code>jobhunter.run.duration</code> · <code>jobhunter.run.cost_usd</code></li>
+              <li><code>jobhunter.jobs.discovered</code> · <code>jobhunter.jobs.deduplicated</code></li>
+              <li><code>jobhunter.batch.latency</code> · <code>jobhunter.digest.cards</code></li>
+              <li><code>jobhunter.source.failures</code> · <code>jobhunter.llm.parse_failures</code></li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Здоров'я й мітки</h4>
+            <ul class="clean">
+              <li><code>/alive</code> liveness · <code>/ready</code> (PG+MQ+Redis) · <code>/health</code> (+Typesense, Anthropic, вік останнього Run)</li>
+              <li>Дозволені мітки: <code>stage</code>, <code>ats_kind</code>, <code>tier</code>, <code>environment</code>, <code>outcome</code></li>
+              <li>Заборонені як мітки (лише span): <code>job_id</code>, <code>company_id</code>, <code>run_id</code></li>
+            </ul>
+          </div>
+        </div>
+        <p class="muted">Дашборди: Pipeline health, Cost, Quality (<code>precision@10</code>, частка ignore/save, придушення), Infrastructure. <code>/ready</code> не має перевіряти Anthropic чи Typesense — вони не є залежностями liveness.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Керування вручну</p>
+        <h3 class="sec-title num">Набір команд Telegram</h3>
+        <p>22 команди, стверджена бієкція з <code>CommandRegistry</code>. Чутливі команди потребують підтверджувального дотику; ✎ позначає команду, що змінює стан. Невідомий ввід зіставляється за Damerau–Levenshtein (відстань ≤ 2 пропонує) — ніколи LLM.</p>
+        <div class="grid2">
+          <div class="card">
+            <h4>Дайджест і пошук</h4>
+            <ul class="clean">
+              <li><code>/digest</code> — перерендерити дайджест дня (не переставляє)</li>
+              <li><code>/more [n]</code> — наступні картки нижче межі</li>
+              <li><code>/search &lt;q&gt;</code> — повнотекстовий пошук із фільтрами <code>tech: stage: country: min: since:</code></li>
+              <li><code>/hidden</code> — що ранжування придушило і чому</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Конвеєр</h4>
+            <ul class="clean">
+              <li><code>/saved</code> · <code>/pipeline</code> · <code>/due</code> — конвеєр найму</li>
+              <li><code>/note [текст]</code> ✎ — нотатка до останньої заявки</li>
+              <li><code>/stats</code> — цьотижневі результати й тренд precision@10</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Компанія й профіль</h4>
+            <ul class="clean">
+              <li><code>/company &lt;назва&gt;</code> — досьє; <code>/research &lt;назва&gt;</code> ✎ — оновити його</li>
+              <li><code>/cv</code> — метадані CV лише для читання (ніколи вміст, ніколи завантаження)</li>
+              <li><code>/prefs</code> — вивчені ваги як речення; <code>/forget &lt;dim&gt;</code> ✎; <code>/floor &lt;сума&gt;</code> ✎</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h4>Операції (чутливі)</h4>
+            <ul class="clean">
+              <li><code>/status</code> — останній Run: результат, вартість vs стеля, підрахунки</li>
+              <li><code>/cost [YYYY-MM]</code> — витрати за стадією/ярусом vs прогноз</li>
+              <li><code>/sources</code> — здоров'я провайдерів; звільнити з карантину</li>
+              <li><code>/run</code> ✎ — запустити Run зараз; <code>/redeliver</code> ✎ — переслати дайджест дня</li>
+            </ul>
+          </div>
+        </div>
+        <p class="muted">Мета: <code>/start</code>, <code>/help [cmd]</code>, <code>/cancel</code>. Неавторизований чат не отримує нічого взагалі.</p>
+      </section>
+
+      <nav class="foot">
+        <a href="operation.html"><span class="dir">Назад</span>← Робота від А до Я</a>
+        <a class="next" href="cost.html"><span class="dir">Далі</span>Вартість →</a>
+      </nav>
+    </article>
+  </main>
+</div>
+
+<script src="mermaid.min.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

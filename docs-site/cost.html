@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark light" />
+<title>Cost — JobHunter</title>
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('jh-theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      var l = localStorage.getItem('jh-lang');
+      document.documentElement.setAttribute('lang', l === 'uk' ? 'uk' : 'en');
+    } catch (e) {}
+  })();
+</script>
+<link rel="stylesheet" href="assets/site.css" />
+</head>
+<body data-page="cost">
+<div class="app">
+  <aside>
+    <a class="brand" href="index.html">
+      <div class="spark">JH</div>
+      <div>
+        <h1>JobHunter</h1>
+        <p class="sub" data-en="Runbook & onboarding" data-uk="Довідник і онбординг">Runbook &amp; onboarding</p>
+      </div>
+    </a>
+    <nav class="toc" id="toc"></nav>
+  </aside>
+
+  <main>
+    <div class="bar">
+      <span class="seg" role="group" aria-label="Theme">
+        <button id="th-light" type="button">Light</button>
+        <button id="th-dark" type="button">Dark</button>
+      </span>
+      <span class="seg" role="group" aria-label="Language">
+        <button id="lang-en" type="button">ENG</button>
+        <button id="lang-uk" type="button">UA</button>
+      </span>
+    </div>
+
+    <!-- ============================ ENGLISH ============================ -->
+    <article class="page" data-lang="en">
+      <p class="kicker">Operate it</p>
+      <h2 class="title">Cost</h2>
+      <p class="lede">Daily LLM spend is bounded and observable to the cent. The bill is almost entirely Anthropic — the helios cluster is self-hosted, and Grafana, Infisical, Telegram and GHCR sit in free tiers.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">The envelope</p>
+        <h3 class="sec-title num">Roughly $32 a month at a normal volume</h3>
+        <div class="econ">
+          <div class="metric"><span class="lbl">Per Run (worst case)</span><span class="val">~$1.02</span><span class="sub">enrich + match + synth + research, cached</span></div>
+          <div class="metric"><span class="lbl">75 jobs/day</span><span class="val">~$16</span><span class="sub">per month</span></div>
+          <div class="metric"><span class="lbl">Baseline</span><span class="val">~$32</span><span class="sub">per month, all-in</span></div>
+          <div class="metric"><span class="lbl">300 jobs/day</span><span class="val">~$62</span><span class="sub">per month</span></div>
+        </div>
+        <p class="muted">The self-hosted infrastructure adds ~$0; the monthly figure moves almost entirely with Anthropic volume.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Where a Run's money goes</p>
+        <h3 class="sec-title num">Per-Run breakdown</h3>
+        <p>Matching is the largest line item — and the one the pre-filter attacks. Passing roughly 40% of jobs to the Deep tier removes about 60% of that cost.</p>
+        <table class="map">
+          <thead><tr><th>Stage</th><th>Tier</th><th class="n">Items</th><th class="n">Cost</th></tr></thead>
+          <tbody>
+            <tr><td>Enrichment</td><td class="mono">Cheap</td><td class="n">150</td><td class="n">$0.43</td></tr>
+            <tr><td>Matching</td><td class="mono">Deep</td><td class="n">150 → 60</td><td class="n">$1.58 → $0.44</td></tr>
+            <tr><td>Synthesis</td><td class="mono">Deep</td><td class="n">1</td><td class="n">$0.01</td></tr>
+            <tr><td>Research</td><td class="mono">Deep</td><td class="n">5</td><td class="n">$0.14</td></tr>
+            <tr class="tot"><td>Per Run</td><td></td><td class="n"></td><td class="n">~$1.02</td></tr>
+          </tbody>
+        </table>
+        <div class="diagram-frame">
+          <span class="cap">The matching pre-filter is where the savings are</span>
+          <pre class="mermaid">
+flowchart LR
+  A["Enrichment · Cheap<br/>150 items · $0.43"] --> B{"pre-filter<br/>~40% to Deep"}
+  B -->|60 items| C["Matching · Deep<br/>$1.58 → $0.44"]
+  C --> D["Synthesis · Deep<br/>$0.01"]
+  C --> E["Research · Deep<br/>5 items · $0.14"]
+  D --> F["≈ $1.02 / Run"]
+  E --> F
+          </pre>
+        </div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">The prices behind it</p>
+        <h3 class="sec-title num">Two tiers, a 50% batch discount</h3>
+        <table class="map">
+          <thead><tr><th>Model</th><th>Tier</th><th class="n">Input $/1M</th><th class="n">Output $/1M</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">claude-haiku-4-5</td><td>Cheap</td><td class="n">1.00</td><td class="n">5.00</td></tr>
+            <tr><td class="mono">claude-sonnet-5</td><td>Deep</td><td class="n">3.00</td><td class="n">15.00</td></tr>
+            <tr><td class="mono">claude-opus-5</td><td>Deep (upgrade)</td><td class="n">5.00</td><td class="n">25.00</td></tr>
+          </tbody>
+        </table>
+        <p class="muted">Sonnet 5 introductory pricing is $2.00 / $10.00 through 2026-08-31. Upgrading the Deep tier to opus-5 roughly doubles the monthly figure. The Batches API applies a 50% discount.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Why the ceiling is trustworthy</p>
+        <h3 class="sec-title num">Priced pessimistically, checked before the call</h3>
+        <p>The cache discount is applied at retrieval time, so the ceiling prices pessimistically at full input — the worst-case matching cost lands near <strong>$0.44</strong>. <code>CostAccountant.Estimate</code> prices the actually-rendered prompt with the batch discount and writes an <code>Estimated</code> ledger entry <em>before</em> <code>SubmitAsync</code>. If the sum of actuals plus outstanding estimates would exceed <code>ceiling_usd</code>, the client is never called — the Run becomes <code>CostAborted</code> and a reduced digest still ships.</p>
+        <div class="note">This is invariant 6, and the test for it asserts the LLM client is never called when the ceiling would be breached. A weekly opt-in live test (<code>LiveAnthropicCostAndCacheTests</code>, gated on <code>ANTHROPIC_API_KEY</code>) submits a 20-item matching batch and asserts a &gt;90% cache-hit rate, pricing it through the same <code>CostAccountant</code>.</div>
+      </section>
+
+      <nav class="foot">
+        <a href="runbook.html"><span class="dir">Previous</span>← Deploy &amp; operate</a>
+        <a class="next" href="index.html"><span class="dir">Back to</span>Overview →</a>
+      </nav>
+    </article>
+
+    <!-- ============================ УКРАЇНСЬКА ============================ -->
+    <article class="page i18n-hide" data-lang="uk">
+      <p class="kicker">Експлуатація</p>
+      <h2 class="title">Вартість</h2>
+      <p class="lede">Щоденні витрати на LLM обмежені й спостережувані до цента. Рахунок майже повністю Anthropic — кластер helios self-hosted, а Grafana, Infisical, Telegram і GHCR у безкоштовних тарифах.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Бюджет</p>
+        <h3 class="sec-title num">Приблизно $32 на місяць за звичайного обсягу</h3>
+        <div class="econ">
+          <div class="metric"><span class="lbl">На Run (найгірший)</span><span class="val">~$1.02</span><span class="sub">enrich + match + synth + research, кеш</span></div>
+          <div class="metric"><span class="lbl">75 вакансій/день</span><span class="val">~$16</span><span class="sub">на місяць</span></div>
+          <div class="metric"><span class="lbl">База</span><span class="val">~$32</span><span class="sub">на місяць, усе разом</span></div>
+          <div class="metric"><span class="lbl">300 вакансій/день</span><span class="val">~$62</span><span class="sub">на місяць</span></div>
+        </div>
+        <p class="muted">Self-hosted інфраструктура додає ~$0; місячна цифра рухається майже повністю з обсягом Anthropic.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Куди йдуть гроші Run</p>
+        <h3 class="sec-title num">Розклад на один Run</h3>
+        <p>Matching — найбільша стаття, і саме її атакує pre-filter. Пропускання приблизно 40% вакансій на рівень Deep прибирає близько 60% цієї вартості.</p>
+        <table class="map">
+          <thead><tr><th>Стадія</th><th>Ярус</th><th class="n">Елементи</th><th class="n">Вартість</th></tr></thead>
+          <tbody>
+            <tr><td>Enrichment</td><td class="mono">Cheap</td><td class="n">150</td><td class="n">$0.43</td></tr>
+            <tr><td>Matching</td><td class="mono">Deep</td><td class="n">150 → 60</td><td class="n">$1.58 → $0.44</td></tr>
+            <tr><td>Synthesis</td><td class="mono">Deep</td><td class="n">1</td><td class="n">$0.01</td></tr>
+            <tr><td>Research</td><td class="mono">Deep</td><td class="n">5</td><td class="n">$0.14</td></tr>
+            <tr class="tot"><td>На Run</td><td></td><td class="n"></td><td class="n">~$1.02</td></tr>
+          </tbody>
+        </table>
+        <div class="diagram-frame">
+          <span class="cap">Pre-filter matching — де захована економія</span>
+          <pre class="mermaid">
+flowchart LR
+  A["Enrichment · Cheap<br/>150 елементів · $0.43"] --> B{"pre-filter<br/>~40% на Deep"}
+  B -->|60 елементів| C["Matching · Deep<br/>$1.58 → $0.44"]
+  C --> D["Synthesis · Deep<br/>$0.01"]
+  C --> E["Research · Deep<br/>5 елементів · $0.14"]
+  D --> F["≈ $1.02 / Run"]
+  E --> F
+          </pre>
+        </div>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Ціни за цим</p>
+        <h3 class="sec-title num">Два яруси, знижка batch 50%</h3>
+        <table class="map">
+          <thead><tr><th>Модель</th><th>Ярус</th><th class="n">Вхід $/1M</th><th class="n">Вихід $/1M</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">claude-haiku-4-5</td><td>Cheap</td><td class="n">1.00</td><td class="n">5.00</td></tr>
+            <tr><td class="mono">claude-sonnet-5</td><td>Deep</td><td class="n">3.00</td><td class="n">15.00</td></tr>
+            <tr><td class="mono">claude-opus-5</td><td>Deep (апгрейд)</td><td class="n">5.00</td><td class="n">25.00</td></tr>
+          </tbody>
+        </table>
+        <p class="muted">Вступна ціна Sonnet 5 — $2.00 / $10.00 до 2026-08-31. Апгрейд рівня Deep до opus-5 приблизно подвоює місячну цифру. Batches API дає знижку 50%.</p>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Чому стелі можна довіряти</p>
+        <h3 class="sec-title num">Оцінено песимістично, перевірено перед викликом</h3>
+        <p>Знижка кешу застосовується при отриманні, тож стеля оцінює песимістично за повним входом — найгірша вартість matching біля <strong>$0.44</strong>. <code>CostAccountant.Estimate</code> оцінює фактично зрендерений prompt зі знижкою batch і пише запис <code>Estimated</code> у реєстр <em>перед</em> <code>SubmitAsync</code>. Якщо сума фактичних плюс невиконаних оцінок перевищить <code>ceiling_usd</code>, клієнт не викликається — Run стає <code>CostAborted</code>, а скорочений дайджест усе одно виходить.</p>
+        <div class="note">Це інваріант 6, і тест на нього стверджує, що клієнт LLM ніколи не викликається, коли стелю було б перевищено. Щотижневий opt-in live-тест (<code>LiveAnthropicCostAndCacheTests</code>, за ключем <code>ANTHROPIC_API_KEY</code>) відправляє matching batch на 20 елементів і стверджує &gt;90% влучань кешу, оцінюючи через той самий <code>CostAccountant</code>.</div>
+      </section>
+
+      <nav class="foot">
+        <a href="runbook.html"><span class="dir">Назад</span>← Деплой та експлуатація</a>
+        <a class="next" href="index.html"><span class="dir">Повернутись до</span>Огляд →</a>
+      </nav>
+    </article>
+  </main>
+</div>
+
+<script src="mermaid.min.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

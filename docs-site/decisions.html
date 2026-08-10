@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark light" />
+<title>Decisions (ADRs) — JobHunter</title>
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem('jh-theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      var l = localStorage.getItem('jh-lang');
+      document.documentElement.setAttribute('lang', l === 'uk' ? 'uk' : 'en');
+    } catch (e) {}
+  })();
+</script>
+<link rel="stylesheet" href="assets/site.css" />
+</head>
+<body data-page="decisions">
+<div class="app">
+  <aside>
+    <a class="brand" href="index.html">
+      <div class="spark">JH</div>
+      <div>
+        <h1>JobHunter</h1>
+        <p class="sub" data-en="Runbook & onboarding" data-uk="Довідник і онбординг">Runbook &amp; onboarding</p>
+      </div>
+    </a>
+    <nav class="toc" id="toc"></nav>
+  </aside>
+
+  <main>
+    <div class="bar">
+      <span class="seg" role="group" aria-label="Theme">
+        <button id="th-light" type="button">Light</button>
+        <button id="th-dark" type="button">Dark</button>
+      </span>
+      <span class="seg" role="group" aria-label="Language">
+        <button id="lang-en" type="button">ENG</button>
+        <button id="lang-uk" type="button">UA</button>
+      </span>
+    </div>
+
+    <!-- ============================ ENGLISH ============================ -->
+    <article class="page" data-lang="en">
+      <p class="kicker">How it is built</p>
+      <h2 class="title">Decisions &amp; features</h2>
+      <p class="lede">Fifteen accepted Architecture Decision Records fix the stack; eleven features (F0–F10) build on it, each past a docs-first readiness gate before any code. Nothing here is provisional.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">The stack, decided</p>
+        <h3 class="sec-title num">Fifteen accepted ADRs</h3>
+        <table class="map">
+          <thead><tr><th>ADR</th><th>Decision</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">0001</td><td><strong>Modular monolith, three deployables, nine stages.</strong> One repo split into three deployables over durable message boundaries, not in-process calls.</td></tr>
+            <tr><td class="mono">0002</td><td><strong>RabbitMQ transport, Wolverine handlers.</strong> Reuse the existing broker; Wolverine handlers with its transactional outbox.</td></tr>
+            <tr><td class="mono">0003</td><td><strong>PostgreSQL single store; EF Core writes, Dapper reads.</strong> EF Core owns migrations and aggregate writes; Dapper owns read models and never writes.</td></tr>
+            <tr><td class="mono">0004</td><td><strong>Hangfire for scheduling, over Quartz.NET.</strong> Durable scheduling on PostgreSQL under a <code>hangfire</code> schema.</td></tr>
+            <tr><td class="mono">0005</td><td><strong>Anthropic Message Batches API, two-tier cascade.</strong> The ~50%-cheaper Batches API with a Cheap tier for extraction and a Deep tier for judgement.</td></tr>
+            <tr><td class="mono">0006</td><td><strong>Schema-bound structured output, tolerant parsing.</strong> Validate every field against a versioned schema; one bad item of 150 never fails the Run.</td></tr>
+            <tr><td class="mono">0007</td><td><strong>EF Core transactional outbox.</strong> Atomic state-change + event publication — no duplicate spend, no duplicate delivery.</td></tr>
+            <tr><td class="mono">0008</td><td><strong>Typesense over PostgreSQL FTS.</strong> Facets and typo tolerance from a rebuildable projection.</td></tr>
+            <tr><td class="mono">0009</td><td><strong>ATS-first; LinkedIn and aggregators out of scope.</strong> Ingest only documented ATS JSON endpoints; no scraping.</td></tr>
+            <tr><td class="mono">0010</td><td><strong>Kustomize + GHCR + self-hosted runner.</strong> Kustomize overlays, GHCR images, a self-hosted Actions runner so the k3s API stays private.</td></tr>
+            <tr><td class="mono">0011</td><td><strong>Infisical for runtime secrets.</strong> Machine-identity Infisical for secrets; a Terraform-produced ConfigMap for non-secret config.</td></tr>
+            <tr><td class="mono">0012</td><td><strong>OTLP → Grafana Alloy → Grafana Cloud.</strong> All traces, logs and metrics correlated by run_id / job_id.</td></tr>
+            <tr><td class="mono">0013</td><td><strong>.NET Aspire for local dev only.</strong> Aspire orchestrates the dev environment; production stays Kustomize.</td></tr>
+            <tr><td class="mono">0014</td><td><strong>Keycloak OIDC for the API; chat-id allowlist for the bot.</strong> Default-deny API scopes; the bot authorises by Telegram chat id.</td></tr>
+            <tr><td class="mono">0015</td><td><strong>UUID v7 keys, timestamptz UTC, numeric money.</strong> Time-ordered keys, UTC timestamps, exact decimal money.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">What gets built on top</p>
+        <h3 class="sec-title num">The eleven features</h3>
+        <p>Each feature is a folder of PRD, SAD, data model and test plan, accepted before the first task. Every task is one reviewable PR of ≤ 500 lines.</p>
+        <table class="map">
+          <thead><tr><th>Feature</th><th>Delivers</th></tr></thead>
+          <tbody>
+            <tr><td class="p">F0 · Platform Foundation</td><td>The scaffolding: solution/layers, database, bus, scheduler, telemetry, images, deploy pipeline. No user-visible behaviour, deliberately.</td></tr>
+            <tr><td class="p">F1 · ATS Job Discovery</td><td>Company registry, ATS detection, polite 6-hour board fetches, immutable RawPosting storage.</td></tr>
+            <tr><td class="p">F2 · Normalization &amp; Deduplication</td><td>Raw payloads → canonical Job; the same vacancy across boards collapses into one. The dedup corpus: zero false merges or the build fails.</td></tr>
+            <tr><td class="p">F3 · Claude Batch Enrichment</td><td>The engine room: the resumable Run state machine and Batch lifecycle, producing an Enrichment per job. The crash matrix: eight kill points.</td></tr>
+            <tr><td class="p">F4 · CV Matching &amp; Ranking</td><td>Fit, why, gaps, interview probability; the single ordering number. The CV-leakage scan and the golden ranking set.</td></tr>
+            <tr><td class="p">F5 · Daily Digest &amp; Telegram Delivery</td><td>The product: one 07:00 message plus scannable cards with one-tap actions. First shippable release.</td></tr>
+            <tr><td class="p">F6 · Application Tracking</td><td>The hiring pipeline as a first-class object: seven statuses, history, notes, stale reminders.</td></tr>
+            <tr><td class="p">F7 · Preference Learning</td><td>Every Ignore/Save/Applied outcome becomes weights that reorder tomorrow — and a sentence the digest says out loud.</td></tr>
+            <tr><td class="p">F8 · Company Research Agent</td><td>Auto-research of top companies with a URL beside every claim. The uncited-claim and SSRF suites.</td></tr>
+            <tr><td class="p">F9 · Search &amp; Public API</td><td>Typesense search with typo tolerance and facets, exposed via a Keycloak-protected HTTP API.</td></tr>
+            <tr><td class="p">F10 · Telegram Command Interface</td><td>The pull side: 22 commands to search, work the pipeline, read dossiers, inspect learning and trigger re-runs.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">The named suites</p>
+        <h3 class="sec-title num">Tests that carry a feature's credibility</h3>
+        <ul class="clean">
+          <li><strong>F2 — the dedup corpus:</strong> zero false merges, or the build fails.</li>
+          <li><strong>F3 — the crash matrix:</strong> eight kill points, each asserting exactly one batch submission.</li>
+          <li><strong>F4 — the CV-leakage scan</strong> (sentinel tokens, no allowlist) and the golden ranking set.</li>
+          <li><strong>F5 — the rendering corpus</strong> and the duplicate-delivery suite.</li>
+          <li><strong>F7 — the synthetic-behaviour corpus,</strong> including the indifferent profile that must produce no weights.</li>
+          <li><strong>F8 — the uncited-claim and SSRF suites.</strong></li>
+          <li><strong>F9 — the index scan, rebuild equivalence and endpoint-convention suites.</strong></li>
+        </ul>
+        <div class="note">Coverage must stay above <strong>90%</strong> (line and branch), CI-enforced by a Coverlet threshold that fails <code>dotnet test</code> itself. Excluded: the three host <code>Program.cs</code> roots, the Aspire AppHost, ServiceDefaults and Contracts.</div>
+      </section>
+
+      <nav class="foot">
+        <a href="architecture.html"><span class="dir">Previous</span>← Architecture</a>
+        <a class="next" href="setup.html"><span class="dir">Next</span>Setup &amp; configuration →</a>
+      </nav>
+    </article>
+
+    <!-- ============================ УКРАЇНСЬКА ============================ -->
+    <article class="page i18n-hide" data-lang="uk">
+      <p class="kicker">Як це побудовано</p>
+      <h2 class="title">Рішення й функції</h2>
+      <p class="lede">П'ятнадцять прийнятих Architecture Decision Records фіксують стек; одинадцять функцій (F0–F10) будуються на ньому, кожна пройшла docs-first-ворота готовності до будь-якого коду. Тут немає нічого тимчасового.</p>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Стек, вирішено</p>
+        <h3 class="sec-title num">П'ятнадцять прийнятих ADR</h3>
+        <table class="map">
+          <thead><tr><th>ADR</th><th>Рішення</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">0001</td><td><strong>Модульний моноліт, три розгортання, дев'ять стадій.</strong> Один репозиторій, розділений на три розгортання через довговічні межі повідомлень, не внутрішньопроцесні виклики.</td></tr>
+            <tr><td class="mono">0002</td><td><strong>Транспорт RabbitMQ, обробники Wolverine.</strong> Повторне використання наявного брокера; обробники Wolverine з його транзакційним outbox.</td></tr>
+            <tr><td class="mono">0003</td><td><strong>PostgreSQL — єдине сховище; EF Core пише, Dapper читає.</strong> EF Core володіє міграціями й записами; Dapper володіє моделями читання і ніколи не пише.</td></tr>
+            <tr><td class="mono">0004</td><td><strong>Hangfire для планування, замість Quartz.NET.</strong> Довговічне планування на PostgreSQL у схемі <code>hangfire</code>.</td></tr>
+            <tr><td class="mono">0005</td><td><strong>Anthropic Message Batches API, двоярусний каскад.</strong> На ~50% дешевший Batches API з ярусом Cheap для екстракції та Deep для судження.</td></tr>
+            <tr><td class="mono">0006</td><td><strong>Структурований вивід за схемою, толерантний парсинг.</strong> Кожне поле валідується проти версіонованої схеми; один поганий елемент зі 150 ніколи не валить Run.</td></tr>
+            <tr><td class="mono">0007</td><td><strong>Транзакційний outbox EF Core.</strong> Атомарна зміна стану + публікація події — без подвійних витрат і подвійної доставки.</td></tr>
+            <tr><td class="mono">0008</td><td><strong>Typesense замість PostgreSQL FTS.</strong> Фасети й толерантність до одруківок із перебудовуваної проєкції.</td></tr>
+            <tr><td class="mono">0009</td><td><strong>ATS-first; LinkedIn та агрегатори поза межами.</strong> Приймати лише документовані ATS JSON-ендпойнти; без скрапінгу.</td></tr>
+            <tr><td class="mono">0010</td><td><strong>Kustomize + GHCR + self-hosted runner.</strong> Overlays Kustomize, образи GHCR, self-hosted Actions runner, щоб API k3s лишався приватним.</td></tr>
+            <tr><td class="mono">0011</td><td><strong>Infisical для runtime-секретів.</strong> Infisical із machine-identity для секретів; ConfigMap із Terraform для несекретної конфігурації.</td></tr>
+            <tr><td class="mono">0012</td><td><strong>OTLP → Grafana Alloy → Grafana Cloud.</strong> Усі трейси, логи й метрики корельовані за run_id / job_id.</td></tr>
+            <tr><td class="mono">0013</td><td><strong>.NET Aspire лише для локальної розробки.</strong> Aspire оркеструє dev-середовище; продакшн лишається на Kustomize.</td></tr>
+            <tr><td class="mono">0014</td><td><strong>Keycloak OIDC для API; allowlist chat-id для бота.</strong> Default-deny скоупи API; бот авторизує за Telegram chat id.</td></tr>
+            <tr><td class="mono">0015</td><td><strong>Ключі UUID v7, timestamptz UTC, numeric для грошей.</strong> Впорядковані в часі ключі, UTC-мітки, точні десяткові гроші.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Що будується згори</p>
+        <h3 class="sec-title num">Одинадцять функцій</h3>
+        <p>Кожна функція — це тека з PRD, SAD, моделлю даних і тест-планом, прийнятими до першого завдання. Кожне завдання — один PR на ≤ 500 рядків.</p>
+        <table class="map">
+          <thead><tr><th>Функція</th><th>Що дає</th></tr></thead>
+          <tbody>
+            <tr><td class="p">F0 · Platform Foundation</td><td>Каркас: рішення/шари, база, шина, планувальник, телеметрія, образи, деплой-конвеєр. Свідомо без видимої поведінки.</td></tr>
+            <tr><td class="p">F1 · ATS Job Discovery</td><td>Реєстр компаній, виявлення ATS, ввічливі 6-годинні опитування дошок, незмінне зберігання RawPosting.</td></tr>
+            <tr><td class="p">F2 · Normalization &amp; Deduplication</td><td>Сирі payload-и → канонічна Job; та сама вакансія на різних дошках зливається в одну. Дедуп-корпус: нуль хибних злиттів або білд падає.</td></tr>
+            <tr><td class="p">F3 · Claude Batch Enrichment</td><td>Двигун: відновлюваний автомат Run і життєвий цикл Batch, що дає Enrichment на вакансію. Crash-матриця: вісім точок збою.</td></tr>
+            <tr><td class="p">F4 · CV Matching &amp; Ranking</td><td>Відповідність, чому, прогалини, імовірність співбесіди; єдине число впорядкування. Скан витоку CV і золотий набір ранжування.</td></tr>
+            <tr><td class="p">F5 · Daily Digest &amp; Telegram Delivery</td><td>Продукт: одне повідомлення о 07:00 плюс скановані картки з діями в один дотик. Перший придатний до випуску реліз.</td></tr>
+            <tr><td class="p">F6 · Application Tracking</td><td>Конвеєр найму як першокласний об'єкт: сім статусів, історія, нотатки, нагадування про застій.</td></tr>
+            <tr><td class="p">F7 · Preference Learning</td><td>Кожен результат Ignore/Save/Applied стає вагами, що переставляють завтра — і реченням, яке дайджест промовляє вголос.</td></tr>
+            <tr><td class="p">F8 · Company Research Agent</td><td>Автодослідження топ-компаній з URL біля кожного твердження. Набори uncited-claim та SSRF.</td></tr>
+            <tr><td class="p">F9 · Search &amp; Public API</td><td>Пошук Typesense із толерантністю до одруківок і фасетами, доступний через HTTP API під захистом Keycloak.</td></tr>
+            <tr><td class="p">F10 · Telegram Command Interface</td><td>Сторона витягування: 22 команди для пошуку, роботи з конвеєром, читання досьє, інспекції навчання й запуску повторів.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="sec">
+        <p class="sec-eyebrow">Іменовані набори</p>
+        <h3 class="sec-title num">Тести, що несуть довіру до функції</h3>
+        <ul class="clean">
+          <li><strong>F2 — дедуп-корпус:</strong> нуль хибних злиттів, або білд падає.</li>
+          <li><strong>F3 — crash-матриця:</strong> вісім точок збою, кожна стверджує рівно одну відправку batch.</li>
+          <li><strong>F4 — скан витоку CV</strong> (sentinel-токени, без allowlist) і золотий набір ранжування.</li>
+          <li><strong>F5 — корпус рендерингу</strong> і набір подвійної доставки.</li>
+          <li><strong>F7 — корпус синтетичної поведінки,</strong> включно з байдужим профілем, що має дати нуль ваг.</li>
+          <li><strong>F8 — набори uncited-claim та SSRF.</strong></li>
+          <li><strong>F9 — набори index scan, rebuild equivalence та endpoint-convention.</strong></li>
+        </ul>
+        <div class="note">Покриття має лишатися вище <strong>90%</strong> (рядки й гілки), гарантовано в CI порогом Coverlet, що валить сам <code>dotnet test</code>. Виключені: три хостові корені <code>Program.cs</code>, Aspire AppHost, ServiceDefaults і Contracts.</div>
+      </section>
+
+      <nav class="foot">
+        <a href="architecture.html"><span class="dir">Назад</span>← Архітектура</a>
+        <a class="next" href="setup.html"><span class="dir">Далі</span>Встановлення й конфіг →</a>
+      </nav>
+    </article>
+  </main>
+</div>
+
+<script src="mermaid.min.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>
