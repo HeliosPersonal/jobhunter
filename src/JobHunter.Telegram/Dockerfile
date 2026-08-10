@@ -13,6 +13,7 @@ COPY src/JobHunter.Contracts/*.csproj       src/JobHunter.Contracts/
 COPY src/JobHunter.Claude/*.csproj          src/JobHunter.Claude/
 COPY src/JobHunter.Scrapers/*.csproj        src/JobHunter.Scrapers/
 COPY src/JobHunter.Search/*.csproj          src/JobHunter.Search/
+COPY src/JobHunter.Telegram.Transport/*.csproj src/JobHunter.Telegram.Transport/
 COPY src/Aspire/JobHunter.ServiceDefaults/*.csproj src/Aspire/JobHunter.ServiceDefaults/
 RUN dotnet restore src/JobHunter.Telegram/JobHunter.Telegram.csproj
 

@@ -1,0 +1,71 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: jobhunter-backup
+  labels: { app: jobhunter-backup }
+spec:
+  # 01:00 UTC nightly — before the 02:00 Europe/Kyiv StartDailyRun tick, so the object stored under
+  # yesterday's date (runbook R9) is a clean pre-Run snapshot. Nightly pg_dump → Azure Blob, F0 T15.
+  schedule: "0 1 * * *"
+  concurrencyPolicy: Forbid          # never two dumps at once; a slow dump skips the next tick
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: backup
+              # azure-cli is Alpine-based; the pg_dump client and the Infisical CLI are added at start, so
+              # there is nothing bespoke to build and publish for a once-a-day job.
+              image: mcr.microsoft.com/azure-cli:2.61.0
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -euo pipefail
+                  apk add --no-cache postgresql17-client gzip curl bash >/dev/null
+                  curl -1sLf https://artifacts-cli.infisical.com/setup.alpine.sh | bash >/dev/null
+                  apk add --no-cache infisical >/dev/null
+
+                  # Fetch the database password and the Azure Blob connection string from Infisical with the
+                  # same machine-identity bootstrap credentials the apps use — no secret is in this manifest
+                  # or in the image layers (invariant 12).
+                  export INFISICAL_TOKEN="$(infisical login --method=universal-auth \
+                    --client-id="$INFISICAL_CLIENT_ID" --client-secret="$INFISICAL_CLIENT_SECRET" \
+                    --plain --silent)"
+                  PG_PASSWORD="$(infisical secrets get PG_PASSWORD \
+                    --projectId="$INFISICAL_PROJECT_ID" --env="$ENV_NAME" --plain)"
+                  AZURE_STORAGE_CONNECTION_STRING="$(infisical secrets get AZURE_STORAGE_CONNECTION_STRING \
+                    --projectId="$INFISICAL_PROJECT_ID" --env="$ENV_NAME" --plain)"
+
+                  STAMP="$(date +%Y%m%d)"
+                  OBJECT="${ENV_NAME}_jobhunter_${STAMP}.sql.gz"
+                  echo "Dumping ${ENV_NAME}_jobhunter from ${PG_HOST}:${PG_PORT} -> ${OBJECT}"
+                  PGPASSWORD="$PG_PASSWORD" pg_dump -h "$PG_HOST" -p "$PG_PORT" -U "$PG_USER" \
+                    -d "${ENV_NAME}_jobhunter" --no-owner --no-privileges \
+                    | gzip -9 > "/tmp/${OBJECT}"
+
+                  az storage blob upload --only-show-errors \
+                    --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+                    --container-name jobhunter-backups --name "$OBJECT" --file "/tmp/${OBJECT}"
+
+                  # Prune anything past the 30-day retention window so the container does not grow unbounded.
+                  CUTOFF="$(date -u -d '30 days ago' +%Y-%m-%dT%H:%M:%SZ)"
+                  az storage blob delete-batch --only-show-errors \
+                    --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+                    --source jobhunter-backups \
+                    --if-unmodified-since "$CUTOFF"
+                  echo "Backup ${OBJECT} uploaded; objects older than ${CUTOFF} pruned."
+              envFrom:
+                # ENV_NAME, PG_HOST, PG_PORT, PG_USER — the per-environment overlay's configMapGenerator.
+                - configMapRef: { name: jobhunter-backup-config }
+              env:
+                # The same three bootstrap values the deployments use to reach Infisical (deployment §5).
+                - name: INFISICAL_CLIENT_ID
+                  valueFrom: { secretKeyRef: { name: infisical-credentials, key: INFISICAL_CLIENT_ID } }
+                - name: INFISICAL_CLIENT_SECRET
+                  valueFrom: { secretKeyRef: { name: infisical-credentials, key: INFISICAL_CLIENT_SECRET } }
+                - name: INFISICAL_PROJECT_ID
+                  valueFrom: { secretKeyRef: { name: infisical-credentials, key: INFISICAL_PROJECT_ID } }
