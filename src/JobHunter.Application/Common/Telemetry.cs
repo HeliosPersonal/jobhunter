@@ -75,6 +75,13 @@ public static class Telemetry
     public static readonly Counter<long> Prefiltered =
         Meter.CreateCounter<long>("jobhunter.matching.prefiltered", "jobs", "Jobs excluded by the pre-match filter, by rule");
 
+    // F4 T21 (done-when 1/2, ADR-F4-0003): regret — of the sample of pre-match-excluded jobs matched at the
+    // cheap tier this week, how many would have scored at or above the presentation threshold. A gauge, not a
+    // counter: the last measured week is what a dashboard charts, and any non-zero value falsifies a filter
+    // rule (the counterpart to jobhunter.matching.prefiltered, which only shows how much each rule removes).
+    public static readonly Gauge<long> MatchingRegret =
+        Meter.CreateGauge<long>("jobhunter.matching.regret", "jobs", "Sampled excluded jobs that would have scored above threshold");
+
     // F7 T07 (AC-06): an Owner override contradicted the model's verdict — a never-suppress rule forced a
     // hidden job to appear, or an always-suppress rule hid a shown one. Counted so the tension is visible,
     // never a silent rewrite (invariant 11).
