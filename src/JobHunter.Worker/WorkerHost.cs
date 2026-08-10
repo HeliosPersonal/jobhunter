@@ -45,6 +45,20 @@ public static class WorkerHost
         builder.Services.AddScoped<JobHunter.Application.Reporting.INarrativeSynthesizer,
             JobHunter.Application.Reporting.NarrativeSynthesizer>();
 
+        // The regret matcher (IRegretMatcher) is the same shape (F4 T21): it depends on the Claude match
+        // request-builder/result-parser ports registered just above, so — like the synthesiser — it is composed
+        // here in the pipeline host, never in the read-only Api or Telegram. Its two time bounds are
+        // startup-validated so a stuck weekly batch can never hang the sampler's Hangfire job.
+        builder.Services.AddOptions<JobHunter.Application.Ratings.RegretMatchingOptions>()
+            .Bind(builder.Configuration.GetSection(JobHunter.Application.Ratings.RegretMatchingOptions.SectionName))
+            .Validate(o => o.Timeout > TimeSpan.Zero, "RegretMatching:Timeout must be positive.")
+            .Validate(o => o.PollInterval > TimeSpan.Zero, "RegretMatching:PollInterval must be positive.")
+            .ValidateOnStart();
+        builder.Services.AddSingleton(sp =>
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<JobHunter.Application.Ratings.RegretMatchingOptions>>().Value);
+        builder.Services.AddScoped<JobHunter.Domain.Abstractions.IRegretMatcher,
+            JobHunter.Application.Ratings.RegretMatcher>();
+
         // The delivery handler is a Wolverine-discovered pipeline handler, so its one tunable — the Owner's
         // chat id, the chat_id half of the idempotence key — is registered and startup-validated here, in the
         // host that actually delivers, rather than in the shared Application registrations (F5 T08/T09).

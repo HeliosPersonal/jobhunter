@@ -125,6 +125,36 @@ public sealed class RegretSamplerTests
         await query.Received(1).SampleAsync(20, Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task Handle_resolves_the_previous_seven_day_week_and_samples_it()
+    {
+        var log = new FakeRegretSampleLog();
+        var query = Substitute.For<IFilterExcludedSampleQuery>();
+        query.SampleAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([]);
+        var sampler = new RegretSampler(
+            query, new FakeRegretMatcher(), log, new CapturingNotifier(),
+            DeliveryOptionsFor(OwnerChatId), NullLogger<RegretSampler>.Instance);
+        var dueAt = new DateTimeOffset(2026, 8, 10, 6, 0, 0, TimeSpan.Zero);  // a Monday 09:00 Kyiv in UTC
+
+        await sampler.Handle(new RegretSampleDue(dueAt), CancellationToken.None);
+
+        // The half-open [DueAt - 7d, DueAt) window, exactly as the rating loop resolves it, so the two weekly
+        // ticks agree on which week they are reviewing and a redelivery reproduces the same idempotence key.
+        log.OpenedWeeks.ShouldHaveSingleItem();
+        log.OpenedWeeks.Single().ShouldBe(dueAt.AddDays(-7));
+        await query.Received(1).SampleAsync(20, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_rejects_a_null_message()
+    {
+        var sampler = new RegretSampler(
+            Substitute.For<IFilterExcludedSampleQuery>(), new FakeRegretMatcher(), new FakeRegretSampleLog(),
+            new CapturingNotifier(), DeliveryOptionsFor(OwnerChatId), NullLogger<RegretSampler>.Instance);
+
+        await Should.ThrowAsync<ArgumentNullException>(() => sampler.Handle(null!, CancellationToken.None));
+    }
+
     private static RegretSampler NewSampler(
         FakeRegretMatcher matcher,
         CapturingNotifier notifier,
@@ -187,6 +217,9 @@ public sealed class RegretSamplerTests
     private sealed class FakeRegretSampleLog : IRegretSampleLog
     {
         private readonly ConcurrentDictionary<DateTimeOffset, byte> _weeks = new();
+
+        /// <summary>The weeks a genuine first open landed for, so a test can assert the resolved window.</summary>
+        public IReadOnlyCollection<DateTimeOffset> OpenedWeeks => _weeks.Keys.ToList();
 
         public Task<bool> TryOpenAsync(
             DateTimeOffset weekStart, DateTimeOffset openedAt, CancellationToken cancellationToken = default) =>

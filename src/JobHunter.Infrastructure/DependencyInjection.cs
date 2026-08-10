@@ -315,6 +315,7 @@ public static class DependencyInjection
         services.AddScoped<ReminderSweepTrigger>();
         services.AddScoped<PreferenceRefitTrigger>();
         services.AddScoped<WeeklyRatingTrigger>();
+        services.AddScoped<RegretSampleTrigger>();
 
         // F5 daily digest schedule (T09): the three Europe/Kyiv ticks that bracket the day — 02:00 opens the
         // Run, 06:45 assembles whatever it produced, 07:00 delivers. Only the Worker's Hangfire server resolves
@@ -458,6 +459,19 @@ public static class DependencyInjection
                 cron,
                 new RecurringJobOptions { TimeZone = timeZone })));
 
+        // The weekly regret sample at 09:30 Monday Kyiv (F4 T21, ADR-F4-0003): half an hour after the rating
+        // prompt, the pre-match filter's falsification control. It publishes one RegretSampleDue; the sampler
+        // opens the week once (done-when 1), matches the excluded sample at the cheap tier, records the regret
+        // gauge and alerts on any regret, so a redelivered tick samples — and spends — nothing.
+        services.AddSingleton(new RecurringJobBinding(
+            RegretSampleJobId,
+            RegretSampleCron,
+            (cron, timeZone) => RecurringJob.AddOrUpdate<RegretSampleTrigger>(
+                RegretSampleJobId,
+                trigger => trigger.PublishAsync(),
+                cron,
+                new RecurringJobOptions { TimeZone = timeZone })));
+
         services.AddHostedService<RecurringJobApplier>();
     }
 
@@ -504,6 +518,10 @@ public static class DependencyInjection
     /// <summary>The weekly rating prompt at 09:00 Monday Kyiv (F4 T20, D5): its own message, clear of the 07:00 digest and 08:00 reminder.</summary>
     private const string WeeklyRatingJobId = "weekly-rating";
     private const string WeeklyRatingCron = "0 9 * * 1";
+
+    /// <summary>The weekly regret sample at 09:30 Monday Kyiv (F4 T21, ADR-F4-0003): the pre-match filter's falsification control, just after the rating prompt.</summary>
+    private const string RegretSampleJobId = "regret-sample";
+    private const string RegretSampleCron = "30 9 * * 1";
 
     /// <summary>
     /// Wires the shared outbound HTTP pipeline (SAD §8, QG-2): the politeness options, the SSRF guard,

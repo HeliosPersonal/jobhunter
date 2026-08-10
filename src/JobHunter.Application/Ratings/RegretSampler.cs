@@ -42,6 +42,21 @@ public sealed class RegretSampler(
     private readonly DeliveryOptions _delivery = delivery ?? throw new ArgumentNullException(nameof(delivery));
     private readonly ILogger<RegretSampler> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
+    /// <summary>One week — the half-open window this tick reviews is <c>[DueAt - 7d, DueAt)</c>.</summary>
+    private static readonly TimeSpan Week = TimeSpan.FromDays(7);
+
+    /// <summary>
+    /// The <see cref="RegretSampleDue"/> handler: resolves the previous seven-day week from the tick's stamped
+    /// instant — exactly as the rating loop does, so both weekly ticks agree on which week they review — and
+    /// samples it. Kept a one-liner over <see cref="SampleAsync"/> so the sampler's logic stays unit-tested
+    /// without Hangfire or the bus.
+    /// </summary>
+    public Task Handle(RegretSampleDue message, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        return SampleAsync(message.DueAt - Week, cancellationToken);
+    }
+
     /// <summary>
     /// Samples and scores the week beginning <paramref name="weekStart"/>, records the regret count, and alerts
     /// the Owner on any regret — once per week. A week already sampled returns immediately, before any query or
