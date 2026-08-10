@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Telegram outbound adapter (Task #88). The send path the SCHEDULED handlers depend on — INotifier and the
+    three IDigestRenderer / IWeeklyRatingRenderer / IReminderRenderer implementations, plus their formatting
+    helpers, the send pacer and the callback codec — lives here so BOTH the Worker (which runs the Hangfire
+    crons and therefore the DeliveryHandler / WeeklyRatingHandler / ReminderSweepHandler / RegretSampler) and
+    the bot host can compose it. It is a middle-layer adapter (a sibling of JobHunter.Claude / .Search): it
+    references Application and Domain and is referenced by the hosts, never the other way round, so the
+    dependency-direction rules stay green. The JobHunter.Telegram.* namespaces are kept deliberately, so the
+    move is a project boundary only — no consumer using-directive changes, and the architecture tests that
+    match the namespace prefix keep guarding Application unchanged.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\JobHunter.Application\JobHunter.Application.csproj" />
+    <ProjectReference Include="..\JobHunter.Domain\JobHunter.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The transport, renderers and codec are internal; the bot host and the test suite drive them directly. -->
+    <InternalsVisibleTo Include="JobHunter.Telegram" />
+    <InternalsVisibleTo Include="JobHunter.Telegram.Tests" />
+  </ItemGroup>
+
+</Project>

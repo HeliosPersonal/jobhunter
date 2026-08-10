@@ -9,6 +9,7 @@
     <Project Path="src/JobHunter.Search/JobHunter.Search.csproj" />
     <Project Path="src/JobHunter.Api/JobHunter.Api.csproj" />
     <Project Path="src/JobHunter.Worker/JobHunter.Worker.csproj" />
+    <Project Path="src/JobHunter.Telegram.Transport/JobHunter.Telegram.Transport.csproj" />
     <Project Path="src/JobHunter.Telegram/JobHunter.Telegram.csproj" />
   </Folder>
   <Folder Name="/src/Aspire/">
