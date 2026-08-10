@@ -30,9 +30,33 @@ jobs:
       # TreatWarningsAsErrors=true makes any warning fail the build.
       - run: dotnet build JobHunter.slnx --no-restore -c Release
 
-      # The > 90% line+branch coverage gate is enforced inside this step by the Coverlet threshold in
-      # tests/Directory.Build.props — it fails dotnet test itself, not a later reporting step.
-      - run: dotnet test JobHunter.slnx --no-build -c Release --collect:"XPlat Code Coverage" --settings coverage.runsettings
+      # Collect per-assembly Cobertura coverage. The XPlat collector gathers the data; the > 90%
+      # line+branch gate is enforced by the explicit aggregation + threshold step below (the collector
+      # does not read the Coverlet MSBuild <Threshold>, so the gate must be checked after merging).
+      - run: dotnet test JobHunter.slnx --no-build -c Release --collect:"XPlat Code Coverage" --settings coverage.runsettings --results-directory TestResults
+
+      # Merge every assembly's report and fail the build if line OR branch coverage is below 90%
+      # (Directory.Build.props <ThresholdStat>total). This is the one place the gate actually blocks CI.
+      - name: Enforce coverage gate (line & branch > 90%)
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          reportgenerator \
+            -reports:"TestResults/**/coverage.cobertura.xml" \
+            -targetdir:TestResults/coverage-report \
+            -reporttypes:"Cobertura"
+          python3 - <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          root = ET.parse("TestResults/coverage-report/Cobertura.xml").getroot()
+          line = float(root.get("line-rate", "0")) * 100
+          branch = float(root.get("branch-rate", "0")) * 100
+          print(f"Line coverage:   {line:.1f}%")
+          print(f"Branch coverage: {branch:.1f}%")
+          if line < 90 or branch < 90:
+              print("::error::Coverage gate failed — line and branch must both be > 90%.")
+              sys.exit(1)
+          print("Coverage gate passed.")
+          PY
 
       # Manifests must at least render; an unsubstituted placeholder would surface here as a PR check.
       - name: Render Kustomize overlays

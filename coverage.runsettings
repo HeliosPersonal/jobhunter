@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Coverage collection for CI (ci-cd §2). The > 90% line+branch gate itself is enforced by the
-     Coverlet MSBuild threshold in tests/Directory.Build.props, so it fails the `dotnet test` step
-     rather than a separate reporting step. This file only shapes what XPlat Code Coverage collects. -->
+<!-- Coverage collection for CI (ci-cd §2). This file only shapes what the XPlat Code Coverage collector
+     gathers. The > 90% line+branch gate is enforced by the "Enforce coverage gate" step in the workflow,
+     which merges the per-assembly reports and fails the build below threshold — the collector itself does
+     not read the Coverlet MSBuild <Threshold> in tests/Directory.Build.props (that only applies to a
+     Coverlet-MSBuild `dotnet test /p:CollectCoverage=true` run, which CI does not use). -->
 <RunSettings>
   <DataCollectionRunSettings>
     <DataCollectors>
