@@ -89,6 +89,9 @@ public static class DependencyInjection
         // F4 T20 weekly rating loop: the per-week idempotence gate — a raw ON CONFLICT DO NOTHING upsert whose
         // unique (week_start, chat_id) constraint prompts the Owner once a week and never double-counts ratings.
         services.AddScoped<IRatingRoundLog, RatingRoundLog>();
+        // F4 T21 regret sampler (ADR-F4-0003): the per-week idempotence gate — a raw ON CONFLICT DO NOTHING
+        // upsert whose unique week_start constraint runs the cheap-tier sample once a week and never double-spends.
+        services.AddScoped<IRegretSampleLog, RegretSampleLog>();
         // F5 digest assembly (T03): the read side the assembler draws its cards and suppression breakdown from
         // — every score in the Run joined to its current match's reasons and USD salary, ordered best-first.
         services.AddScoped<IDigestScopeQuery, DigestScopeQuery>();
