@@ -28,7 +28,7 @@ Status: `pending` → `in_progress` → `in_review` → `done`.
 | T07 | [[T07-pipeline-company-commands\|Pipeline and company commands]] | telegram | T05 | M | done |
 | T08 | [[T08-preference-commands\|Profile and preference commands]] | telegram | T05 | M | done |
 | T09 | [[T09-ops-commands\|Operations commands]] | telegram | T05 | M | done |
-| T10 | [[T10-menu-help-conformance\|Menu sync, help, suggestions and conformance suite]] | telegram/tests | T06, T07, T08, T09 | L | pending |
+| T10 | [[T10-menu-help-conformance\|Menu sync, help, suggestions and conformance suite]] | telegram/tests | T06, T07, T08, T09 | L | done |
 
 **10 tasks · 0×S + 9×M + 1×L ≈ 5.5 person-days.**
 

@@ -31,10 +31,15 @@ public sealed class RedeliverCommandHandlerTests
     private readonly IDigestRenderer _renderer = Substitute.For<IDigestRenderer>();
     private readonly IDeliveryLog _deliveryLog = Substitute.For<IDeliveryLog>();
     private readonly IConversationStateStore _state = Substitute.For<IConversationStateStore>();
+    private readonly IOperationScheduler _scheduler = Substitute.For<IOperationScheduler>();
     private readonly FakeClock _clock = new(Now);
 
     private RedeliverCommandHandler NewHandler() =>
-        new(_runs, _digests, _renderer, _deliveryLog, _state, _clock, NullLogger<RedeliverCommandHandler>.Instance);
+        new(_runs, _digests, _renderer, _deliveryLog, _state, _scheduler, _clock, NullLogger<RedeliverCommandHandler>.Instance);
+
+    private static CommandResumeRequest ConfirmResume(string input) =>
+        new(OwnerChat, "confirm",
+            new Dictionary<string, string> { ["runId"] = RunId.ToString("D") }, input);
 
     private static Run DeliveredRun()
     {
@@ -162,6 +167,35 @@ public sealed class RedeliverCommandHandlerTests
     }
 
     [Fact]
+    public async Task A_confirm_reply_enqueues_the_redelivery_and_clears_the_state()
+    {
+        // The confirm tap re-runs delivery the only way a bus-less host can: it enqueues the same
+        // DigestDeliveryTrigger the 07:00 slot fires, which the Worker's server runs and which publishes
+        // DigestDeliveryDue. The delivery log makes it idempotent, so an already-sent card is never re-sent.
+        var messages = await NewHandler().ResumeAsync(ConfirmResume("confirm"));
+
+        _scheduler.Received(1).EnqueueDigestDelivery();
+        await _state.Received(1).ClearAsync(OwnerChat, Arg.Any<CancellationToken>());
+        messages.ShouldHaveSingleItem().Text.ShouldContain("deliver", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task A_non_confirm_reply_enqueues_nothing_and_leaves_the_state_for_another_reply()
+    {
+        var messages = await NewHandler().ResumeAsync(ConfirmResume("later"));
+
+        _scheduler.DidNotReceive().EnqueueDigestDelivery();
+        await _state.DidNotReceive().ClearAsync(Arg.Any<long>(), Arg.Any<CancellationToken>());
+        messages.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task A_null_resume_request_is_rejected()
+    {
+        await Should.ThrowAsync<ArgumentNullException>(() => NewHandler().ResumeAsync(null!));
+    }
+
+    [Fact]
     public async Task A_null_request_is_rejected()
     {
         await Should.ThrowAsync<ArgumentNullException>(() => NewHandler().HandleAsync(null!));
@@ -170,12 +204,13 @@ public sealed class RedeliverCommandHandlerTests
     [Fact]
     public void Constructor_rejects_null_dependencies()
     {
-        Should.Throw<ArgumentNullException>(() => new RedeliverCommandHandler(null!, _digests, _renderer, _deliveryLog, _state, _clock, NullLogger<RedeliverCommandHandler>.Instance));
-        Should.Throw<ArgumentNullException>(() => new RedeliverCommandHandler(_runs, null!, _renderer, _deliveryLog, _state, _clock, NullLogger<RedeliverCommandHandler>.Instance));
-        Should.Throw<ArgumentNullException>(() => new RedeliverCommandHandler(_runs, _digests, null!, _deliveryLog, _state, _clock, NullLogger<RedeliverCommandHandler>.Instance));
-        Should.Throw<ArgumentNullException>(() => new RedeliverCommandHandler(_runs, _digests, _renderer, null!, _state, _clock, NullLogger<RedeliverCommandHandler>.Instance));
-        Should.Throw<ArgumentNullException>(() => new RedeliverCommandHandler(_runs, _digests, _renderer, _deliveryLog, null!, _clock, NullLogger<RedeliverCommandHandler>.Instance));
-        Should.Throw<ArgumentNullException>(() => new RedeliverCommandHandler(_runs, _digests, _renderer, _deliveryLog, _state, null!, NullLogger<RedeliverCommandHandler>.Instance));
-        Should.Throw<ArgumentNullException>(() => new RedeliverCommandHandler(_runs, _digests, _renderer, _deliveryLog, _state, _clock, null!));
+        Should.Throw<ArgumentNullException>(() => new RedeliverCommandHandler(null!, _digests, _renderer, _deliveryLog, _state, _scheduler, _clock, NullLogger<RedeliverCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new RedeliverCommandHandler(_runs, null!, _renderer, _deliveryLog, _state, _scheduler, _clock, NullLogger<RedeliverCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new RedeliverCommandHandler(_runs, _digests, null!, _deliveryLog, _state, _scheduler, _clock, NullLogger<RedeliverCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new RedeliverCommandHandler(_runs, _digests, _renderer, null!, _state, _scheduler, _clock, NullLogger<RedeliverCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new RedeliverCommandHandler(_runs, _digests, _renderer, _deliveryLog, null!, _scheduler, _clock, NullLogger<RedeliverCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new RedeliverCommandHandler(_runs, _digests, _renderer, _deliveryLog, _state, null!, _clock, NullLogger<RedeliverCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new RedeliverCommandHandler(_runs, _digests, _renderer, _deliveryLog, _state, _scheduler, null!, NullLogger<RedeliverCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new RedeliverCommandHandler(_runs, _digests, _renderer, _deliveryLog, _state, _scheduler, _clock, null!));
     }
 }

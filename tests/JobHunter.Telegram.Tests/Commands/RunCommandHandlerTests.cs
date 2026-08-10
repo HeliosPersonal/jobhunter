@@ -28,11 +28,15 @@ public sealed class RunCommandHandlerTests
     private readonly IRunRepository _runs = Substitute.For<IRunRepository>();
     private readonly ILiveJobsQuery _liveJobs = Substitute.For<ILiveJobsQuery>();
     private readonly IConversationStateStore _state = Substitute.For<IConversationStateStore>();
+    private readonly IOperationScheduler _scheduler = Substitute.For<IOperationScheduler>();
     private readonly FakeClock _clock = new(Now);
     private readonly RunOptions _options = new() { CeilingUsd = 2.00m, InitialLookBack = TimeSpan.FromHours(24) };
 
     private RunCommandHandler NewHandler() =>
-        new(_runs, _liveJobs, _state, _clock, _options, NullLogger<RunCommandHandler>.Instance);
+        new(_runs, _liveJobs, _state, _scheduler, _clock, _options, NullLogger<RunCommandHandler>.Instance);
+
+    private static CommandResumeRequest ConfirmResume(string input) =>
+        new(OwnerChat, "confirm", new Dictionary<string, string>(), input);
 
     private static Run LiveRun()
     {
@@ -144,6 +148,49 @@ public sealed class RunCommandHandlerTests
     }
 
     [Fact]
+    public async Task A_confirm_reply_enqueues_the_off_schedule_run_and_clears_the_state()
+    {
+        // The confirm tap starts the Run the only way a bus-less host can: it enqueues the same DailyRunTrigger
+        // the 02:00 schedule fires, which the Worker's server runs and which publishes StartDailyRun. The
+        // handler never runs Wolverine itself (the Telegram host has no bus, by design).
+        var messages = await NewHandler().ResumeAsync(ConfirmResume("confirm"));
+
+        _scheduler.Received(1).EnqueueDailyRun();
+        await _state.Received(1).ClearAsync(OwnerChat, Arg.Any<CancellationToken>());
+        messages.ShouldHaveSingleItem().Text.ShouldContain("run", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task A_confirm_reply_refuses_when_a_run_went_live_since_the_preview()
+    {
+        // The preview said no Run was live, but one may have started before the Owner confirmed — re-check and
+        // refuse rather than enqueueing a rival trigger. The state is still terminal, so the chat is not wedged.
+        _runs.FindActiveRunAsync(Arg.Any<CancellationToken>()).Returns(LiveRun());
+
+        var messages = await NewHandler().ResumeAsync(ConfirmResume("confirm"));
+
+        _scheduler.DidNotReceive().EnqueueDailyRun();
+        await _state.Received(1).ClearAsync(OwnerChat, Arg.Any<CancellationToken>());
+        messages.ShouldHaveSingleItem().Text.ShouldContain("already", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task A_non_confirm_reply_enqueues_nothing_and_leaves_the_state_for_another_reply()
+    {
+        var messages = await NewHandler().ResumeAsync(ConfirmResume("no thanks"));
+
+        _scheduler.DidNotReceive().EnqueueDailyRun();
+        await _state.DidNotReceive().ClearAsync(Arg.Any<long>(), Arg.Any<CancellationToken>());
+        messages.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task A_null_resume_request_is_rejected()
+    {
+        await Should.ThrowAsync<ArgumentNullException>(() => NewHandler().ResumeAsync(null!));
+    }
+
+    [Fact]
     public async Task A_null_request_is_rejected()
     {
         await Should.ThrowAsync<ArgumentNullException>(() => NewHandler().HandleAsync(null!));
@@ -152,11 +199,12 @@ public sealed class RunCommandHandlerTests
     [Fact]
     public void Constructor_rejects_null_dependencies()
     {
-        Should.Throw<ArgumentNullException>(() => new RunCommandHandler(null!, _liveJobs, _state, _clock, _options, NullLogger<RunCommandHandler>.Instance));
-        Should.Throw<ArgumentNullException>(() => new RunCommandHandler(_runs, null!, _state, _clock, _options, NullLogger<RunCommandHandler>.Instance));
-        Should.Throw<ArgumentNullException>(() => new RunCommandHandler(_runs, _liveJobs, null!, _clock, _options, NullLogger<RunCommandHandler>.Instance));
-        Should.Throw<ArgumentNullException>(() => new RunCommandHandler(_runs, _liveJobs, _state, null!, _options, NullLogger<RunCommandHandler>.Instance));
-        Should.Throw<ArgumentNullException>(() => new RunCommandHandler(_runs, _liveJobs, _state, _clock, null!, NullLogger<RunCommandHandler>.Instance));
-        Should.Throw<ArgumentNullException>(() => new RunCommandHandler(_runs, _liveJobs, _state, _clock, _options, null!));
+        Should.Throw<ArgumentNullException>(() => new RunCommandHandler(null!, _liveJobs, _state, _scheduler, _clock, _options, NullLogger<RunCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new RunCommandHandler(_runs, null!, _state, _scheduler, _clock, _options, NullLogger<RunCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new RunCommandHandler(_runs, _liveJobs, null!, _scheduler, _clock, _options, NullLogger<RunCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new RunCommandHandler(_runs, _liveJobs, _state, null!, _clock, _options, NullLogger<RunCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new RunCommandHandler(_runs, _liveJobs, _state, _scheduler, null!, _options, NullLogger<RunCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new RunCommandHandler(_runs, _liveJobs, _state, _scheduler, _clock, null!, NullLogger<RunCommandHandler>.Instance));
+        Should.Throw<ArgumentNullException>(() => new RunCommandHandler(_runs, _liveJobs, _state, _scheduler, _clock, _options, null!));
     }
 }

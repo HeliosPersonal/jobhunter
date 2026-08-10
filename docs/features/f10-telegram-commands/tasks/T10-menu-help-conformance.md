@@ -54,11 +54,20 @@ a reviewed snapshot fails the build — the bytes the Owner reads are pinned to 
 **AC-10.** `OwnerGatedUpdateProcessor` drops any update whose chat is not the Owner before dispatch, so
 `/start` from an unauthorised chat returns nothing and never reveals the catalogue.
 
-**Remaining — the confirm-resume rewire (S5).** State-changing commands (`/run`, `/redeliver`, `/note`,
-`/floor`, `/research`, `/forget`, and the `/sources` release button) preview and store a pending
-`ConversationState`; the routing that resumes each on the Owner's `confirm` reply, the `/cancel` handler,
-and the `IConversationStateStore` registration are the last slice of this task and are tracked separately
-until they land.
+**The confirm-resume rewire (S5).** State-changing commands preview and store a pending
+`ConversationState`; the Owner's free-text `confirm` reply resumes them. The `ConversationCoordinator`
+heads dispatch: it reads whatever is pending for the chat, and the pure `ConversationTurnResolver` decides
+whether the message is a resume, a `/cancel`, a supersede, an expiry, or an ordinary command. A resume
+routes through `CommandRouter.ResumeAsync`, which looks the pending command up in the registry and, if it
+is an `IResumableCommandHandler`, hands it a `CommandResumeRequest` carrying only structured context and
+the reply verbatim — the handler completes its own step and clears its own state. `/note` and `/floor`
+resume by applying the confirmed value; `/run` and `/redeliver` reach Worker-side work the way the
+bus-less Api does — through the `IOperationScheduler` Hangfire port (`EnqueueDailyRun` /
+`EnqueueDigestDelivery`), since the Telegram host runs no Wolverine bus. `/run` re-checks for a live Run
+and refuses rather than enqueueing a rival. `/research` and `/forget` act immediately and store no pending
+state, so there is nothing to resume — their `changesState` descriptors are satisfied by the confirmation
+prompt the conformance suite requires. `/cancel` clears the pending state and confirms; an expired or
+superseded state is dropped and the message routes fresh.
 
 ## Links
 

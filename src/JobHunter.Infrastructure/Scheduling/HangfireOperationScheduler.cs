@@ -19,4 +19,10 @@ internal sealed class HangfireOperationScheduler(IBackgroundJobClient jobs) : IO
 
     public string EnqueueReprocess(DateTimeOffset firstSeenFrom) =>
         _jobs.Enqueue<ReprocessTrigger>(trigger => trigger.RunAsync(firstSeenFrom));
+
+    public string EnqueueDailyRun() =>
+        _jobs.Enqueue<DailyRunTrigger>(trigger => trigger.PublishAsync());
+
+    public string EnqueueDigestDelivery() =>
+        _jobs.Enqueue<DigestDeliveryTrigger>(trigger => trigger.PublishAsync());
 }

@@ -1,6 +1,7 @@
 using JobHunter.Application;
 using JobHunter.Infrastructure;
 using JobHunter.Infrastructure.Configuration;
+using JobHunter.Infrastructure.Scheduling;
 using JobHunter.Search;
 using JobHunter.ServiceDefaults;
 using JobHunter.Telegram;
@@ -16,6 +17,20 @@ builder.AddServiceDefaults();
 
 builder.Services.AddJobHunterApplication();
 builder.Services.AddJobHunterInfrastructure(builder.Configuration);
+
+// Hangfire client-only storage so /run and /redeliver can enqueue the daily-run and delivery triggers that the
+// Worker's background server runs (ADR-0004) — the bus-less Telegram host reaches Worker-side work the same way
+// the Api's operational endpoints do. EnableServer stays false and schema preparation is skipped so no connection
+// is opened at boot (the migrator Job owns the schema). The IBackgroundJobClient this registers backs the
+// HangfireOperationScheduler that Infrastructure already binds to IOperationScheduler.
+var hangfire = builder.Configuration.GetSection(HangfireOptions.SectionName).Get<HangfireOptions>()
+               ?? new HangfireOptions();
+var hangfireConnection = builder.Configuration.GetConnectionString("JobHunter")
+                         ?? throw new InvalidOperationException("ConnectionStrings:JobHunter is required.");
+builder.Services.AddJobHunterHangfire(
+    new HangfireOptions { EnableServer = false, SchemaName = hangfire.SchemaName },
+    hangfireConnection,
+    prepareSchema: false);
 
 // The Typesense read adapter behind ISearchQuery, shared with the API — one query path, one configuration.
 builder.Services.AddJobHunterSearch(builder.Configuration);

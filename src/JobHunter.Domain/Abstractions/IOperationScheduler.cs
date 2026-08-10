@@ -18,4 +18,19 @@ public interface IOperationScheduler
     /// returns its operation id (F2 AC-09, runbook R4). The window bounds the offline recompute.
     /// </summary>
     string EnqueueReprocess(DateTimeOffset firstSeenFrom);
+
+    /// <summary>
+    /// Enqueues an off-schedule start of the daily pipeline and returns its operation id (F10 <c>/run</c>).
+    /// Runs the same trigger the 02:00 schedule fires, so the Owner's confirmed <c>/run</c> reaches the Worker
+    /// through Hangfire storage rather than a bus the Telegram host does not run. Idempotent at the
+    /// orchestrator: a live Run makes it a no-op, so a double tap never starts a second Run.
+    /// </summary>
+    string EnqueueDailyRun();
+
+    /// <summary>
+    /// Enqueues a re-delivery of today's digest and returns its operation id (F10 <c>/redeliver</c>). Runs the
+    /// same trigger the 07:00 slot fires; delivery is idempotent per card (invariant 8), so an already-sent
+    /// card is never re-sent. This is how the bus-less Telegram host re-runs delivery on the Owner's confirm.
+    /// </summary>
+    string EnqueueDigestDelivery();
 }

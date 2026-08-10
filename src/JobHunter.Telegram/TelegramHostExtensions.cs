@@ -188,6 +188,7 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<IRunRepository>(),
                 provider.GetRequiredService<ILiveJobsQuery>(),
                 provider.GetRequiredService<IConversationStateStore>(),
+                provider.GetRequiredService<IOperationScheduler>(),
                 provider.GetRequiredService<IClock>(),
                 provider.GetRequiredService<Application.Enrichment.RunOptions>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.RunCommandHandler>>())),
@@ -197,6 +198,7 @@ public static class TelegramHostExtensions
                 provider.GetRequiredService<IDigestRenderer>(),
                 provider.GetRequiredService<IDeliveryLog>(),
                 provider.GetRequiredService<IConversationStateStore>(),
+                provider.GetRequiredService<IOperationScheduler>(),
                 provider.GetRequiredService<IClock>(),
                 provider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Commands.RedeliverCommandHandler>>())),
         };
