@@ -206,6 +206,10 @@ public static class DependencyInjection
         // have wanted, hidden then opened, is the signal the learned model over-suppressed (invariant 11).
         // Read-only Dapper.
         services.AddScoped<IHiddenJobsQuery, HiddenJobsQuery>();
+        // F4 T21 regret sampler (ADR-F4-0003): a sample of the latest Run's pre-match-excluded jobs — a
+        // suppressed score with no match for that job and Run — reconstructed as the match content the deep
+        // tier would have judged, so the sampler measures the filter and only the filter. Read-only Dapper.
+        services.AddScoped<IFilterExcludedSampleQuery, FilterExcludedSampleQuery>();
         // F10 /floor preview (T08, catalogue §Profile): before the explicit salary floor is written, count how
         // many of the latest Run's shown jobs the change would have affected — the same wholly-below,
         // high-confidence, same-currency rule the ranking's suppression applies, so the preview cannot promise a
