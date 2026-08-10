@@ -176,6 +176,10 @@ coverage*.json
 coverage*.xml
 coverage*.info
 
+# Ad-hoc coverage output directories from local verification runs
+**/cov/
+TestResults/
+
 # Visual Studio code coverage results
 *.coverage
 *.coveragexml
