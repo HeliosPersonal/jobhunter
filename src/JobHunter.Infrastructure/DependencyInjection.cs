@@ -180,6 +180,10 @@ public static class DependencyInjection
         // opened/ignored/saved/applied reactions from signals — over a half-open window, so the command can
         // compare it against the week before. Read-only Dapper.
         services.AddScoped<IWeeklyStatsQuery, WeeklyStatsQuery>();
+        // F4 T20 (weekly precision@10 rating loop): the previous week's top-ten delivered cards — the
+        // denominator the Owner is asked to rate and precision@10 is measured over. Joins delivery_log to
+        // digest_cards over a half-open window. Read-only Dapper.
+        services.AddScoped<IWeeklyTopCardsQuery, WeeklyTopCardsQuery>();
         // F10 /cv (T08): the active CV's metadata only — version, activation date and the count of current
         // matches computed against it — and never its content: the SQL selects version, activated_at and a
         // count, never extracted_text, so the CV crosses exactly one boundary (F4) and it is not this one.
